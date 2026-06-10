@@ -15,6 +15,7 @@ title: "Company Name"
 tags:
   - research
   - internship
+  - add-any-relevant-tags
 created: YYYY-MM-DD
 ---
 -->

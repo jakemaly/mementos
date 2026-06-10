@@ -4,6 +4,9 @@ tags:
   - lecture
   - cs
 created: 2026-06-10
+aliases:
+  - "Intro Lecture"
+  - "Week 1"
 ---
 
 # Lecture 1: Introduction
@@ -20,4 +23,5 @@ created: 2026-06-10
 
 ## References
 
+- [[school/example-course/index]] — Back to Example Course
 - [[school/index]] — Back to School

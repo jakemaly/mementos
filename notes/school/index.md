@@ -15,6 +15,7 @@ title: "Your Title Here"
 tags:
   - lecture
   - cs
+  - add-any-relevant-tags
 created: YYYY-MM-DD
 ---
 -->

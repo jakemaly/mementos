@@ -15,6 +15,7 @@ title: "Book Title"
 tags:
   - book
   - fiction
+  - add-any-relevant-tags
 created: YYYY-MM-DD
 ---
 -->

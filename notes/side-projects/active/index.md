@@ -15,6 +15,7 @@ title: "Project Name"
 tags:
   - web
   - python
+  - add-any-relevant-tags
 status: active
 created: YYYY-MM-DD
 ---

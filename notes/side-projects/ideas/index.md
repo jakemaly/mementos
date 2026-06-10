@@ -15,6 +15,7 @@ title: "Project Name"
 tags:
   - cli
   - rust
+  - add-any-relevant-tags
 status: idea
 created: YYYY-MM-DD
 ---

@@ -15,6 +15,7 @@ title: "Company — Role"
 tags:
   - application
   - internship
+  - add-any-relevant-tags
 status: active
 created: YYYY-MM-DD
 ---

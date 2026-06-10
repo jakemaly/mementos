@@ -15,6 +15,7 @@ title: "Client Name"
 tags:
   - active-client
   - proposal
+  - add-any-relevant-tags
 created: YYYY-MM-DD
 ---
 -->
