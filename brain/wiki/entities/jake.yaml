@@ -1,0 +1,15 @@
+# Jake — Primary entity
+
+name: Jake
+role: Owner of this brain system
+type: Person
+
+## Current stack
+tools: []
+projects: []
+
+## Preferences
+preferences: []
+
+## Notes
+notes: []
