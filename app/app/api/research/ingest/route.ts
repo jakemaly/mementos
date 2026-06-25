@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 
     // Verify collection exists
     const collections = await qdrant.getCollections();
-    const collectionExists = collections.some(
+    const collectionExists = (collections as any).collections?.some(
       (c: any) => c.name === collection
     );
     if (!collectionExists) {

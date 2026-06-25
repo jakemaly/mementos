@@ -19,6 +19,28 @@ interface IngestSummary {
   embeddingTimeMs: number;
 }
 
+interface ResearchSource {
+  url: string;
+  title: string;
+  snippet: string;
+  score: number;
+}
+
+interface ResearchSketch {
+  expectedConcepts: string[];
+  discriminativeTerms: string[];
+  searchQueries: string[];
+}
+
+interface ResearchState {
+  sketch: ResearchSketch | null;
+  sources: ResearchSource[];
+  selectedSources: Set<string>;
+  researching: boolean;
+  ingestingWeb: boolean;
+  ingestWebStatus: string;
+}
+
 export default function Dashboard() {
   // Collections state
   const [collections, setCollections] = useState<string[]>([]);
@@ -43,6 +65,18 @@ export default function Dashboard() {
   const [searching, setSearching] = useState<boolean>(false);
   const [searchResults, setSearchResults] = useState<QueryResult[]>([]);
   const [searchLimit, setSearchLimit] = useState<number>(5);
+
+  // Deep Research state
+  const [researchMode, setResearchMode] = useState<boolean>(false);
+  const [researchQuery, setResearchQuery] = useState<string>('');
+  const [researchDomains, setResearchDomains] = useState<string>('');
+  const [researchFiletypes, setResearchFiletypes] = useState<string>('');
+  const [sketch, setSketch] = useState<ResearchSketch | null>(null);
+  const [sources, setSources] = useState<ResearchSource[]>([]);
+  const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
+  const [researching, setResearching] = useState<boolean>(false);
+  const [ingestingWeb, setIngestingWeb] = useState<boolean>(false);
+  const [ingestWebStatus, setIngestWebStatus] = useState<string>('');
 
   // General error/success alerts
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -245,6 +279,105 @@ export default function Dashboard() {
       setErrorMsg('Network error searching vector database');
     } finally {
       setSearching(false);
+    }
+  };
+
+  // Deep Research handlers
+  const handleResearch = async () => {
+    if (!researchQuery.trim()) {
+      setErrorMsg('Enter a research query');
+      return;
+    }
+
+    setResearching(true);
+    setErrorMsg('');
+    setSketch(null);
+    setSources([]);
+    setSelectedSources(new Set());
+
+    try {
+      const res = await fetch('/api/research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: researchQuery,
+          domains: researchDomains
+            ? researchDomains.split(',').map((d) => d.trim()).filter(Boolean)
+            : [],
+          filetypes: researchFiletypes
+            ? researchFiletypes.split(',').map((f) => f.trim()).filter(Boolean)
+            : [],
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSketch(data.sketch);
+        setSources(data.sources || []);
+      } else {
+        setErrorMsg(data.error || 'Research failed');
+      }
+    } catch {
+      setErrorMsg('Network error during research');
+    } finally {
+      setResearching(false);
+    }
+  };
+
+  const toggleSource = (url: string) => {
+    setSelectedSources((prev) => {
+      const next = new Set(prev);
+      next.has(url) ? next.delete(url) : next.add(url);
+      return next;
+    });
+  };
+
+  const toggleAllSources = () => {
+    setSelectedSources((prev) =>
+      prev.size === sources.length
+        ? new Set()
+        : new Set(sources.map((s) => s.url))
+    );
+  };
+
+  const handleIngestWeb = async () => {
+    if (selectedSources.size === 0 || !selectedCollection) {
+      setErrorMsg('Select sources and a collection to ingest');
+      return;
+    }
+
+    setIngestingWeb(true);
+    setIngestWebStatus('Starting ingestion...');
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      setIngestWebStatus('Fetching and processing selected sources...');
+
+      const res = await fetch('/api/research/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sources: sources.filter((s) => selectedSources.has(s.url)),
+          collection: selectedCollection,
+          chunkSize,
+          chunkOverlap,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSuccessMsg(data.message || 'Ingestion complete!');
+        setIngestWebStatus('');
+      } else {
+        setErrorMsg(data.error || 'Ingestion failed');
+      }
+    } catch {
+      setErrorMsg('Network error during ingestion');
+    } finally {
+      setIngestingWeb(false);
     }
   };
 
@@ -613,6 +746,166 @@ export default function Dashboard() {
           </div>
         </section>
       </main>
+
+      {/* Deep Research Section */}
+      <section className={styles.card} style={{ maxWidth: '100%', margin: '0 1.25rem 1.25rem', width: 'calc(100% - 2.5rem)' }}>
+        <h2 className={styles.cardTitle}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '2px'}}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          Deep Research (SIRA)
+        </h2>
+
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <textarea
+            className={styles.input}
+            placeholder="Enter your research query..."
+            value={researchQuery}
+            onChange={(e) => setResearchQuery(e.target.value)}
+            disabled={researching}
+            rows={3}
+            style={{ flex: '1', minWidth: '250px', resize: 'vertical' }}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '200px' }}>
+            <input
+              type="text"
+              className={styles.input}
+              placeholder="Domains (e.g. arxiv.org, github.com)"
+              value={researchDomains}
+              onChange={(e) => setResearchDomains(e.target.value)}
+              disabled={researching}
+            />
+            <input
+              type="text"
+              className={styles.input}
+              placeholder="Filetypes (e.g. pdf, html)"
+              value={researchFiletypes}
+              onChange={(e) => setResearchFiletypes(e.target.value)}
+              disabled={researching}
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={handleResearch}
+          className={`${styles.btn} ${styles.btnAccent}`}
+          disabled={researching || !researchQuery.trim()}
+        >
+          {researching ? 'Running Research...' : 'Run Deep Research'}
+        </button>
+
+        {/* Sketch Display */}
+        {sketch && (
+          <div>
+            <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+              Expected-Response Sketch
+            </h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
+              {sketch.expectedConcepts.map((c, i) => (
+                <span key={i} className={styles.pill} style={{ background: 'rgba(79, 70, 229, 0.08)', color: 'var(--primary)', border: '1px solid rgba(79, 70, 229, 0.15)' }}>
+                  {c}
+                </span>
+              ))}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+              {sketch.discriminativeTerms.map((t, i) => (
+                <span key={i} className={styles.pill} style={{ background: 'rgba(13, 148, 136, 0.08)', color: 'var(--accent)', border: '1px solid rgba(13, 148, 136, 0.15)' }}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sources List */}
+        {sources.length > 0 && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Discovered Sources ({sources.length})
+              </h3>
+              <button
+                onClick={toggleAllSources}
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem' }}
+              >
+                {selectedSources.size === sources.length ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.4rem' }}>
+              {sources.map((source) => (
+                <div
+                  key={source.url}
+                  className={styles.resultCard}
+                  style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', cursor: 'pointer' }}
+                  onClick={() => toggleSource(source.url)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedSources.has(source.url)}
+                    onChange={() => toggleSource(source.url)}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ marginTop: '0.25rem', accentColor: 'var(--primary)' }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {source.title}
+                      </span>
+                      <span className={`${styles.scoreBadge} ${source.score >= 0.3 ? styles.scoreHigh : styles.scoreMid}`}>
+                        {(source.score * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {source.snippet}
+                    </p>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                      {source.url}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Ingest Controls */}
+            <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                {selectedSources.size} selected → ingest into
+              </span>
+              <select
+                className={styles.select}
+                value={selectedCollection}
+                onChange={(e) => setSelectedCollection(e.target.value)}
+                disabled={ingestingWeb}
+                style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem' }}
+              >
+                {collections.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleIngestWeb}
+                className={`${styles.btn} ${styles.btnAccent}`}
+                disabled={ingestingWeb || selectedSources.size === 0 || !selectedCollection}
+                style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}
+              >
+                {ingestingWeb ? 'Ingesting...' : `Ingest ${selectedSources.size} Sources`}
+              </button>
+            </div>
+
+            {ingestingWeb && (
+              <div className={styles.progressContainer} style={{ marginTop: '0.75rem' }}>
+                <div className={styles.progressLabel}>
+                  <span>{ingestWebStatus || 'Processing...'}</span>
+                  <span className={styles.progressSpinner}></span>
+                </div>
+                <div className={styles.progressBarContainer}>
+                  <div className={styles.progressBar} style={{ width: '60%', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
