@@ -253,39 +253,47 @@ export default function Dashboard() {
       <header className={styles.header}>
         <div className={styles.logoArea}>
           <div className={styles.logoIcon}></div>
-          <h1 className={styles.logoTitle}>NeuralIngest v1</h1>
+          <h1 className={styles.logoTitle}>NeuralIngest</h1>
         </div>
         <div className={styles.dbBadge}>
           <div className={styles.dbIndicator}></div>
-          <span>Qdrant Vector DB Active</span>
+          <span>Qdrant Active</span>
         </div>
       </header>
 
       {/* Top Banner Alert System */}
       {errorMsg && (
         <div style={{
-          background: 'rgba(239, 68, 68, 0.15)',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          color: '#fca5a5',
-          padding: '0.75rem 2rem',
+          background: 'rgba(248, 113, 113, 0.1)',
+          borderBottom: '1px solid rgba(248, 113, 113, 0.2)',
+          color: '#f87171',
+          padding: '1rem 2rem',
           textAlign: 'center',
           fontSize: '0.9rem',
-          animation: 'slideUp 0.2s ease-out'
+          fontWeight: '500',
+          animation: 'fadeIn 0.2s ease-out',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
         }}>
-          ⚠️ {errorMsg}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{display: 'inline', marginRight: '8px', verticalAlign: 'middle'}}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          {errorMsg}
         </div>
       )}
       {successMsg && (
         <div style={{
-          background: 'rgba(16, 185, 129, 0.15)',
-          border: '1px solid rgba(16, 185, 129, 0.3)',
-          color: '#a7f3d0',
-          padding: '0.75rem 2rem',
+          background: 'rgba(52, 211, 153, 0.1)',
+          borderBottom: '1px solid rgba(52, 211, 153, 0.2)',
+          color: '#34d399',
+          padding: '1rem 2rem',
           textAlign: 'center',
           fontSize: '0.9rem',
-          animation: 'slideUp 0.2s ease-out'
+          fontWeight: '500',
+          animation: 'fadeIn 0.2s ease-out',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
         }}>
-          ✓ {successMsg}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{display: 'inline', marginRight: '8px', verticalAlign: 'middle'}}><polyline points="20 6 9 17 4 12"></polyline></svg>
+          {successMsg}
         </div>
       )}
 
@@ -293,7 +301,8 @@ export default function Dashboard() {
         {/* Left Column: Configuration & Collections */}
         <section className={styles.card}>
           <h2 className={styles.cardTitle}>
-            <span>⚙️</span> Collection Configuration
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '2px'}}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            Collection Configuration
           </h2>
 
           {/* Select Collection */}
@@ -349,7 +358,7 @@ export default function Dashboard() {
           <hr style={{ border: 'none', borderTop: '1px solid var(--border-muted)' }} />
 
           {/* Ingestion Parameters */}
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#ffffff' }}>Chunking Rules</h3>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>Chunking Rules</h3>
           
           <div className={styles.formGroup}>
             <div className={styles.label}>
@@ -395,7 +404,8 @@ export default function Dashboard() {
         {/* Center Column: Drag-and-drop & Ingest status */}
         <section className={styles.card}>
           <h2 className={styles.cardTitle}>
-            <span>📥</span> File Ingestion Portal
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '2px'}}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            File Ingestion Portal
           </h2>
 
           {!file ? (
@@ -414,7 +424,9 @@ export default function Dashboard() {
                 accept=".txt,.md"
                 style={{ display: 'none' }}
               />
-              <div className={styles.dropzoneIcon}>📄</div>
+              <div className={styles.dropzoneIcon}>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              </div>
               <div style={{ textAlign: 'center' }}>
                 <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Drag & drop your text file here</p>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -427,7 +439,9 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className={styles.dropzone} style={{ borderStyle: 'solid', borderColor: 'var(--primary)' }}>
-              <div className={styles.dropzoneIcon} style={{ color: 'var(--primary)' }}>📝</div>
+              <div className={styles.dropzoneIcon} style={{ color: 'var(--primary)' }}>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              </div>
               <div className={styles.fileInfo}>
                 <p className={styles.fileName}>{file.name}</p>
                 <p className={styles.fileSize}>{(file.size / 1024).toFixed(1)} KB</p>
@@ -464,7 +478,7 @@ export default function Dashboard() {
                 {ingestStatus}
               </p>
               <div className={styles.progressBarContainer}>
-                <div className={styles.progressBar} style={{ width: '60%', animation: 'pulseGlow 1.5s infinite' }}></div>
+                <div className={styles.progressBar} style={{ width: '60%' }}></div>
               </div>
             </div>
           )}
@@ -473,7 +487,7 @@ export default function Dashboard() {
           {ingestSummary && (
             <div className={styles.summaryContainer}>
               <div className={styles.summaryHeader}>
-                <span>✓</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 <span>File Ingested Successfully!</span>
               </div>
               <div className={styles.summaryGrid}>
@@ -503,7 +517,8 @@ export default function Dashboard() {
         {/* Right Column: Query & Similarity Results */}
         <section className={styles.card}>
           <h2 className={styles.cardTitle}>
-            <span>🔍</span> Vector Search Query
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '2px'}}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            Vector Search Query
           </h2>
 
           <form onSubmit={handleSearch} className={styles.searchBox}>
@@ -515,7 +530,9 @@ export default function Dashboard() {
               onChange={(e) => setSearchQuery(e.target.value)}
               disabled={searching || !selectedCollection}
             />
-            <span className={styles.searchIcon}>🔍</span>
+            <span className={styles.searchIcon}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </span>
 
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -564,8 +581,9 @@ export default function Dashboard() {
                     <div className={styles.resultHeader}>
                       <div className={styles.resultMeta}>
                         <span className={styles.resultTag}>#{result.chunkIndex + 1}</span>
-                        <span title={result.filename} style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '180px' }}>
-                          📁 {result.filename}
+                        <span title={result.filename} style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', maxWidth: '180px' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px', flexShrink: 0}}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                          {result.filename}
                         </span>
                       </div>
                       <span className={`${styles.scoreBadge} ${scoreClass}`}>
