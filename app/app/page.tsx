@@ -1050,7 +1050,7 @@ export default function Dashboard() {
         </h2>
 
         {/* Query Row */}
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div className={styles.ragIngestRow} style={{ flexWrap: 'wrap' }}>
           <input
             type="text"
             className={styles.input}
@@ -1084,27 +1084,15 @@ export default function Dashboard() {
 
         {/* Loading state */}
         {ragQuerying && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem 0' }}>
+          <div className={styles.ragLoading}>
             <div className={styles.progressSpinner}></div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Querying knowledge graph ({ragMode} mode)...</span>
+            <span className={styles.ragLoadingText}>Querying knowledge graph ({ragMode} mode)...</span>
           </div>
         )}
 
         {/* Answer Display */}
         {ragAnswer && (
-          <div style={{
-            background: 'rgba(79, 70, 229, 0.04)',
-            border: '1px solid rgba(79, 70, 229, 0.12)',
-            borderRadius: '8px',
-            padding: '1.25rem',
-            whiteSpace: 'pre-wrap',
-            fontSize: '0.9rem',
-            lineHeight: '1.6',
-            color: 'var(--text-primary)',
-            maxHeight: '400px',
-            overflowY: 'auto',
-            paddingRight: '0.4rem',
-          }}>
+          <div className={styles.ragAnswer}>
             {ragAnswer}
           </div>
         )}
@@ -1115,21 +1103,19 @@ export default function Dashboard() {
         <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Ingest into Knowledge Graph</h3>
 
         {/* Text ingestion */}
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+        <div className={styles.ragIngestRow}>
           <textarea
-            className={styles.input}
+            className={`${styles.input} ${styles.ragIngestTextarea}`}
             placeholder="Paste text to ingest into the knowledge graph..."
             value={ragIngestText}
             onChange={(e) => setRagIngestText(e.target.value)}
             disabled={ragIngesting}
             rows={3}
-            style={{ flex: '1', resize: 'vertical' }}
           />
           <button
             onClick={handleRagIngestText}
-            className={`${styles.btn} ${styles.btnSecondary}`}
+            className={`${styles.btn} ${styles.btnSecondary} ${styles.ragIngestBtn}`}
             disabled={ragIngesting || !ragIngestText.trim()}
-            style={{ height: '40px' }}
           >
             {ragIngesting ? '...' : 'Ingest'}
           </button>
