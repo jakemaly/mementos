@@ -2,63 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { qdrant } from '@/lib/qdrant';
 import { getEmbedding } from '@/lib/embeddings';
-
-// Helper to split text into overlapping chunks with word boundary alignment
-function splitTextIntoChunks(
-  text: string,
-  chunkSize: number,
-  chunkOverlap: number
-): { text: string; charStart: number; charEnd: number }[] {
-  const chunks: { text: string; charStart: number; charEnd: number }[] = [];
-  if (!text) return chunks;
-
-  let start = 0;
-  const textLength = text.length;
-
-  while (start < textLength) {
-    let end = start + chunkSize;
-
-    if (end < textLength) {
-      // Look back up to 25% of chunk size to find a natural split point (newline or space)
-      const lookbackLimit = Math.floor(chunkSize * 0.25);
-      const sub = text.substring(end - lookbackLimit, end);
-
-      const lastNewline = sub.lastIndexOf('\n');
-      if (lastNewline !== -1) {
-        end = end - lookbackLimit + lastNewline;
-      } else {
-        const lastSpace = sub.lastIndexOf(' ');
-        if (lastSpace !== -1) {
-          end = end - lookbackLimit + lastSpace;
-        }
-      }
-    }
-
-    const chunkText = text.substring(start, end).trim();
-    if (chunkText.length > 0) {
-      chunks.push({
-        text: chunkText,
-        charStart: start,
-        charEnd: end,
-      });
-    }
-
-    // Move next start pointer by subtracting overlap
-    const nextStart = end - chunkOverlap;
-    
-    // Safety check to prevent infinite loops or non-progress
-    if (nextStart >= end) {
-      start = end;
-    } else if (nextStart <= start) {
-      // Ensure we always move forward by at least some characters
-      start = start + Math.max(1, Math.floor(chunkSize * 0.5));
-    } else {
-      start = nextStart;
-    }
-  }
-
-  return chunks;
-}
+import { splitTextIntoChunks } from '@/lib/text';
 
 export async function POST(request: Request) {
   try {
