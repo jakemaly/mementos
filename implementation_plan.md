@@ -1,117 +1,181 @@
-# Implementation Plan: SIRA Deep-Research Framework
+# Implementation Plan: LightRAG Graph-Enhanced RAG Integration
 
 ## Overview
 
-5 sequential steps. Each step leaves the codebase in a working state. Build follows the dependency graph: shared utility → API endpoints → UI.
+7 sequential steps. Each step leaves the codebase in a working state. Build follows the dependency graph: sidecar foundation → sidecar endpoints → Next.js proxy → frontend UI.
 
 ## Architecture Decisions
 
-- **No new npm dependencies.** LLM and Tavily calls use native `fetch`. This is the laziest path — the project already has no HTTP client library, and adding one for two `fetch` calls is overhead.
-- **LLM prompt is inline in the route.** No prompt template library needed. One prompt string.
-- **Research ingest reuses `splitTextIntoChunks` and `getEmbedding`.** No pipeline abstraction — the route handler does the loop directly, same pattern as `ingest/route.ts`.
-- **UI mode toggle in header.** Simplest integration with existing 3-column layout.
+- **Single-file sidecar (`main.py`).** No abstractions. LightRAG init at module level, two POST routes.
+- **Blocking LightRAG API.** Use `rag.insert()` and `rag.query()` (synchronous) — FastAPI routes handle one request at a time for RAG, which is fine for local dev. Async variants (`ainsert`/`aquery`) add complexity without benefit at this scale.
+- **sentence-transformers embedding function.** Pass a callable to LightRAG's `embedding_func` parameter wrapping `SentenceTransformer('all-MiniLM-L6-v2')`. This produces 384-dim vectors matching the existing Next.js embeddings.
+- **Qdrant vector storage.** Use `QdrantVectorDBStorage` from `lightrag.kg.qdrant_impl`. LightRAG handles the collection naming internally (prefixes with namespace).
+- **LLM via OpenAI-compatible endpoint.** LightRAG's default `llm_model_func` uses the `OPENAI_API_BASE`/`OPENAI_API_KEY` env vars. No custom LLM wrapper needed.
+- **No new npm dependencies.** Proxy routes use native `fetch`.
 
 ## Task List
 
-### Step 1: Extract `splitTextIntoChunks` to `app/lib/text.ts`
+### Step 1: Python Sidecar Boilerplate — FastAPI + Health Check
 
-**Description:** Move the inline `splitTextIntoChunks` function from `app/app/api/ingest/route.ts` into a shared `app/lib/text.ts`. Update the ingest route to import it. Zero behavioral change.
+**Description:** Create `sidecar/` directory with `requirements.txt` and `main.py`. Set up FastAPI app with a `GET /health` endpoint returning `{"status": "ok"}`.
 
 **Acceptance criteria:**
-- [ ] `app/lib/text.ts` exports `splitTextIntoChunks` with identical signature and behavior
-- [ ] `app/app/api/ingest/route.ts` imports from `@/lib/text` instead of defining inline
-- [ ] `npm run build` succeeds
-- [ ] Existing file ingest still works (same chunking output)
+- [ ] `sidecar/requirements.txt` lists: `fastapi`, `uvicorn`, `lightrag-hku`, `sentence-transformers`, `qdrant-client`, `networkx`
+- [ ] `sidecar/main.py` imports FastAPI, defines app, exposes `GET /health`
+- [ ] Server starts on port 8000 with `uvicorn main:app --host 0.0.0.0 --port 8000`
+- [ ] `curl http://localhost:8000/health` returns `{"status": "ok"}`
 
 **Dependencies:** None
 
 **Files touched:**
-- `app/lib/text.ts` (new)
-- `app/app/api/ingest/route.ts` (edit — remove inline function, add import)
+- `sidecar/requirements.txt` (new)
+- `sidecar/main.py` (new)
 
 **Estimated scope:** XS (2 files)
 
 ---
 
-### Step 2: Create `POST /api/research` — SIRA Sketch + Tavily Search
+### Step 2: LightRAG Initialization — Embeddings + Qdrant + NetworkX
 
-**Description:** Build the research endpoint. Takes a query + optional filters. Calls OpenAI-compatible LLM to generate a sketch (summary + search terms). Calls Tavily with top search terms. Deduplicates and returns results.
+**Description:** Initialize LightRAG in `main.py` with:
+- `embedding_func` wrapping `SentenceTransformer('all-MiniLM-L6-v2')`
+- `vector_storage='QdrantVectorDBStorage'` connecting to Qdrant on localhost:6333
+- `graph_storage='NetworkXStorage'` persisting to `sidecar/data/`
+- LLM configured via env vars (`OPENAI_API_BASE`, `OPENAI_API_KEY`, `OPENAI_MODEL_NAME`)
 
 **Acceptance criteria:**
-- [ ] `POST /api/research` validates query (required, non-empty) and collection (required, must exist)
-- [ ] LLM call returns sketch with summary + 3-7 search terms
-- [ ] Tavily search returns results for top 3 terms
-- [ ] Results are deduplicated by URL
-- [ ] Domain and filetype filters are passed to Tavily when provided
-- [ ] `npm run build` succeeds
+- [ ] LightRAG instance created at module level (lazy init on first request is acceptable)
+- [ ] Embedding function produces 384-dim vectors
+- [ ] Qdrant connection succeeds (no exceptions at startup)
+- [ ] `sidecar/data/` directory created on first write
+- [ ] `GET /health` still returns `{"status": "ok"}`
+- [ ] `sidecar/requirements.txt` updated with any additional dependencies discovered
 
-**Dependencies:** Step 1 (build must pass first)
+**Dependencies:** Step 1
 
 **Files touched:**
-- `app/app/api/research/route.ts` (new)
+- `sidecar/main.py` (edit — add LightRAG init)
+- `sidecar/requirements.txt` (edit — add dependencies if needed)
+
+**Estimated scope:** M (1 file, config-heavy)
+
+---
+
+### Step 3: Sidecar Ingestion Endpoint — POST /insert
+
+**Description:** Implement `POST /insert` in `main.py`. Accepts JSON body with `text` (required) and `filename` (optional). Calls `rag.insert(text)` to ingest text into LightRAG. Returns success response with track ID.
+
+**Acceptance criteria:**
+- [ ] Validates `text` is present and non-empty (400 on invalid)
+- [ ] Calls `rag.insert(text)` successfully
+- [ ] Returns `{"success": true, "message": "...", "track_id": "..."}`
+- [ ] Error handling: catches exceptions, returns 500 with error message
+- [ ] Manual test: `curl -X POST http://localhost:8000/insert -H 'Content-Type: application/json' -d '{"text":"The sky is blue because of Rayleigh scattering."}'` returns success
+
+**Dependencies:** Step 2
+
+**Files touched:**
+- `sidecar/main.py` (edit — add /insert route)
 
 **Estimated scope:** S (1 file)
 
 ---
 
-### Step 3: Create `POST /api/research/ingest` — Fetch + Chunk + Embed + Upsert
+### Step 4: Sidecar Query Endpoint — POST /query
 
-**Description:** Build the research ingest endpoint. Takes a list of URLs. For each URL, fetches full content, extracts text, chunks via `splitTextIntoChunks`, embeds via `getEmbedding`, and upserts to Qdrant. Returns per-URL status.
+**Description:** Implement `POST /query` in `main.py`. Accepts JSON body with `query` (required) and `mode` (optional, default `hybrid`, one of `naive|local|global|hybrid`). Calls `rag.query(query, QueryParam(mode=mode))` and returns the synthesized answer.
 
 **Acceptance criteria:**
-- [ ] `POST /api/research/ingest` validates urls (required, non-empty array) and collection (required, must exist)
-- [ ] Each URL is fetched and text extracted (ponytail: use basic regex to strip HTML tags — no dependency)
-- [ ] Text is chunked using imported `splitTextIntoChunks`
-- [ ] Each chunk is embedded using `getEmbedding`
-- [ ] Points are batch-upserted to Qdrant with payload: text, url, chunk_index, char_start, char_end, total_chunks
-- [ ] Returns per-URL status (success/skipped/error)
-- [ ] `npm run build` succeeds
+- [ ] Validates `query` is present and non-empty (400 on invalid)
+- [ ] Validates `mode` is one of the 4 allowed values (400 on invalid)
+- [ ] Default mode is `hybrid`
+- [ ] Calls `rag.query(query, QueryParam(mode=mode))` successfully
+- [ ] Returns `{"answer": "...", "mode": "..."}`
+- [ ] Error handling: catches exceptions, returns 500 with error message
+- [ ] Manual test: After ingesting text in Step 3, `curl -X POST http://localhost:8000/query -H 'Content-Type: application/json' -d '{"query":"Why is the sky blue?","mode":"hybrid"}'` returns a synthesized answer
 
-**Dependencies:** Step 1 (needs `splitTextIntoChunks` in `lib/text.ts`)
+**Dependencies:** Step 3
 
 **Files touched:**
-- `app/app/api/research/ingest/route.ts` (new)
+- `sidecar/main.py` (edit — add /query route)
 
 **Estimated scope:** S (1 file)
 
 ---
 
-### Step 4: Update `app/app/page.tsx` — Deep Research UI Panel
+### Step 5: Next.js API Proxy Routes — /api/rag/ingest and /api/rag/query
 
-**Description:** Add Deep Research panel to the dashboard. Mode toggle in header switches right column between "Vector Search Query" and "Deep Research". Panel includes query input, domain/filetype filters, research button, sketch display, results list with checkboxes, and ingest controls.
+**Description:** Create two Next.js API routes that proxy frontend requests to the FastAPI sidecar.
+
+**`POST /api/rag/ingest`:** Accepts `{ text, filename? }`, forwards to `http://localhost:8000/insert`.
+**`POST /api/rag/query`:** Accepts `{ query, mode? }`, forwards to `http://localhost:8000/query`.
 
 **Acceptance criteria:**
-- [ ] Header has toggle: "Vector Search" | "Deep Research"
-- [ ] Deep Research mode shows: query input, domain filter, filetype filter, "Research" button
-- [ ] After research: sketch summary (collapsible), results list with checkboxes, title, snippet, score
-- [ ] "Ingest Selected" button appears when results exist, disabled when none checked
-- [ ] Ingestion shows progress and per-URL status
-- [ ] State management uses existing `useState` pattern (no external state lib)
-- [ ] `npm run build` succeeds
+- [ ] `app/app/api/rag/ingest/route.ts` exists
+- [ ] `app/app/api/rag/query/route.ts` exists
+- [ ] Both validate required fields (400 on invalid)
+- [ ] Both forward to sidecar with correct JSON body
+- [ ] Both handle sidecar errors (non-200 response → 502 to client)
+- [ ] Both handle network errors (sidecar down → 503 to client)
+- [ ] `cd app && npm run build` exits 0
 
-**Dependencies:** Step 2 and Step 3 (needs both API routes)
+**Dependencies:** Step 4 (sidecar must have endpoints to proxy)
 
 **Files touched:**
-- `app/app/page.tsx` (edit — add state, handlers, Deep Research JSX)
+- `app/app/api/rag/ingest/route.ts` (new)
+- `app/app/api/rag/query/route.ts` (new)
 
-**Estimated scope:** M (1 file, but large diff)
+**Estimated scope:** S (2 files)
 
 ---
 
-### Step 5: Update `app/app/page.module.css` — Deep Research Styles
+### Step 6: Frontend RAG Query Panel — page.tsx
 
-**Description:** Add CSS classes for Deep Research panel elements. Reuse existing design tokens (`--primary`, `--glass-bg`, etc.).
+**Description:** Add a RAG Query section to `page.tsx`. Includes:
+- Query input (text)
+- Mode selector dropdown (`naive`, `local`, `global`, `hybrid`)
+- "Query" button that calls `POST /api/rag/query`
+- Loading state (spinner)
+- Answer display area (pre-formatted text)
+- Text ingestion area: textarea for pasting text + "Ingest" button that calls `POST /api/rag/ingest`
+- File ingestion: drag-and-drop or file picker for .txt/.md files
 
 **Acceptance criteria:**
-- [ ] Styles for: research query input, filter inputs, sketch summary card, result item with checkbox, ingest button, ingestion progress
-- [ ] Visual consistency with existing glassmorphism design
-- [ ] Responsive behavior matches existing grid breakpoints
-- [ ] `npm run build` succeeds
+- [ ] RAG Query section renders below existing panels (full-width section like Deep Research)
+- [ ] Query input, mode dropdown, and query button are present
+- [ ] Query button calls `POST /api/rag/query` with `{ query, mode }`
+- [ ] Loading state shows during query
+- [ ] Answer renders in a styled container with `white-space: pre-wrap`
+- [ ] Text ingestion textarea + "Ingest" button present
+- [ ] File ingestion (drag-and-drop or file picker) for .txt/.md
+- [ ] File ingestion calls `POST /api/rag/ingest` with `{ text: fileContent, filename: fileName }`
+- [ ] Error/success messages use existing banner system
+- [ ] `cd app && npm run build` exits 0
 
-**Dependencies:** Step 4 (needs the JSX classes)
+**Dependencies:** Step 5 (needs proxy routes)
 
 **Files touched:**
-- `app/app/page.module.css` (edit — append new classes)
+- `app/app/page.tsx` (edit — add RAG state, handlers, JSX)
+
+**Estimated scope:** M (1 file, significant diff)
+
+---
+
+### Step 7: Frontend RAG Styles — page.module.css
+
+**Description:** Add CSS classes for the RAG Query panel. Reuse existing design tokens.
+
+**Acceptance criteria:**
+- [ ] Styles for: query input, mode dropdown, query button, answer display area, ingestion textarea, file dropzone (reuse existing `.dropzone` or add `.ragDropzone`)
+- [ ] Uses existing CSS custom properties
+- [ ] Glassmorphism styling matches existing cards
+- [ ] Responsive at existing breakpoints
+- [ ] `cd app && npm run build` exits 0
+
+**Dependencies:** Step 6 (needs the JSX classes)
+
+**Files touched:**
+- `app/app/page.module.css` (edit — append RAG classes)
 
 **Estimated scope:** XS (1 file)
 
@@ -121,11 +185,12 @@
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Tavily API rate limits | Medium | Batch search terms, not individual. Tavily allows multiple queries per call. |
-| LLM call fails | High | Return empty sketch with Tavily results using the raw query as fallback search term. |
-| URL fetch fails (anti-bot, etc.) | Medium | Per-URL error handling — one failed URL doesn't block others. |
-| HTML extraction is naive | Low | `ponytail:` comment marks it. Upgrade path: `jsdom` or `cheerio` if needed. |
+| sentence-transformers model download slow | Medium | Model downloads on first request; subsequent starts use cache. Acceptable for dev. |
+| LightRAG LLM calls fail (no API key) | High | Sidecar returns 500 with clear error message. User must configure `OPENAI_API_KEY`. |
+| Qdrant connection fails | High | Sidecar startup fails with clear error. Ensure Qdrant Docker container is running. |
+| LightRAG uses different collection naming than existing app | Low | LightRAG namespaces its collections internally. No conflict with existing Qdrant collections. |
+| Memory pressure from embedding model + LightRAG | Low | `all-MiniLM-L6-v2` is ~80MB. Acceptable for local dev. |
 
 ## Open Questions
 
-- None. All decisions made per ponytail lazy-first principle.
+1. **Sidecar process management:** For now, the sidecar is started manually (`uvicorn main:app`). No `docker-compose` integration or process manager. This is the laziest path — add Dockerization only if needed for deployment.

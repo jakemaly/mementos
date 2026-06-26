@@ -1,113 +1,89 @@
-# Spec: SIRA Deep-Research Framework
+# Spec: LightRAG Graph-Enhanced RAG Integration
 
 ## Objective
 
-Add a "Deep Research" panel to the Second Brain dashboard that lets a user enter a research query, get AI-generated search terms (SIRA sketch), see Tavily web results with checkboxes, and optionally ingest selected results into Qdrant for later vector search.
+Add a Python FastAPI sidecar running LightRAG (graph-enhanced RAG with entity-relation extraction) alongside the existing Next.js dashboard. The sidecar handles ingestion and querying via `lightrag-hku` with `sentence-transformers` embeddings and Qdrant vector storage. The Next.js app proxies requests to the sidecar and exposes a RAG query panel on the dashboard with mode selection (`naive`, `local`, `global`, `hybrid`) and file ingestion support.
 
-**SIRA = Search, Investigate, Research, Analyze.** The sketch step uses an LLM to turn a natural-language query into focused search terms. Tavily fetches results. The user picks which ones to ingest. Ingestion fetches full page content, chunks, embeds, and upserts to Qdrant — reusing the existing ingest pipeline.
+**Key difference from existing vector search:** Existing `/api/query` does plain cosine similarity search. LightRAG adds knowledge graph construction (entity extraction, relation discovery) and multi-mode retrieval that leverages graph structure for richer answers.
 
 ## Tech Stack
 
+### Sidecar (Python)
+- **Framework:** FastAPI + uvicorn
+- **RAG Library:** `lightrag-hku` (latest)
+- **Embeddings:** `sentence-transformers` (`all-MiniLM-L6-v2`, 384-dim) — matches existing Next.js model
+- **Vector Storage:** Qdrant via `lightrag.kg.qdrant_impl.QdrantVectorDBStorage` — local instance on port 6333
+- **Graph Storage:** NetworkX via `lightrag.kg.networkx_impl.NetworkXStorage` — persisted to `sidecar/data/`
+- **LLM:** OpenAI-compatible API (`OPENAI_API_BASE`, `OPENAI_API_KEY`, `OPENAI_MODEL_NAME` env vars) — reused from existing research routes
+
+### Next.js (existing)
 - **Framework:** Next.js 16.2.9 (App Router)
 - **Language:** TypeScript
-- **Embeddings:** `@huggingface/transformers` (Xenova/all-MiniLM-L6-v2, 384-dim) — existing
-- **Vector DB:** `@qdrant/js-client-rest` — existing
-- **LLM:** OpenAI-compatible API (`OPENAI_API_BASE`, `OPENAI_API_KEY`, `OPENAI_MODEL_NAME` env vars) — uses native `fetch`, no new dependency
-- **Web Search:** Tavily API (`TAVILY_API_KEY` env var) — uses native `fetch`, no new dependency
-- **CSS:** Vanilla CSS modules (existing `page.module.css`), no new CSS framework
+- **Vector DB:** `@qdrant/js-client-rest` — existing (shared Qdrant instance)
+- **CSS:** Vanilla CSS modules (existing `page.module.css`)
 
 ## Commands
 
 ```
+# Next.js app
 Dev:     npm run dev          (from /home/jake/projects/second-brain/app/)
 Build:   npm run build
-Lint:    npm run lint
-Start:   npm start
+
+# Sidecar
+Dev:     cd sidecar && source venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 ## Project Structure
 
 ```
+sidecar/                          (NEW)
+├── main.py                       (NEW — FastAPI app with LightRAG init + endpoints)
+├── requirements.txt              (NEW — Python dependencies)
+└── data/                         (NEW — runtime: NetworkX graph files, KV storage)
+
 app/
 ├── app/
 │   ├── api/
-│   │   ├── collections/route.ts   (existing)
-│   │   ├── ingest/route.ts        (existing — will remove splitTextIntoChunks)
-│   │   ├── query/route.ts         (existing)
-│   │   ├── research/route.ts      (NEW — SIRA sketch generation)
-│   │   └── research/ingest/route.ts (NEW — fetch + chunk + embed + upsert)
-│   ├── page.tsx                   (existing — will add Deep Research panel)
-│   ├── page.module.css            (existing — will add Deep Research styles)
-│   ├── globals.css                (existing, unchanged)
-│   └── layout.tsx                 (existing, unchanged)
-├── lib/
-│   ├── embeddings.ts              (existing, unchanged)
-│   ├── qdrant.ts                  (existing, unchanged)
-│   └── text.ts                    (NEW — splitTextIntoChunks extracted here)
-├── package.json                   (unchanged — no new dependencies)
-└── ...
+│   │   ├── rag/
+│   │   │   ├── ingest/route.ts   (NEW — proxy to sidecar POST /insert)
+│   │   │   └── query/route.ts    (NEW — proxy to sidecar POST /query)
+│   │   ├── collections/route.ts  (existing, unchanged)
+│   │   ├── ingest/route.ts       (existing, unchanged)
+│   │   ├── query/route.ts        (existing, unchanged)
+│   │   └── research/             (existing, unchanged)
+│   ├── page.tsx                  (edit — add RAG Query panel section)
+│   ├── page.module.css           (edit — add RAG panel styles)
+│   └── ...                       (existing, unchanged)
+└── lib/                          (existing, unchanged)
 ```
 
-## New Env Vars
+## Env Vars
 
-| Var | Purpose | Required? |
-|-----|---------|-----------|
-| `OPENAI_API_BASE` | LLM endpoint URL | Yes |
-| `OPENAI_API_KEY` | LLM auth | Yes |
-| `OPENAI_MODEL_NAME` | Model to use (e.g. `gpt-4o-mini`) | Yes |
-| `TAVILY_API_KEY` | Tavily search auth | Yes |
+| Var | Purpose | Used By |
+|-----|---------|---------|
+| `OPENAI_API_BASE` | LLM endpoint URL | Sidecar (LightRAG), existing research routes |
+| `OPENAI_API_KEY` | LLM auth | Sidecar (LightRAG), existing research routes |
+| `OPENAI_MODEL_NAME` | Model name (e.g. `gpt-4o-mini`) | Sidecar (LightRAG), existing research routes |
+| `QDRANT_URL` | Qdrant endpoint (default `http://localhost:6333`) | Sidecar, existing Next.js app |
+
+No new env vars beyond what already exists for the research routes.
 
 ## Code Style
 
-- Follow existing patterns: `NextResponse.json`, try/catch with 500 fallback, input validation at top of handler
-- No new abstractions — functions are flat, no interfaces unless needed for TS
-- Naming: `camelCase` for functions/vars, `PascalCase` for React components
-- CSS: reuse existing CSS custom properties (`--primary`, `--glass-bg`, etc.)
+- **Sidecar:** Flat `main.py` — no abstractions. FastAPI routes use `Request`/`JSONResponse` or `Response` from `fastapi`. Error handling via try/catch with 500 fallback.
+- **Next.js proxy:** Follow existing pattern — `NextResponse.json`, try/catch, input validation at top of handler.
+- **CSS:** Reuse existing CSS custom properties (`--primary`, `--glass-bg`, etc.).
+- **Naming:** `camelCase` for TS, `snake_case` for Python.
 
 ## API Contracts
 
-### POST /api/research
+### Sidecar: POST /insert
 
 **Request:**
 ```json
 {
-  "query": "string (required, non-empty)",
-  "collection": "string (required, must exist in Qdrant)",
-  "domainFilter": "string (optional, e.g. 'github.com')",
-  "filetypeFilter": "string (optional, e.g. 'pdf')"
-}
-```
-
-**Response:**
-```json
-{
-  "sketch": {
-    "summary": "string — LLM-generated overview",
-    "searchTerms": ["string"] — 3-7 focused search terms
-  },
-  "results": [
-    {
-      "url": "string",
-      "title": "string",
-      "snippet": "string",
-      "score": "number (Tavily relevance 0-1)",
-      "selected": "boolean (default false)"
-    }
-  ]
-}
-```
-
-**Flow:** LLM generates sketch → Tavily searches with top 3 terms → deduplicates results → returns sketch + results.
-
-### POST /api/research/ingest
-
-**Request:**
-```json
-{
-  "urls": ["string"] — list of URLs to fetch and ingest,
-  "collection": "string (required, must exist in Qdrant)",
-  "chunkSize": "number (optional, default 500)",
-  "chunkOverlap": "number (optional, default 50)"
+  "text": "string (required, non-empty)",
+  "filename": "string (optional, for metadata)"
 }
 ```
 
@@ -115,48 +91,89 @@ app/
 ```json
 {
   "success": true,
-  "ingested": [
-    {
-      "url": "string",
-      "chunksCount": "number",
-      "status": "success | skipped | error",
-      "error": "string (optional, only if error)"
-    }
-  ],
-  "totalChunks": "number"
+  "message": "string",
+  "track_id": "string (LightRAG track ID)"
 }
 ```
 
-**Flow:** For each URL, fetch full HTML → extract text → chunk via `splitTextIntoChunks` → embed via `getEmbedding` → batch upsert to Qdrant.
+**Flow:** Pass text to `rag.insert(text)`. LightRAG handles chunking, embedding, entity extraction, graph construction, and vector upsert.
+
+### Sidecar: POST /query
+
+**Request:**
+```json
+{
+  "query": "string (required, non-empty)",
+  "mode": "string (optional, one of: naive, local, global, hybrid, default: hybrid)"
+}
+```
+
+**Response:**
+```json
+{
+  "answer": "string (LLM-synthesized markdown response)",
+  "mode": "string (the mode used)"
+}
+```
+
+**Flow:** Call `rag.query(query, QueryParam(mode=mode))`. LightRAG retrieves relevant chunks via the selected strategy, constructs context from the knowledge graph, and calls the LLM to synthesize an answer.
+
+### Next.js: POST /api/rag/ingest
+
+**Request:**
+```json
+{
+  "text": "string (required, non-empty)",
+  "filename": "string (optional)"
+}
+```
+
+**Response:** Proxied response from sidecar `/insert`.
+
+**Flow:** Validate input → forward to `http://localhost:8000/insert` → return response.
+
+### Next.js: POST /api/rag/query
+
+**Request:**
+```json
+{
+  "query": "string (required, non-empty)",
+  "mode": "string (optional, default: hybrid)"
+}
+```
+
+**Response:** Proxied response from sidecar `/query`.
+
+**Flow:** Validate input → forward to `http://localhost:8000/query` → return response.
 
 ## UI Changes
 
-The existing `page.tsx` has a 3-column grid: Config | File Ingest | Search Query. The Deep Research panel replaces the Search Query section (right column) when the user selects "Deep Research" mode. A toggle button in the header or above the right column switches between "Vector Search" and "Deep Research" modes.
+Add a new section to `page.tsx` below the existing Deep Research section (or as a new full-width section). The RAG Query panel contains:
 
-**Deep Research Panel contains:**
-1. Query input (text, wider than current search)
-2. Optional domain filter (text input) and filetype filter (text input)
-3. "Research" button
-4. Loading state (spinner + message)
-5. Sketch summary (collapsible)
-6. Results list with checkboxes, title, snippet, score badge
-7. "Ingest Selected" button (disabled when none selected)
-8. Ingestion progress and summary
+1. **RAG Query input** (text input)
+2. **Mode selector** (dropdown: `naive`, `local`, `global`, `hybrid`)
+3. **"Query" button**
+4. **Loading state** (spinner + message)
+5. **Markdown answer display** (renders the synthesized response)
+6. **File/text ingestion area** (textarea for pasting text, or file upload for .txt/.md files)
 
-## Testing Strategy
+The existing Vector Search panel (`/api/query`) and Deep Research panel remain unchanged. The RAG panel is a separate, independent section.
 
-No test framework exists in the project. Ponytail mode: no test framework addition. Each step is verified manually via `npm run build` and browser testing.
+**Ponytail note:** No markdown rendering library. The answer is displayed as pre-formatted text (`<pre>` or `white-space: pre-wrap`) — LightRAG returns plain text with basic formatting, not full markdown. If rich markdown rendering is needed later, add `react-markdown`.
 
 ## Boundaries
 
-- **Always do:** Validate all inputs at trust boundaries, reuse existing `getEmbedding`/`qdrant`/`splitTextIntoChunks`, keep CSS in existing module
-- **Ask first:** Adding new npm dependencies, changing existing API contracts
-- **Never do:** Add test frameworks, add Tailwind, change existing API routes' response format, modify `embeddings.ts` or `qdrant.ts`
+- **Always do:** Validate all inputs at trust boundaries, reuse existing env vars, keep sidecar in a single `main.py`
+- **Ask first:** Adding new npm or pip dependencies beyond what is specified
+- **Never do:** Modify existing API routes (`/api/collections`, `/api/ingest`, `/api/query`, `/api/research`), modify existing `lib/` files, add test frameworks, add Tailwind
 
 ## Success Criteria
 
-1. `splitTextIntoChunks` lives in `app/lib/text.ts` and is imported by `app/app/api/ingest/route.ts` (no functional change)
-2. `POST /api/research` returns a sketch + Tavily results for a valid query
-3. `POST /api/research/ingest` fetches URLs, chunks, embeds, and upserts to Qdrant
-4. Dashboard has a Deep Research panel with query input, filters, results with checkboxes, and ingestion controls
-5. `npm run build` succeeds with zero errors
+1. Sidecar starts on port 8000, health check returns `{"status": "ok"}`
+2. LightRAG initializes with sentence-transformers embedding + Qdrant vector storage + NetworkX graph
+3. `POST /insert` ingests text and builds the knowledge graph
+4. `POST /query` returns synthesized answers for all 4 modes
+5. Next.js proxy routes forward to sidecar correctly
+6. Dashboard has RAG Query panel with mode selector and answer display
+7. File ingestion works end-to-end from frontend through sidecar to LightRAG
+8. `npm run build` succeeds with zero errors

@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+lightrag-hku
+sentence-transformers
+qdrant-client
+networkx
