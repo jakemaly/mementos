@@ -1,8 +1,9 @@
+import asyncio
 import logging
 import os
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -76,12 +77,17 @@ def _create_rag():
 
 
 # ponytail: lazy init — defer until first call so Qdrant blips on startup don't kill the server
-_rag: LightRAG | None = None
+_rag: "LightRAG | None" = None
+_rag_lock = asyncio.Lock()
 
-def get_rag():
+async def get_rag():
     global _rag
     if _rag is None:
-        _rag = _create_rag()
+        async with _rag_lock:
+            if _rag is None:  # double-check after lock
+                _rag = _create_rag()
+                await _rag.initialize_storages()
+                logger.info("LightRAG storages initialized")
     return _rag
 
 
@@ -99,3 +105,30 @@ async def handle_exception(request, exc):
 @app.get("/health")
 async def health():
     return JSONResponse({"status": "ok"})
+
+
+@app.post("/insert")
+async def insert(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON body"})
+
+    text = data.get("text")
+
+    if not text or not isinstance(text, str) or not text.strip():
+        return JSONResponse(status_code=400, content={"error": "text is required and must be non-empty"})
+
+    filename = data.get("filename")  # ponytail: stored for metadata; not yet used by LightRAG
+
+    try:
+        rag = await get_rag()
+        track_id = await rag.ainsert(text)
+        return JSONResponse({
+            "success": True,
+            "message": f"Ingested {len(text)} characters",
+            "track_id": track_id,
+        })
+    except Exception as e:
+        logger.exception("Insert failed")
+        return JSONResponse(status_code=500, content={"error": str(e)})
