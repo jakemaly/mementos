@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from lightrag.lightrag import QueryParam
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("sidecar")
@@ -107,12 +108,17 @@ async def health():
     return JSONResponse({"status": "ok"})
 
 
+_VALID_MODES = {"naive", "local", "global", "hybrid"}
+
 @app.post("/insert")
 async def insert(request: Request):
     try:
         data = await request.json()
     except Exception:
         return JSONResponse(status_code=400, content={"error": "Invalid JSON body"})
+
+    if not isinstance(data, dict):
+        return JSONResponse(status_code=400, content={"error": "JSON body must be an object"})
 
     text = data.get("text")
 
@@ -131,4 +137,33 @@ async def insert(request: Request):
         })
     except Exception as e:
         logger.exception("Insert failed")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/query")
+async def query(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON body"})
+
+    if not isinstance(data, dict):
+        return JSONResponse(status_code=400, content={"error": "JSON body must be an object"})
+
+    q = data.get("query")
+
+    if not q or not isinstance(q, str) or not q.strip():
+        return JSONResponse(status_code=400, content={"error": "query is required and must be non-empty"})
+
+    mode = data.get("mode", "hybrid")
+
+    if mode not in _VALID_MODES:
+        return JSONResponse(status_code=400, content={"error": f"mode must be one of: {', '.join(sorted(_VALID_MODES))}"})
+
+    try:
+        rag = await get_rag()
+        answer = await rag.aquery(q, QueryParam(mode=mode))
+        return JSONResponse({"answer": answer, "mode": mode})
+    except Exception as e:
+        logger.exception("Query failed")
         return JSONResponse(status_code=500, content={"error": str(e)})
