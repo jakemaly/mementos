@@ -32,15 +32,6 @@ interface ResearchSketch {
   searchQueries: string[];
 }
 
-interface ResearchState {
-  sketch: ResearchSketch | null;
-  sources: ResearchSource[];
-  selectedSources: Set<string>;
-  researching: boolean;
-  ingestingWeb: boolean;
-  ingestWebStatus: string;
-}
-
 export default function Dashboard() {
   // Collections state
   const [collections, setCollections] = useState<string[]>([]);
@@ -67,7 +58,6 @@ export default function Dashboard() {
   const [searchLimit, setSearchLimit] = useState<number>(5);
 
   // Deep Research state
-  const [researchMode, setResearchMode] = useState<boolean>(false);
   const [researchQuery, setResearchQuery] = useState<string>('');
   const [researchDomains, setResearchDomains] = useState<string>('');
   const [researchFiletypes, setResearchFiletypes] = useState<string>('');
@@ -77,6 +67,17 @@ export default function Dashboard() {
   const [researching, setResearching] = useState<boolean>(false);
   const [ingestingWeb, setIngestingWeb] = useState<boolean>(false);
   const [ingestWebStatus, setIngestWebStatus] = useState<string>('');
+
+  // RAG Query state
+  const [ragQuery, setRagQuery] = useState<string>('');
+  const [ragMode, setRagMode] = useState<string>('hybrid');
+  const [ragQuerying, setRagQuerying] = useState<boolean>(false);
+  const [ragAnswer, setRagAnswer] = useState<string>('');
+  const [ragIngestText, setRagIngestText] = useState<string>('');
+  const [ragIngesting, setRagIngesting] = useState<boolean>(false);
+  const [ragFile, setRagFile] = useState<File | null>(null);
+  const [ragDragActive, setRagDragActive] = useState<boolean>(false);
+  const ragFileInputRef = useRef<HTMLInputElement>(null);
 
   // General error/success alerts
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -88,9 +89,10 @@ export default function Dashboard() {
       const res = await fetch('/api/collections');
       const data = await res.json();
       if (res.ok) {
-        setCollections(data.collections || []);
-        if (data.collections?.length > 0 && !selectedCollection) {
-          setSelectedCollection(data.collections[0]);
+        const collections = data.collections || [];
+        setCollections(collections);
+        if (collections.length > 0) {
+          setSelectedCollection((prev) => prev || collections[0]);
         }
       } else {
         setErrorMsg(data.error || 'Failed to load collections');
@@ -99,7 +101,7 @@ export default function Dashboard() {
       console.error(err);
       setErrorMsg('Error connecting to API server');
     }
-  }, [selectedCollection]);
+  }, []);
 
   // Load collections on mount
   useEffect(() => {
@@ -168,6 +170,7 @@ export default function Dashboard() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
     setIsDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
@@ -328,7 +331,11 @@ export default function Dashboard() {
   const toggleSource = (url: string) => {
     setSelectedSources((prev) => {
       const next = new Set(prev);
-      next.has(url) ? next.delete(url) : next.add(url);
+      if (next.has(url)) {
+        next.delete(url);
+      } else {
+        next.add(url);
+      }
       return next;
     });
   };
@@ -339,6 +346,134 @@ export default function Dashboard() {
         ? new Set()
         : new Set(sources.map((s) => s.url))
     );
+  };
+
+  // RAG Query handler
+  const handleRagQuery = async () => {
+    if (!ragQuery.trim()) {
+      setErrorMsg('Enter a query');
+      return;
+    }
+
+    setRagQuerying(true);
+    setRagAnswer('');
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('/api/rag/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: ragQuery.trim(), mode: ragMode }),
+      });
+
+      const data = await res.json().catch(() => ({ error: 'Invalid response from server' }));
+
+      if (res.ok) {
+        setRagAnswer(data.answer || '(No answer returned)');
+      } else {
+        setErrorMsg(data.error || 'RAG query failed');
+      }
+    } catch {
+      setErrorMsg('Network error during RAG query');
+    } finally {
+      setRagQuerying(false);
+    }
+  };
+
+  // RAG text ingestion
+  const handleRagIngestText = async () => {
+    if (!ragIngestText.trim()) {
+      setErrorMsg('Enter text to ingest');
+      return;
+    }
+
+    setRagIngesting(true);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('/api/rag/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: ragIngestText.trim() }),
+      });
+
+      const data = await res.json().catch(() => ({ error: 'Invalid response from server' }));
+
+      if (res.ok) {
+        setSuccessMsg(data.message || 'Text ingested into RAG knowledge graph');
+        setRagIngestText('');
+      } else {
+        setErrorMsg(data.error || 'RAG ingestion failed');
+      }
+    } catch {
+      setErrorMsg('Network error during RAG ingestion');
+    } finally {
+      setRagIngesting(false);
+    }
+  };
+
+  // RAG file ingestion
+  const handleRagFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+    setRagDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const f = e.dataTransfer.files[0];
+      if (f.name.endsWith('.txt') || f.name.endsWith('.md')) {
+        setRagFile(f);
+        setErrorMsg('');
+      } else {
+        setErrorMsg('Only .txt and .md files supported for RAG ingestion.');
+      }
+    }
+  };
+
+  const handleRagFileDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setRagDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setRagDragActive(false);
+    }
+  };
+
+  const handleRagFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setRagFile(e.target.files[0]);
+      setErrorMsg('');
+    }
+  };
+
+  const handleRagIngestFile = async () => {
+    if (!ragFile) return;
+
+    setRagIngesting(true);
+    setErrorMsg('');
+
+    try {
+      const text = await ragFile.text();
+      const res = await fetch('/api/rag/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, filename: ragFile.name }),
+      });
+
+      const data = await res.json().catch(() => ({ error: 'Invalid response from server' }));
+
+      if (res.ok) {
+        setSuccessMsg(data.message || `"${ragFile.name}" ingested into RAG knowledge graph`);
+        setRagFile(null);
+      } else {
+        setErrorMsg(data.error || 'RAG ingestion failed');
+      }
+    } catch {
+      setErrorMsg('RAG file ingestion failed');
+    } finally {
+      setRagIngesting(false);
+    }
   };
 
   const handleIngestWeb = async () => {
@@ -905,6 +1040,141 @@ export default function Dashboard() {
             )}
           </div>
         )}
+      </section>
+
+      {/* RAG Query Section */}
+      <section className={styles.card} style={{ maxWidth: '100%', margin: '0 1.25rem 1.25rem', width: 'calc(100% - 2.5rem)' }}>
+        <h2 className={styles.cardTitle}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '2px'}}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          RAG Query (LightRAG)
+        </h2>
+
+        {/* Query Row */}
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            className={styles.input}
+            placeholder="Ask a question about your ingested knowledge..."
+            value={ragQuery}
+            onChange={(e) => setRagQuery(e.target.value)}
+            disabled={ragQuerying}
+            style={{ flex: '1', minWidth: '200px' }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !ragQuerying) { e.preventDefault(); handleRagQuery(); } }}
+          />
+          <select
+            className={styles.select}
+            value={ragMode}
+            onChange={(e) => setRagMode(e.target.value)}
+            disabled={ragQuerying}
+            style={{ minWidth: '100px' }}
+          >
+            <option value="naive">naive</option>
+            <option value="local">local</option>
+            <option value="global">global</option>
+            <option value="hybrid">hybrid</option>
+          </select>
+          <button
+            onClick={handleRagQuery}
+            className={`${styles.btn} ${styles.btnAccent}`}
+            disabled={ragQuerying || !ragQuery.trim()}
+          >
+            {ragQuerying ? 'Querying...' : 'Query'}
+          </button>
+        </div>
+
+        {/* Loading state */}
+        {ragQuerying && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem 0' }}>
+            <div className={styles.progressSpinner}></div>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Querying knowledge graph ({ragMode} mode)...</span>
+          </div>
+        )}
+
+        {/* Answer Display */}
+        {ragAnswer && (
+          <div style={{
+            background: 'rgba(79, 70, 229, 0.04)',
+            border: '1px solid rgba(79, 70, 229, 0.12)',
+            borderRadius: '8px',
+            padding: '1.25rem',
+            whiteSpace: 'pre-wrap',
+            fontSize: '0.9rem',
+            lineHeight: '1.6',
+            color: 'var(--text-primary)',
+            maxHeight: '400px',
+            overflowY: 'auto',
+            paddingRight: '0.4rem',
+          }}>
+            {ragAnswer}
+          </div>
+        )}
+
+        <hr style={{ border: 'none', borderTop: '1px solid var(--border-muted)' }} />
+
+        {/* Ingestion Area */}
+        <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Ingest into Knowledge Graph</h3>
+
+        {/* Text ingestion */}
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+          <textarea
+            className={styles.input}
+            placeholder="Paste text to ingest into the knowledge graph..."
+            value={ragIngestText}
+            onChange={(e) => setRagIngestText(e.target.value)}
+            disabled={ragIngesting}
+            rows={3}
+            style={{ flex: '1', resize: 'vertical' }}
+          />
+          <button
+            onClick={handleRagIngestText}
+            className={`${styles.btn} ${styles.btnSecondary}`}
+            disabled={ragIngesting || !ragIngestText.trim()}
+            style={{ height: '40px' }}
+          >
+            {ragIngesting ? '...' : 'Ingest'}
+          </button>
+        </div>
+
+        {/* File ingestion */}
+        <div
+          className={`${styles.dropzone} ${ragDragActive ? styles.dropzoneActive : ''}`}
+          style={{ minHeight: '100px', padding: '1.5rem' }}
+          onDragEnter={handleRagFileDrag}
+          onDragOver={handleRagFileDrag}
+          onDragLeave={handleRagFileDrag}
+          onDrop={handleRagFileDrop}
+          onClick={() => ragFileInputRef.current?.click()}
+        >
+          <input
+            type="file"
+            ref={ragFileInputRef}
+            onChange={handleRagFileChange}
+            accept=".txt,.md"
+            style={{ display: 'none' }}
+          />
+          {ragFile ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%' }}>
+              <span style={{ flex: 1, fontWeight: 600, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {ragFile.name}
+              </span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {(ragFile.size / 1024).toFixed(1)} KB
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleRagIngestFile(); }}
+                className={`${styles.btn} ${styles.btnAccent}`}
+                disabled={ragIngesting}
+                style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', height: 'auto' }}
+              >
+                {ragIngesting ? '...' : 'Ingest'}
+              </button>
+            </div>
+          ) : (
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>
+              Drop a .txt or .md file here, or click to browse
+            </p>
+          )}
+        </div>
       </section>
     </div>
   );

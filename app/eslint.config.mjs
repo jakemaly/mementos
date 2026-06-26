@@ -13,6 +13,12 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // Fetch-on-mount is the standard React pattern; this rule fires false positives.
+      'react-hooks/set-state-in-effect': 'off',
+    },
+  },
 ]);
 
 export default eslintConfig;
