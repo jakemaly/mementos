@@ -1,32 +1,81 @@
 :root {
   /* Apple Liquid Glass Design System (Premium Light Edition) */
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  
+  --background: var(--md-sys-color-surface);
+  --foreground: var(--md-sys-color-on-surface);
+
   --glass-bg: rgba(255, 255, 255, 0.45);
-  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-border: var(--md-sys-color-outline-variant);
   --glass-border-refraction: rgba(255, 255, 255, 0.7);
-  
-  --primary: #4f46e5;         /* Muted Royal Indigo */
-  --primary-hover: #3730a3;
-  --primary-glow: rgba(79, 70, 229, 0.08);
-  
-  --accent: #0d9488;          /* Muted Teal */
-  --accent-hover: #0f766e;
-  
-  --border-muted: rgba(0, 0, 0, 0.05);
-  --border-focus: rgba(79, 70, 229, 0.4);
-  
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  
-  --success: #15803d;
-  --warning: #b45309;
-  --error: #b91c1c;
-  
-  --font-sans: var(--font-sans), system-ui, -apple-system, sans-serif;
+
+  --primary: var(--md-sys-color-primary);
+  --primary-hover: var(--md-sys-color-primary-hover);
+  --primary-glow: var(--md-sys-color-shadow);
+
+  --accent: var(--md-sys-color-secondary);
+  --accent-hover: var(--md-sys-color-secondary-hover);
+
+  --border-muted: var(--md-sys-color-outline-variant);
+  --border-focus: var(--md-sys-color-primary);
+
+  --text-primary: var(--md-sys-color-on-surface);
+  --text-secondary: var(--md-sys-color-on-surface-variant);
+  --text-muted: var(--md-sys-color-outline);
+
+  --success: var(--md-sys-color-secondary);
+  --warning: var(--md-sys-color-tertiary);
+  --error: var(--md-sys-color-error);
+
+  --font-sans: system-ui, -apple-system, sans-serif;
   --font-mono: monospace;
+
+  /* Material Design 3 — Dynamic Color (Vibrant Digital, Light theme) */
+  --md-sys-color-primary: #6750A4;
+  --md-sys-color-on-primary: #FFFFFF;
+  --md-sys-color-primary-container: #EADDFF;
+  --md-sys-color-on-primary-container: #21005D;
+
+  --md-sys-color-secondary: #038E8A;
+  --md-sys-color-on-secondary: #FFFFFF;
+  --md-sys-color-secondary-container: #A8F1ED;
+  --md-sys-color-on-secondary-container: #012120;
+
+  --md-sys-color-tertiary: #F9A825;
+  --md-sys-color-on-tertiary: #000000;
+  --md-sys-color-tertiary-container: #FFE88E;
+  --md-sys-color-on-tertiary-container: #1D1A00;
+
+  --md-sys-color-error: #B91C1C;
+  --md-sys-color-on-error: #FFFFFF;
+  --md-sys-color-error-container: #FFDAD6;
+  --md-sys-color-on-error-container: #410002;
+
+  --md-sys-color-surface: #F8FAF8;
+  --md-sys-color-surface-dim: #DEE1DD;
+  --md-sys-color-surface-bright: #F8FAF8;
+  --md-sys-color-surface-container-lowest: #FFFFFF;
+  --md-sys-color-surface-container-low: #F4F4F0;
+  --md-sys-color-surface-container: #EEF0EC;
+  --md-sys-color-surface-container-high: #E8EAE6;
+  --md-sys-color-surface-container-highest: #E3E5E1;
+  --md-sys-color-on-surface: #1C1B19;
+  --md-sys-color-on-surface-variant: #49454F;
+  --md-sys-color-outline: #79747E;
+  --md-sys-color-outline-variant: #CAC4D0;
+  --md-sys-color-inverse-surface: #31302D;
+  --md-sys-color-inverse-on-surface: #F2EFF5;
+  --md-sys-color-inverse-primary: #D0BCFF;
+  --md-sys-color-shadow: rgba(103, 80, 164, 0.08);
+  --md-sys-color-primary-hover: #533F8A;
+  --md-sys-color-secondary-hover: #027370;
+  --md-sys-color-surface-variant: #F1F3F1;
+
+  /* Material Design 3 — Elevation (0–5) */
+  --md-elevation-0: none;
+  --md-elevation-1: 0 1px 3px 1px var(--md-sys-color-shadow), 0 1px 2px 0 var(--md-sys-color-shadow);
+  --md-elevation-2: 0 2px 6px 2px var(--md-sys-color-shadow), 0 1px 2px 0 var(--md-sys-color-shadow);
+  --md-elevation-3: 0 4px 8px 3px var(--md-sys-color-shadow), 0 1px 3px 0 var(--md-sys-color-shadow);
+  --md-elevation-4: 0 6px 10px 4px var(--md-sys-color-shadow), 0 2px 3px 0 var(--md-sys-color-shadow);
+  --md-elevation-5: 0 8px 12px 6px var(--md-sys-color-shadow), 0 4px 4px 0 var(--md-sys-color-shadow);
 }
 
 * {
@@ -97,5 +146,20 @@ input, select, textarea, button {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.25);
+  }
+  100% {
+    opacity: 0.6;
+    filter: brightness(1);
   }
 }

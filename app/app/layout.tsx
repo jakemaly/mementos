@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "NeuralIngest - Second Brain Dashboard",
+  title: "second-brain - Dashboard",
   description: "Minimalist glassmorphic vector ingestion and retrieval dashboard.",
 };
 

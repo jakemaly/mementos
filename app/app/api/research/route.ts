@@ -4,6 +4,8 @@ interface Sketch {
   expectedConcepts: string[];
   discriminativeTerms: string[];
   searchQueries: string[];
+  expectedPatterns?: string[];
+  preferredDomains?: string[];
 }
 
 interface Source {
@@ -25,14 +27,17 @@ function buildSketchPrompt(
     ? `\nPrefer these filetypes: ${filetypes.join(', ')}`
     : '';
 
-  return `You are a research assistant. For the following research query, generate a JSON object with:
-1. "expectedConcepts": array of 5-10 key concepts, theories, or topics a high-quality answer would cover
-2. "discriminativeTerms": array of 10-20 specific keywords, jargon, names, and technical terms expected in authoritative sources
-3. "searchQueries": array of 3-5 optimized search query strings${domainHint}${filetypeHint}
+  return `You are a research assistant. Analyze the research query. Determine if it is a question-based, definitional, or explanatory query (e.g., "What is...", "How does...", "Difference between...", "Explain...").
+Generate a JSON object with:
+1. "expectedConcepts": array of 5-10 key concepts, theories, or topics a high-quality answer would cover.
+2. "discriminativeTerms": array of 10-20 specific keywords, jargon, names, and technical terms expected in authoritative sources.
+3. "searchQueries": array of 3-5 optimized search query strings.${domainHint}${filetypeHint}
+4. "expectedPatterns": If the query is question-based or asks for definitions/explanations, provide an array of 3-6 specific phrase patterns, structures, or transition markers typical of high-quality explanations, definitions, or comparative statements for this specific topic (e.g., "is defined as", "refers to", "refers specifically to", "specifically means", "in contrast to", "explains that"). Otherwise, return an empty array.
+5. "preferredDomains": If the query is question-based or asks for definitions/explanations, provide an array of 2-5 high-quality, authoritative reference, educational, documentation, or encyclopedia domains most likely to contain robust explanations for this specific query (e.g., "wikipedia.org", "britannica.com", "developer.mozilla.org", "plato.stanford.edu", "w3schools.com"). Otherwise, return an empty array.
 
 Research query: ${query}
 
-Return ONLY valid JSON. No markdown, no explanation.`;
+Return ONLY valid JSON matching this schema. No markdown, no explanation.`;
 }
 
 async function generateSketch(query: string, domains?: string[], filetypes?: string[]): Promise<Sketch> {
@@ -71,6 +76,10 @@ async function generateSketch(query: string, domains?: string[], filetypes?: str
   if (!parsed.expectedConcepts || !parsed.discriminativeTerms || !parsed.searchQueries) {
     throw new Error('Invalid sketch response from LLM');
   }
+
+  // Ensure default arrays if missing
+  parsed.expectedPatterns = parsed.expectedPatterns || [];
+  parsed.preferredDomains = parsed.preferredDomains || [];
 
   return parsed as Sketch;
 }
@@ -116,14 +125,50 @@ function scoreSources(sources: Source[], sketch: Sketch): Source[] {
   const terms = [...sketch.discriminativeTerms, ...sketch.expectedConcepts].map(
     (t) => t.toLowerCase()
   );
+  const patterns = (sketch.expectedPatterns || []).map((p) => p.toLowerCase());
+  const domains = (sketch.preferredDomains || []).map((d) => d.toLowerCase());
+
+  // Determine weights based on availability
+  let wTerm = 0.5;
+  let wPattern = 0.3;
+  let wDomain = 0.2;
+
+  if (patterns.length === 0 && domains.length === 0) {
+    wTerm = 1.0;
+    wPattern = 0.0;
+    wDomain = 0.0;
+  } else if (patterns.length === 0) {
+    wTerm = 0.7;
+    wPattern = 0.0;
+    wDomain = 0.3;
+  } else if (domains.length === 0) {
+    wTerm = 0.6;
+    wPattern = 0.4;
+    wDomain = 0.0;
+  }
 
   return sources
     .map((source) => {
       const text = `${source.title} ${source.snippet}`.toLowerCase();
-      const matches = terms.filter((term) => text.includes(term)).length;
-      return { ...source, score: terms.length > 0 ? matches / terms.length : 0 };
+      const url = source.url.toLowerCase();
+
+      // 1. Term Score
+      const termMatches = terms.filter((term) => text.includes(term)).length;
+      const termScore = terms.length > 0 ? termMatches / terms.length : 0;
+
+      // 2. Pattern Score
+      const patternMatches = patterns.filter((pat) => text.includes(pat)).length;
+      const patternScore = patterns.length > 0 ? patternMatches / patterns.length : 0;
+
+      // 3. Domain Match
+      const domainMatch = domains.some((dom) => url.includes(dom)) ? 1.0 : 0.0;
+
+      // Calculate final score
+      const score = (wTerm * termScore) + (wPattern * patternScore) + (wDomain * domainMatch);
+
+      return { ...source, score };
     })
-    .filter((s) => s.score > 0) // minimum 1 matching term
+    .filter((s) => s.score > 0) // Minimum threshold: at least one match of any kind
     .sort((a, b) => b.score - a.score);
 }
 
