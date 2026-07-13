@@ -485,7 +485,7 @@ def main():
             skipped += 1
 
     # --- Final Summary ---
-    total_failures = static_failures + http_failures
+    total_failures = failed
     print(f"\n{'=' * 60}")
     print(f"FINAL: {passed} passed, {total_failures} failed, {skipped} skipped")
     print(f"{'=' * 60}")

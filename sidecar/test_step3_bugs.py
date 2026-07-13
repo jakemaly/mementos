@@ -68,8 +68,9 @@ def main():
     print("\n[BUG 3: initialize_storages must be awaited]")
     # If initialize_storages exists, verify it's awaited
     if has_init:
+        init_line = [line for line in code.split("\n") if "initialize_storages" in line][0]
         test("initialize_storages is awaited (not sync call)",
-             "await" in code.split("initialize_storages")[1].split("\n")[0] if "initialize_storages" in code else False,
+             "await" in init_line,
              "initialize_storages() is async — must be awaited")
     else:
         test("initialize_storages is awaited (not sync call)", False,

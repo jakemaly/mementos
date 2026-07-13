@@ -10,6 +10,22 @@ from lightrag.lightrag import QueryParam
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("sidecar")
 
+# load .env file from current or parent directories
+for _p in [Path(".env"), Path("../.env"), Path(__file__).parent / ".env", Path(__file__).parent.parent / ".env"]:
+    if _p.exists():
+        logger.info("Loading environment variables from %s", _p.resolve())
+        with open(_p, encoding="utf-8") as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if _line and not _line.startswith("#") and "=" in _line:
+                    _k, _v = _line.split("=", 1)
+                    _k = _k.strip()
+                    _v = _v.strip().strip("'\"")
+                    if _k:
+                        os.environ.setdefault(_k, _v)
+        break
+
+
 # ── LightRAG initialization ──────────────────────────────────────────────
 # Lazy init on first import — model download happens once, then cached.
 
@@ -21,7 +37,7 @@ def _create_embedding_func():
     model = SentenceTransformer("all-MiniLM-L6-v2")
 
     async def _embed(texts: list[str]) -> list[list[float]]:
-        return model.encode(texts, normalize_embeddings=True)
+        return await asyncio.to_thread(model.encode, texts, normalize_embeddings=True)
 
     return EmbeddingFunc(
         embedding_dim=384,
@@ -97,10 +113,15 @@ async def get_rag():
 app = FastAPI()
 
 
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 @app.exception_handler(Exception)
 async def handle_exception(request, exc):
+    if isinstance(exc, StarletteHTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
     logger.exception("Unhandled exception: %s", exc)
     return JSONResponse(status_code=500, content={"error": str(exc)})
+
 
 
 @app.get("/health")
@@ -142,6 +163,7 @@ async def insert(request: Request):
 
 @app.post("/query")
 async def query(request: Request):
+    # Lock-free concurrency: read-only queries run concurrently without a serialization lock
     try:
         data = await request.json()
     except Exception:
