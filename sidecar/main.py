@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 from pathlib import Path
@@ -189,3 +190,66 @@ async def query(request: Request):
     except Exception as e:
         logger.exception("Query failed")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ── Research SSE endpoint ────────────────────────────────────────────────
+
+from fastapi.responses import StreamingResponse
+
+
+def _sse_frame(event: str, data: str) -> str:
+    return f"event: {event}\ndata: {data}\n\n"
+
+
+@app.post("/research/stream")
+async def research_stream(request: Request):
+    """SSE endpoint for the agentic research pipeline.
+
+    Validates request → runs research graph → streams trace events as SSE.
+    Emits terminal `done` with full payload. Emits `error` only when no
+    useful partial result exists.
+    """
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON body"})
+
+    if not isinstance(data, dict):
+        return JSONResponse(status_code=400, content={"error": "JSON body must be an object"})
+
+    query = data.get("query")
+    if not query or not isinstance(query, str) or not query.strip():
+        return JSONResponse(status_code=400, content={"error": "query is required and must be non-empty"})
+
+    domains = data.get("domains") or []
+    filetypes = data.get("filetypes") or []
+
+    async def event_generator():
+        from research.graph import run_research
+
+        try:
+            result = await run_research(
+                query=query,
+                domains=domains if domains else None,
+                filetypes=filetypes if filetypes else None,
+            )
+        except Exception as e:
+            logger.exception("Research stream failed")
+            yield _sse_frame("error", json.dumps({"phase": "stream", "message": str(e)}))
+            return
+
+        # Stream all accumulated trace events
+        for event in result.get("trace", []):
+            yield _sse_frame(event["type"], json.dumps(event))
+
+        # Final done event with complete payload
+        yield _sse_frame("done", json.dumps(result))
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
