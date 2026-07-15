@@ -71,13 +71,14 @@ export async function POST(request: NextRequest) {
         'X-Accel-Buffering': 'no',
       },
     });
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    const err = error as { name?: string; message?: string };
+    if (err.name === 'AbortError') {
       return new Response(null, { status: 499 });
     }
-    console.error('Research proxy error:', error);
+    console.error('Research proxy error:', err);
     return new Response(
-      JSON.stringify({ error: error.message || 'Research proxy failed' }),
+      JSON.stringify({ error: err.message || 'Research proxy failed' }),
       { status: 502, headers: { 'Content-Type': 'application/json' } },
     );
   }
