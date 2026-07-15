@@ -4,3 +4,6 @@ lightrag-hku
 sentence-transformers
 qdrant-client
 networkx
+langgraph
+langchain-core
+langchain-openai
