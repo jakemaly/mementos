@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './page.module.css';
+import { ResearchTrace } from './components/ResearchTrace';
+import type { TraceEvent, ResearchBrief, ResearchResult } from './lib/research-contracts';
 
 interface QueryResult {
   id: string;
@@ -90,6 +92,9 @@ export default function Dashboard() {
   const [sources, setSources] = useState<ResearchSource[]>([]);
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
   const [researching, setResearching] = useState<boolean>(false);
+  const [researchTrace, setResearchTrace] = useState<TraceEvent[]>([]);
+  const [researchBrief, setResearchBrief] = useState<ResearchBrief | null>(null);
+  const researchAbortRef = useRef<AbortController | null>(null);
   const [ingestingWeb, setIngestingWeb] = useState<boolean>(false);
   const [ingestWebStatus, setIngestWebStatus] = useState<string>('');
 
@@ -319,18 +324,25 @@ export default function Dashboard() {
     }
   };
 
-  // Deep Research handlers
+  // Deep Research handlers (SSE streaming)
   const handleResearch = async () => {
     if (!researchQuery.trim()) {
       setErrorMsg('Enter a research query');
       return;
     }
 
+    // Abort any prior request
+    researchAbortRef.current?.abort();
+    const abortController = new AbortController();
+    researchAbortRef.current = abortController;
+
     setResearching(true);
     setErrorMsg('');
     setSketch(null);
     setSources([]);
     setSelectedSources(new Set());
+    setResearchTrace([]);
+    setResearchBrief(null);
 
     try {
       const res = await fetch('/api/research', {
@@ -345,20 +357,92 @@ export default function Dashboard() {
             ? researchFiletypes.split(',').map((f) => f.trim()).filter(Boolean)
             : [],
         }),
+        signal: abortController.signal,
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        setSketch(data.sketch);
-        setSources(data.sources || []);
-      } else {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
         setErrorMsg(data.error || 'Research failed');
+        return;
       }
-    } catch {
+
+      // Consume SSE stream
+      const reader = res.body?.getReader();
+      if (!reader) {
+        setErrorMsg('No stream from server');
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse complete SSE frames from buffer
+        const frames = buffer.split('\n\n');
+        buffer = frames.pop() || ''; // Keep incomplete frame in buffer
+
+        for (const frame of frames) {
+          const lines = frame.split('\n');
+          let eventType = 'message';
+          let eventData = '';
+
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              eventType = line.slice(7).trim();
+            } else if (line.startsWith('data: ')) {
+              eventData = line.slice(6).trim();
+            }
+          }
+
+          if (!eventData) continue;
+
+          try {
+            const data = JSON.parse(eventData);
+
+            if (eventType === 'done') {
+              // Final payload — full result
+              const result = data as ResearchResult;
+              // ponytail: adapt snake_case sidecar Sketch → camelCase UI ResearchSketch
+              setSketch({
+                expectedConcepts: result.sketch?.expected_concepts || [],
+                discriminativeTerms: result.sketch?.discriminative_terms || [],
+                searchQueries: result.brief?.queries?.specific || [],
+                expectedPatterns: result.sketch?.expected_patterns,
+                preferredDomains: result.sketch?.preferred_domains,
+              });
+              setSources((result.sources || []).map((s: any) => ({
+                url: s.url,
+                title: s.title,
+                snippet: s.snippet,
+                score: s.score,
+              })));
+              setResearchTrace(result.trace || []);
+              setResearchBrief(result.brief || null);
+            } else if (eventType === 'brief_generated') {
+              setResearchBrief(data.brief ? data.brief : data);
+              setResearchTrace(prev => [...prev, data] as TraceEvent[]);
+            } else if (eventType === 'error') {
+              setErrorMsg(data.message || 'Research error');
+            } else {
+              // Incremental trace event
+              setResearchTrace(prev => [...prev, data] as TraceEvent[]);
+            }
+          } catch {
+            // Skip malformed frames
+          }
+        }
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       setErrorMsg('Network error during research');
     } finally {
       setResearching(false);
+      researchAbortRef.current = null;
     }
   };
 
@@ -938,6 +1022,9 @@ export default function Dashboard() {
                 >
                   {researching ? 'Running Research...' : 'Run Deep Research'}
                 </button>
+
+                {/* Live DAG Trace */}
+                <ResearchTrace trace={researchTrace} />
 
                 {/* Sketch Display */}
                 {sketch && (
