@@ -1384,70 +1384,9 @@ export default function Dashboard() {
                       )}
                     </div>
                   </div>
-                )}
-              </section>
-                    <div style={{ textAlign: 'center', padding: '1.5rem', background: 'var(--md-sys-color-surface-container-lowest)', borderRadius: '12px', border: '1px dashed var(--md-sys-color-outline-variant)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                      No collections found. Create one below to get started.
-                    </div>
-                  ) : (
-                    <div className={styles.collectionsGrid}>
-                      {collections.map((name) => {
-                        const isActive = selectedCollection === name;
-                        return (
-                          <div
-                            key={name}
-                            className={`${styles.collectionCard} ${isActive ? styles.collectionCardActive : ''}`}
-                            onClick={() => {
-                              setSelectedCollection(name);
-                              setSearchResults([]);
-                            }}
-                          >
-                            <div className={styles.collectionInfo}>
-                              <span className={styles.collectionIcon}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                              </span>
-                              <span className={styles.collectionName} title={name}>
-                                {name}
-                              </span>
-                            </div>
-                            <span className={styles.collectionBadge}>
-                              {getCollectionCount(name)}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Create Collection */}
-                <form onSubmit={handleCreateCollection} className={styles.formGroup}>
-                  <label className={styles.label}>Create New Collection</label>
-                  <div className={styles.inputGroup}>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      placeholder="e.g. jakes-notes"
-                      value={newCollectionName}
-                      onChange={(e) => setNewCollectionName(e.target.value.replace(/[^a-zA-Z0-9-_]/g, ''))}
-                      disabled={isCreatingCollection || ingesting}
-                      maxLength={40}
-                    />
-                    <button
-                      type="submit"
-                      className={`${styles.btn} ${styles.btnSecondary}`}
-                      disabled={isCreatingCollection || !newCollectionName.trim() || ingesting}
-                    >
-                      {isCreatingCollection ? '...' : '+'}
-                    </button>
-                  </div>
-                  <small style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Alphanumeric, dashes, and underscores only.
-                  </small>
-                </form>
               </section>
 
-              {/* Vector DB File Ingestion Card */}
+              {/* LightRAG Ingestion Studio Card */}
               <section className={styles.card}>
                 <h2 className={styles.cardTitle}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '2px'}}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
