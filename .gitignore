@@ -18,3 +18,4 @@ Thumbs.db
 .loop/
 sidecar/__pycache__/
 sidecar/data/
+sidecar/graph_dump.json

@@ -43,6 +43,13 @@ class Source(TypedDict):
     metadata: NotRequired[dict[str, Any]]
 
 
+class SubQuestion(TypedDict):
+    id: str
+    question: str
+    status: Literal["unresolved", "partially_resolved", "resolved"]
+    evidence_summary: NotRequired[str]
+
+
 # ── Phase 2: SSE Trace Events ───────────────────────────────────────────
 
 class TraceEvent(TypedDict):
@@ -51,6 +58,7 @@ class TraceEvent(TypedDict):
     type: Literal[
         "supervisor_started",
         "supervisor_completed",
+        "supervisor_evaluation",
         "brief_generated",
         "tool_started",
         "tool_completed",
@@ -100,9 +108,15 @@ class ResearchState(TypedDict):
     all_sources: list[Source]
     tool_results: list[Source]
     supervisor_decision: str  # "continue" | "done"
+    sub_questions: NotRequired[list[SubQuestion]]
+    reflection: NotRequired[str]
+    gap_analysis: NotRequired[str]
+    confidence_score: NotRequired[int]
 
     # Phase 3 outputs
     ranked_sources: list[Source]
 
     # Trace (for SSE streaming)
     trace: list[TraceEvent]
+    last_event_id: NotRequired[str]
+    on_event: NotRequired[Any]

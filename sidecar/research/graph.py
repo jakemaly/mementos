@@ -17,8 +17,6 @@ from research.state import (
     Source,
     TraceEvent,
 )
-from research.tools.arxiv import arxiv_search
-from research.tools.github import github_search
 from research.tools.tavily import tavily_search
 
 logger = logging.getLogger("sidecar")
@@ -27,7 +25,14 @@ _MAX_ITERATIONS = 3
 _DEADLINE_SECONDS = 90
 
 
-def _emit(trace: list[TraceEvent], event_type: str, payload: dict, iteration: int | None = None, parent_id: str | None = None) -> TraceEvent:
+def _emit(
+    trace: list[TraceEvent],
+    event_type: str,
+    payload: dict,
+    iteration: int | None = None,
+    parent_id: str | None = None,
+    on_event: Any = None,
+) -> TraceEvent:
     ev: TraceEvent = {
         "id": uuid.uuid4().hex[:12],
         "type": event_type,
@@ -39,6 +44,11 @@ def _emit(trace: list[TraceEvent], event_type: str, payload: dict, iteration: in
     if parent_id is not None:
         ev["parent_id"] = parent_id
     trace.append(ev)
+    if on_event:
+        try:
+            on_event(ev)
+        except Exception:
+            pass
     return ev
 
 
@@ -47,7 +57,7 @@ def _emit(trace: list[TraceEvent], event_type: str, payload: dict, iteration: in
 async def node_brief(state: ResearchState) -> dict:
     """Phase 1: LLM generates research brief and sketch."""
     trace = state.get("trace", [])
-    parent = _emit(trace, "supervisor_started", {"phase": "brief"})
+    on_event = state.get("on_event")
 
     brief, sketch = await generate_brief_and_sketch(
         query=state["query"],
@@ -55,7 +65,7 @@ async def node_brief(state: ResearchState) -> dict:
         filetypes=state.get("user_filetypes") or None,
     )
 
-    _emit(trace, "brief_generated", {
+    ev = _emit(trace, "brief_generated", {
         "reasoning": brief["reasoning_trace"],
         "brief": brief["brief"],
         "tools": brief["tools"],
@@ -66,14 +76,14 @@ async def node_brief(state: ResearchState) -> dict:
             "expected_patterns": sketch.get("expected_patterns") or [],
             "preferred_domains": sketch.get("preferred_domains") or [],
         },
-    }, parent_id=parent["id"])
-
-    _emit(trace, "supervisor_completed", {"phase": "brief"})
+    }, on_event=on_event)
 
     return {
         "trace": trace,
+        "last_event_id": ev["id"],
         "reasoning_trace": brief["reasoning_trace"],
         "research_brief": brief["brief"],
+        "sub_questions": brief.get("sub_questions", []),
         "tool_selection": brief["tools"],
         "query_plan": brief["queries"],
         "expected_concepts": sketch["expected_concepts"],
@@ -86,34 +96,104 @@ async def node_brief(state: ResearchState) -> dict:
 # ── Node: Supervisor (decide tools + queries for this iteration) ────────
 
 async def node_supervisor(state: ResearchState) -> dict:
-    """Phase 2: Supervisor reviews findings and decides next actions."""
+    """Phase 2: ODR Supervisor evaluates evidence, updates sub-questions, and decides next steps."""
     trace = state.get("trace", [])
+    on_event = state.get("on_event")
     iteration = state.get("iteration", 0)
+    parent_id = state.get("last_event_id")
+    sub_questions = list(state.get("sub_questions") or [])
+    if not sub_questions:
+        queries = state.get("query_plan", {})
+        specific_qs = queries.get("specific") or queries.get("overview") or [state["query"]]
+        for idx, q in enumerate(specific_qs):
+            sub_questions.append({
+                "id": f"sq{idx+1}",
+                "question": q,
+                "status": "unresolved",
+            })
 
+    sources = state.get("all_sources", [])
+
+    # Evaluate current sub-questions against gathered sources
+    resolved_count = 0
+    updated_subs = []
+    gaps = []
+
+    for sq in sub_questions:
+        q_text = sq["question"].lower()
+        # ponytail: simple heuristic scan across snippets for keyword coverage
+        matching_snippets = [
+            s["snippet"] for s in sources
+            if any(w in s["title"].lower() or w in s["snippet"].lower() for w in q_text.split() if len(w) > 3)
+        ]
+        if matching_snippets and (len(matching_snippets) >= 2 or iteration >= 2):
+            status = "resolved"
+            resolved_count += 1
+            summary = matching_snippets[0][:150] + "..."
+        elif matching_snippets:
+            status = "partially_resolved"
+            summary = matching_snippets[0][:100] + "..."
+            gaps.append(f"More detail needed for: {sq['question']}")
+        else:
+            status = "unresolved"
+            summary = "No direct evidence found yet."
+            gaps.append(f"Unresolved: {sq['question']}")
+
+        updated_subs.append({
+            "id": sq.get("id") or "sq",
+            "question": sq["question"],
+            "status": status,
+            "evidence_summary": summary,
+        })
+
+    total_q = len(updated_subs) or 1
+    confidence_score = min(100, int((resolved_count / total_q) * 100) + (15 if sources else 0))
+    if not sources and iteration == 0:
+        confidence_score = 10
+
+    reflection = f"Iteration {iteration}: {len(sources)} sources gathered. {resolved_count}/{total_q} sub-questions resolved."
+    gap_analysis = "; ".join(gaps) if gaps else "All key sub-questions adequately covered."
+
+    # Decision logic
     if iteration >= _MAX_ITERATIONS:
-        _emit(trace, "supervisor_completed", {"decision": "done", "reason": "max iterations"})
-        return {"trace": trace, "supervisor_decision": "done"}
+        decision = "done"
+        reason = "Reached max iterations cutoff"
+    elif confidence_score >= 80:
+        decision = "done"
+        reason = "Confidence threshold reached (>=80%)"
+    elif not state.get("query_plan", {}).get("overview") and not state.get("query_plan", {}).get("specific"):
+        decision = "done"
+        reason = "No remaining search queries"
+    else:
+        decision = "continue"
+        reason = f"Resolving remaining gaps ({len(gaps)} unresolved)"
 
-    # ponytail: first iteration uses brief queries directly.
-    # Subsequent iterations could use LLM to revise queries, but for now
-    # we reuse the original queries with different tool selection.
-    # Upgrade: add LLM supervisor node when iteration > 1 behavior is needed.
-    queries = state.get("query_plan", {})
-    all_query_strings = (queries.get("overview") or []) + (queries.get("specific") or [])
+    # Emit supervisor evaluation event
+    eval_ev = _emit(trace, "supervisor_evaluation", {
+        "iteration": iteration,
+        "reflection": reflection,
+        "gap_analysis": gap_analysis,
+        "sub_questions": updated_subs,
+        "confidence_score": confidence_score,
+        "decision": decision,
+        "reason": reason,
+    }, iteration=iteration, parent_id=parent_id, on_event=on_event)
 
-    if not all_query_strings:
-        _emit(trace, "supervisor_completed", {"decision": "done", "reason": "no queries"})
-        return {"trace": trace, "supervisor_decision": "done"}
-
-    _emit(trace, "supervisor_started", {
-        "decision": "continue",
-        "tools": state.get("tool_selection", ["tavily"]),
-        "query_count": len(all_query_strings),
-    }, iteration=iteration)
+    ev = _emit(trace, "supervisor_completed" if decision == "done" else "supervisor_started", {
+        "decision": decision,
+        "reason": reason,
+        "confidence_score": confidence_score,
+        "tools": ["tavily"],
+    }, iteration=iteration, parent_id=eval_ev["id"], on_event=on_event)
 
     return {
         "trace": trace,
-        "supervisor_decision": "continue",
+        "supervisor_decision": decision,
+        "sub_questions": updated_subs,
+        "reflection": reflection,
+        "gap_analysis": gap_analysis,
+        "confidence_score": confidence_score,
+        "last_event_id": ev["id"],
     }
 
 
@@ -122,7 +202,9 @@ async def node_supervisor(state: ResearchState) -> dict:
 async def node_tools(state: ResearchState) -> dict:
     """Execute selected search tools in parallel with failure isolation."""
     trace = state.get("trace", [])
+    on_event = state.get("on_event")
     iteration = state.get("iteration", 0)
+    parent_id = state.get("last_event_id")
     tools = state.get("tool_selection", ["tavily"])
     queries = state.get("query_plan", {})
     all_query_strings = (queries.get("overview") or []) + (queries.get("specific") or [])
@@ -132,7 +214,7 @@ async def node_tools(state: ResearchState) -> dict:
         tool_id = _emit(trace, "tool_started", {
             "tool": tool,
             "query_count": len(all_query_strings),
-        }, iteration=iteration)
+        }, iteration=iteration, parent_id=parent_id, on_event=on_event)
 
         start = time.monotonic()
         try:
@@ -141,10 +223,6 @@ async def node_tools(state: ResearchState) -> dict:
                     all_query_strings,
                     include_domains=state.get("user_domains") or None,
                 )
-            elif tool == "arxiv":
-                results = await arxiv_search(all_query_strings)
-            elif tool == "github":
-                results = await github_search(all_query_strings)
             else:
                 logger.warning("Unknown tool: %s", tool)
                 results = []
@@ -154,7 +232,7 @@ async def node_tools(state: ResearchState) -> dict:
                 "tool": tool,
                 "result_count": len(results),
                 "duration": round(elapsed, 2),
-            }, iteration=iteration, parent_id=tool_id["id"])
+            }, iteration=iteration, parent_id=tool_id["id"], on_event=on_event)
             return results
         except Exception as e:
             elapsed = time.monotonic() - start
@@ -163,7 +241,7 @@ async def node_tools(state: ResearchState) -> dict:
                 "tool": tool,
                 "error": str(e),
                 "duration": round(elapsed, 2),
-            }, iteration=iteration, parent_id=tool_id.get("id"))
+            }, iteration=iteration, parent_id=tool_id.get("id"), on_event=on_event)
             return []
 
     # Run all selected tools in parallel
@@ -182,15 +260,17 @@ async def node_tools(state: ResearchState) -> dict:
             seen.add(s["url"].lower())
             existing_sources.append(s)
 
-    _emit(trace, "iteration_complete", {
+    iter_ev = _emit(trace, "iteration_complete", {
         "total_sources": len(existing_sources),
         "new_sources": len(new_sources),
-    }, iteration=iteration)
+    }, iteration=iteration, parent_id=parent_id, on_event=on_event)
 
     return {
         "trace": trace,
         "all_sources": existing_sources,
         "tool_results": new_sources,
+        "iteration": iteration + 1,
+        "last_event_id": iter_ev["id"],
     }
 
 
@@ -199,7 +279,9 @@ async def node_tools(state: ResearchState) -> dict:
 async def node_scoring(state: ResearchState) -> dict:
     """Phase 3: Apply SIRA scoring to accumulated sources."""
     trace = state.get("trace", [])
-    _emit(trace, "scoring_started", {"source_count": len(state.get("all_sources", []))})
+    on_event = state.get("on_event")
+    parent_id = state.get("last_event_id")
+    sc_ev = _emit(trace, "scoring_started", {"source_count": len(state.get("all_sources", []))}, parent_id=parent_id, on_event=on_event)
 
     sketch: Sketch = {
         "expected_concepts": state.get("expected_concepts", []),
@@ -213,7 +295,7 @@ async def node_scoring(state: ResearchState) -> dict:
     _emit(trace, "sources_ranked", {
         "total_sources": len(ranked),
         "top_score": ranked[0]["score"] if ranked else 0,
-    })
+    }, parent_id=sc_ev["id"], on_event=on_event)
 
     return {
         "trace": trace,
@@ -250,6 +332,26 @@ def build_graph():
     return graph.compile()
 
 
+def get_graph_topology() -> dict:
+    """Return JSON graph topology nodes and edges for UI visualization."""
+    return {
+        "nodes": [
+            {"id": "brief", "label": "Brief Generator", "type": "brief"},
+            {"id": "supervisor", "label": "ODR Supervisor", "type": "supervisor"},
+            {"id": "tools", "label": "Tavily Web Search", "type": "tool"},
+            {"id": "scoring", "label": "SIRA Sketch Scoring", "type": "scoring"},
+            {"id": "ingest", "label": "LightRAG Ingest", "type": "ingest"},
+        ],
+        "edges": [
+            {"source": "brief", "target": "supervisor"},
+            {"source": "supervisor", "target": "tools", "label": "continue"},
+            {"source": "tools", "target": "supervisor"},
+            {"source": "supervisor", "target": "scoring", "label": "done"},
+            {"source": "scoring", "target": "ingest"},
+        ],
+    }
+
+
 # ── Runner with deadline ────────────────────────────────────────────────
 
 async def run_research(
@@ -257,6 +359,7 @@ async def run_research(
     domains: list[str] | None = None,
     filetypes: list[str] | None = None,
     deadline: float = _DEADLINE_SECONDS,
+    on_event: Any = None,
 ) -> dict:
     """Run the research pipeline with a hard deadline.
 
@@ -269,6 +372,7 @@ async def run_research(
         "query": query,
         "user_domains": domains or [],
         "user_filetypes": filetypes or [],
+        "on_event": on_event,
         "reasoning_trace": [],
         "research_brief": "",
         "tool_selection": ["tavily"],

@@ -4,7 +4,7 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from lightrag.lightrag import QueryParam
 
@@ -192,6 +192,70 @@ async def query(request: Request):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+# ── TD retrieval bridge (4-mode entity IDs over WebSocket) ────────────────
+
+_GRAPH_DUMP = Path(__file__).parent / "graph_dump.json"
+_MODES = ("naive", "local", "global", "hybrid")
+
+
+def _load_lookups() -> tuple[dict[str, str], dict[tuple[str, str], str]]:
+    """entity_name -> qdrant id; (src,tgt) -> relationship qdrant id."""
+    if not _GRAPH_DUMP.exists():
+        raise FileNotFoundError(f"Run dump_graph.py first; missing {_GRAPH_DUMP}")
+    data = json.loads(_GRAPH_DUMP.read_text())
+    name_to_id = data["name_to_id"]
+    pair_to_rel: dict[tuple[str, str], str] = {}
+    for r in data.get("relationships", []):
+        p = r.get("payload") or {}
+        src, tgt = p.get("src_id"), p.get("tgt_id")
+        if src and tgt:
+            pair_to_rel[(src, tgt)] = r["id"]
+            pair_to_rel[(tgt, src)] = r["id"]  # ponytail: undirected graph
+    return name_to_id, pair_to_rel
+
+
+async def _mode_ids(rag, query: str, mode: str, name_to_id, pair_to_rel) -> dict:
+    # ponytail: aquery_data already returns structured entities — skip context parsing
+    raw = await rag.aquery_data(query, QueryParam(mode=mode))
+    section = (raw or {}).get("data") or {}
+    entity_ids = []
+    for e in section.get("entities") or []:
+        n = e.get("entity_name")
+        if n in name_to_id:
+            entity_ids.append(name_to_id[n])
+    relation_ids = []
+    for r in section.get("relationships") or []:
+        rid = pair_to_rel.get((r.get("src_id"), r.get("tgt_id")))
+        if rid:
+            relation_ids.append(rid)
+    return {"entity_ids": entity_ids, "relation_ids": relation_ids}
+
+
+@app.websocket("/ws/retrieval")
+async def retrieval_socket(ws: WebSocket):
+    await ws.accept()
+    try:
+        name_to_id, pair_to_rel = _load_lookups()
+    except Exception as e:
+        await ws.send_json({"error": str(e)})
+        await ws.close()
+        return
+    rag = await get_rag()
+    try:
+        while True:
+            query = await ws.receive_text()
+            result = {}
+            for mode in _MODES:
+                try:
+                    result[mode] = await _mode_ids(rag, query, mode, name_to_id, pair_to_rel)
+                except Exception as e:
+                    logger.exception("retrieval mode=%s failed", mode)
+                    result[mode] = {"entity_ids": [], "relation_ids": [], "error": str(e)}
+            await ws.send_json(result)
+    except WebSocketDisconnect:
+        return
+
+
 # ── Research SSE endpoint ────────────────────────────────────────────────
 
 from fastapi.responses import StreamingResponse
@@ -199,6 +263,13 @@ from fastapi.responses import StreamingResponse
 
 def _sse_frame(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
+
+
+@app.get("/research/graph/topology")
+async def research_topology():
+    """Return JSON graph topology nodes and edges for UI visualization."""
+    from research.graph import get_graph_topology
+    return get_graph_topology()
 
 
 @app.post("/research/stream")
@@ -227,23 +298,33 @@ async def research_stream(request: Request):
     async def event_generator():
         from research.graph import run_research
 
-        try:
-            result = await run_research(
+        queue: asyncio.Queue = asyncio.Queue()
+
+        def _on_event(ev: dict):
+            queue.put_nowait(ev)
+
+        task = asyncio.create_task(
+            run_research(
                 query=query,
                 domains=domains if domains else None,
                 filetypes=filetypes if filetypes else None,
+                on_event=_on_event,
             )
+        )
+
+        while not task.done() or not queue.empty():
+            try:
+                event = await asyncio.wait_for(queue.get(), timeout=0.1)
+                yield _sse_frame(event["type"], json.dumps(event))
+            except asyncio.TimeoutError:
+                continue
+
+        try:
+            result = await task
+            yield _sse_frame("done", json.dumps(result))
         except Exception as e:
             logger.exception("Research stream failed")
             yield _sse_frame("error", json.dumps({"phase": "stream", "message": str(e)}))
-            return
-
-        # Stream all accumulated trace events
-        for event in result.get("trace", []):
-            yield _sse_frame(event["type"], json.dumps(event))
-
-        # Final done event with complete payload
-        yield _sse_frame("done", json.dumps(result))
 
     return StreamingResponse(
         event_generator(),

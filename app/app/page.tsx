@@ -1,7 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import styles from './page.module.css';
+import { ResearchTrace } from './components/ResearchTrace';
+import { AgentThinkingAccordion } from './components/AgentThinkingAccordion';
+import { ReactFlowGraph } from './components/ReactFlowGraph';
+import { SupervisorChecklist } from './components/SupervisorChecklist';
+import type { TraceEvent, ResearchBrief, SupervisorThought, SupervisorEvaluation, SubQuestion } from './lib/research-contracts';
 
 interface QueryResult {
   id: string;
@@ -86,12 +91,93 @@ export default function Dashboard() {
   const [researchQuery, setResearchQuery] = useState<string>('');
   const [researchDomains, setResearchDomains] = useState<string>('');
   const [researchFiletypes, setResearchFiletypes] = useState<string>('');
+  const [researchTrace, setResearchTrace] = useState<TraceEvent[]>([]);
+  const [researchBrief, setResearchBrief] = useState<ResearchBrief | null>(null);
   const [sketch, setSketch] = useState<ResearchSketch | null>(null);
   const [sources, setSources] = useState<ResearchSource[]>([]);
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
   const [researching, setResearching] = useState<boolean>(false);
   const [ingestingWeb, setIngestingWeb] = useState<boolean>(false);
   const [ingestWebStatus, setIngestWebStatus] = useState<string>('');
+
+  const supervisorThoughts = useMemo<SupervisorThought[]>(() => {
+    const list: SupervisorThought[] = [];
+    researchTrace.forEach((event) => {
+      if (event.type === 'supervisor_started' || event.type === 'supervisor_completed') {
+        const payload = event.payload || {};
+        list.push({
+          iteration: event.iteration ?? (payload.iteration as number) ?? (list.length + 1),
+          reasoning:
+            (payload.reasoning as string) ||
+            (payload.reason as string) ||
+            (event.type === 'supervisor_started'
+              ? 'Formulated query strategy and evaluated tool requirements.'
+              : 'Supervisor completed iteration.'),
+          decision:
+            (payload.decision as 'continue' | 'done') ||
+            (event.type === 'supervisor_completed' ? 'done' : 'continue'),
+          tools: (payload.tools as string[]) || [],
+          queries: (payload.queries as { overview?: string[]; specific?: string[] }) || undefined,
+        });
+      }
+    });
+
+    if (list.length === 0 && researchBrief) {
+      list.push({
+        iteration: 1,
+        reasoning: researchBrief.brief || 'Formulated initial research brief and query plan.',
+        decision: 'continue',
+        tools: researchBrief.tools || [],
+        queries: researchBrief.queries,
+      });
+    }
+
+    return list;
+  }, [researchTrace, researchBrief]);
+
+  const supervisorEvaluations = useMemo<SupervisorEvaluation[]>(() => {
+    const evals: SupervisorEvaluation[] = [];
+    researchTrace.forEach((event) => {
+      if (event.type === 'supervisor_evaluation') {
+        const payload = event.payload || {};
+        evals.push({
+          iteration: (event.iteration as number) ?? (payload.iteration as number) ?? evals.length + 1,
+          reflection: (payload.reflection as string) || '',
+          gap_analysis: (payload.gap_analysis as string) || '',
+          sub_questions: (payload.sub_questions as SubQuestion[]) || [],
+          confidence_score: (payload.confidence_score as number) || 0,
+          decision: (payload.decision as string) || 'continue',
+          reason: (payload.reason as string) || '',
+        });
+      }
+    });
+    return evals;
+  }, [researchTrace]);
+
+  const latestSubQuestions = useMemo<SubQuestion[]>(() => {
+    if (supervisorEvaluations.length > 0) {
+      return supervisorEvaluations[supervisorEvaluations.length - 1].sub_questions;
+    }
+    return [];
+  }, [supervisorEvaluations]);
+
+  const confidenceScore = useMemo<number>(() => {
+    if (supervisorEvaluations.length > 0) {
+      return supervisorEvaluations[supervisorEvaluations.length - 1].confidence_score;
+    }
+    return 0;
+  }, [supervisorEvaluations]);
+
+  const handleResetResearch = () => {
+    setResearchQuery('');
+    setResearchDomains('');
+    setResearchFiletypes('');
+    setResearchTrace([]);
+    setResearchBrief(null);
+    setSketch(null);
+    setSources([]);
+    setSelectedSources(new Set());
+  };
 
   // RAG Query state
   const [ragQuery, setRagQuery] = useState<string>('');
@@ -114,13 +200,13 @@ export default function Dashboard() {
       const res = await fetch('/api/collections');
       const data = await res.json();
       if (res.ok) {
-        const collections = data.collections || [];
-        setCollections(collections);
-        if (collections.length > 0) {
-          setSelectedCollection((prev) => prev || collections[0]);
-        }
+        const rawCollections = data.collections || [];
+        const collectionsList = rawCollections.length > 0 ? rawCollections : ['default'];
+        setCollections(collectionsList);
+        setSelectedCollection((prev) => prev || collectionsList[0]);
       } else {
-        setErrorMsg(data.error || 'Failed to load collections');
+        setCollections(['default']);
+        setSelectedCollection('default');
       }
     } catch (err) {
       console.error(err);
@@ -328,6 +414,8 @@ export default function Dashboard() {
 
     setResearching(true);
     setErrorMsg('');
+    setResearchTrace([]);
+    setResearchBrief(null);
     setSketch(null);
     setSources([]);
     setSelectedSources(new Set());
@@ -347,13 +435,88 @@ export default function Dashboard() {
         }),
       });
 
-      const data = await res.json();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Research failed' }));
+        setErrorMsg(err.error || 'Research failed');
+        setResearching(false);
+        return;
+      }
 
-      if (res.ok) {
-        setSketch(data.sketch);
-        setSources(data.sources || []);
-      } else {
-        setErrorMsg(data.error || 'Research failed');
+      const reader = res.body?.getReader();
+      if (!reader) {
+        setErrorMsg('No response stream');
+        setResearching(false);
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const block of lines) {
+          const eventMatch = block.match(/^event:\s*(.+)$/m);
+          const dataMatch = block.match(/^data:\s*(.+)$/m);
+          if (!eventMatch || !dataMatch) continue;
+
+          const event = eventMatch[1].trim();
+          try {
+            const data = JSON.parse(dataMatch[1].trim());
+
+            if (event === 'brief_generated') {
+              const payload = data.payload || data;
+              setResearchBrief({
+                reasoning_trace: payload.reasoning || [],
+                brief: payload.brief || '',
+                tools: payload.tools || [],
+                queries: payload.queries || { overview: [], specific: [] },
+              });
+              const sk = payload.sketch;
+              if (sk) {
+                setSketch({
+                  expectedConcepts: sk.expected_concepts || sk.expectedConcepts || [],
+                  discriminativeTerms: sk.discriminative_terms || sk.discriminativeTerms || [],
+                  searchQueries: sk.search_queries || sk.searchQueries || [],
+                  expectedPatterns: sk.expected_patterns || sk.expectedPatterns || [],
+                  preferredDomains: sk.preferred_domains || sk.preferredDomains || [],
+                });
+              }
+            } else if (event === 'done') {
+              if (data.sources) {
+                const srcList = data.sources.map((s: any) => ({
+                  url: s.url,
+                  title: s.title || s.url,
+                  snippet: s.snippet || '',
+                  score: s.score || 0,
+                }));
+                setSources(srcList);
+                setSelectedSources(new Set(srcList.map((s: any) => s.url)));
+              }
+              const sk = data.sketch;
+              if (sk) {
+                setSketch({
+                  expectedConcepts: sk.expected_concepts || sk.expectedConcepts || [],
+                  discriminativeTerms: sk.discriminative_terms || sk.discriminativeTerms || [],
+                  searchQueries: sk.search_queries || sk.searchQueries || [],
+                  expectedPatterns: sk.expected_patterns || sk.expectedPatterns || [],
+                  preferredDomains: sk.preferred_domains || sk.preferredDomains || [],
+                });
+              }
+            }
+
+            if (event !== 'done') {
+              setResearchTrace((prev) => [...prev, data]);
+            }
+          } catch (e) {
+            console.error('SSE parse error:', e);
+          }
+        }
       }
     } catch {
       setErrorMsg('Network error during research');
@@ -769,6 +932,17 @@ export default function Dashboard() {
                         </div>
                       </div>
                     )}
+                    <div style={{ marginBottom: '1rem' }}>
+                      <ReactFlowGraph trace={researchTrace} isResearching={researching} />
+                    </div>
+
+                    <SupervisorChecklist
+                      evaluations={supervisorEvaluations}
+                      subQuestions={latestSubQuestions}
+                      confidenceScore={confidenceScore}
+                      isResearching={researching}
+                    />
+
                     <ResearchTrace trace={researchTrace} />
 
                     <AgentThinkingAccordion
@@ -1384,6 +1558,7 @@ export default function Dashboard() {
                       )}
                     </div>
                   </div>
+                )}
               </section>
 
               {/* LightRAG Ingestion Studio Card */}

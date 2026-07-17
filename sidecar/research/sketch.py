@@ -29,7 +29,10 @@ def _build_prompt(query: str, domains: list[str] | None, filetypes: list[str] | 
         f"{{\n"
         f'  "reasoning_trace": ["step 1", "step 2", ...],\n'
         f'  "brief": "one-paragraph research scope and assumptions",\n'
-        f'  "tools": ["tavily", ...],\n'
+        f'  "sub_questions": [\n'
+        f'    {{"id": "sq1", "question": "specific sub-question", "status": "unresolved"}}\n'
+        f'  ],\n'
+        f'  "tools": ["tavily"],\n'
         f'  "queries": {{"overview": ["..."], "specific": ["..."]}},\n'
         f'  "expected_concepts": ["concept1", ...],\n'
         f'  "discriminative_terms": ["term1", ...],\n'
@@ -37,7 +40,8 @@ def _build_prompt(query: str, domains: list[str] | None, filetypes: list[str] | 
         f'  "preferred_domains": ["domain1", ...]\n'
         f"}}\n\n"
         f"Rules:\n"
-        f"- tools: always include 'tavily'. Add 'arxiv' for academic/technical. Add 'github' for software/tooling.\n"
+        f"- tools: always set to ['tavily'].\n"
+        f"- sub_questions: 3-5 key questions that must be answered to satisfy the user request.\n"
         f"- queries.overview: exactly 1 broad question. queries.specific: 0-5 targeted sub-questions.\n"
         f"- expected_concepts: 5-10 key concepts.\n"
         f"- discriminative_terms: 10-20 specific keywords, jargon, names.\n"
@@ -64,16 +68,32 @@ def _validate(data: dict) -> tuple[ResearchBrief, Sketch]:
     brief = ResearchBrief(
         reasoning_trace=data.get("reasoning_trace", []),
         brief=data.get("brief", ""),
-        tools=data.get("tools", ["tavily"]),
+        tools=["tavily"],
         queries=QueryPlan(
             overview=data.get("queries", {}).get("overview", []),
             specific=data.get("queries", {}).get("specific", []),
         ),
     )
 
-    # Ensure tavily is always present
-    if "tavily" not in brief["tools"]:
-        brief["tools"].insert(0, "tavily")
+    # Build sub_questions list
+    raw_subs = data.get("sub_questions") or []
+    sub_questions = []
+    if raw_subs:
+        for idx, sq in enumerate(raw_subs):
+            if isinstance(sq, dict) and sq.get("question"):
+                sub_questions.append({
+                    "id": sq.get("id") or f"sq{idx+1}",
+                    "question": sq.get("question"),
+                    "status": sq.get("status") or "unresolved",
+                })
+    if not sub_questions and brief["queries"]["specific"]:
+        for idx, q in enumerate(brief["queries"]["specific"]):
+            sub_questions.append({
+                "id": f"sq{idx+1}",
+                "question": q,
+                "status": "unresolved",
+            })
+    brief["sub_questions"] = sub_questions
 
     sketch = Sketch(
         expected_concepts=data.get("expected_concepts", []),

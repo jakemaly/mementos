@@ -44,9 +44,17 @@ export interface Source {
 
 // ── Phase 2: SSE Trace Events ───────────────────────────────────────────
 
+export interface SubQuestion {
+  id: string;
+  question: string;
+  status: 'unresolved' | 'partially_resolved' | 'resolved';
+  evidence_summary?: string;
+}
+
 export type TraceEventType =
   | 'supervisor_started'
   | 'supervisor_completed'
+  | 'supervisor_evaluation'
   | 'brief_generated'
   | 'tool_started'
   | 'tool_completed'
@@ -64,6 +72,27 @@ export interface TraceEvent {
   payload: Record<string, unknown>;
   iteration?: number;
   timestamp: number;
+}
+
+export interface SupervisorEvaluation {
+  iteration: number;
+  reflection: string;
+  gap_analysis: string;
+  sub_questions: SubQuestion[];
+  confidence_score: number;
+  decision: string;
+  reason: string;
+}
+
+export interface SupervisorThought {
+  iteration: number;
+  reasoning: string;
+  decision: 'continue' | 'done';
+  tools?: string[];
+  queries?: {
+    overview?: string[];
+    specific?: string[];
+  };
 }
 
 // ── Phase 3: Final payload ──────────────────────────────────────────────

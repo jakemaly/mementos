@@ -121,22 +121,14 @@ async def test_tools_tavily_only():
 
 @pytest.mark.asyncio
 async def test_tools_failure_isolation():
-    """One tool failure doesn't abort others."""
-    with (
-        patch("research.graph.tavily_search", new_callable=AsyncMock) as mock_tav,
-        patch("research.graph.arxiv_search", new_callable=AsyncMock) as mock_arxiv,
-    ):
+    """Tool failure emits tool_failed trace event cleanly."""
+    with patch("research.graph.tavily_search", new_callable=AsyncMock) as mock_tav:
         mock_tav.side_effect = Exception("API error")
-        mock_arxiv.return_value = [
-            {"url": "http://arxiv.org/abs/123", "title": "Paper", "snippet": "s", "score": 0, "source": "arxiv"},
-        ]
-        state = _state({"tool_selection": ["tavily", "arxiv"]})
+        state = _state({"tool_selection": ["tavily"]})
         result = await node_tools(state)
-        assert len(result["all_sources"]) == 1
-        # Trace should have tool_failed event
+        assert len(result["all_sources"]) == 0
         types = [e["type"] for e in result["trace"]]
         assert "tool_failed" in types
-        assert "tool_completed" in types
 
 
 @pytest.mark.asyncio

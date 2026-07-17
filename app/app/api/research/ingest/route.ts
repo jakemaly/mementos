@@ -69,16 +69,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify collection exists
-    const collections = await qdrant.getCollections();
-    const collectionExists = (collections as any).collections?.some(
-      (c: any) => c.name === collection
-    );
-    if (!collectionExists) {
-      return NextResponse.json(
-        { error: `Collection '${collection}' does not exist` },
-        { status: 404 }
+    // Ensure collection exists (auto-create 384-d cosine if missing)
+    try {
+      const collections = await qdrant.getCollections();
+      const collectionExists = (collections as any).collections?.some(
+        (c: any) => c.name === collection
       );
+      if (!collectionExists) {
+        console.log(`Auto-creating collection '${collection}' in Qdrant...`);
+        await qdrant.createCollection(collection, {
+          vectors: { size: 384, distance: 'Cosine' },
+        });
+      }
+    } catch (e: any) {
+      console.warn(`Collection check/create warning: ${e.message}`);
     }
 
     const startTime = Date.now();
