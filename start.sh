@@ -42,7 +42,7 @@ FRONTEND_PID=$!
 
 echo ""
 echo "========================================="
-echo "  second-brain is running"
+echo "  Mementos is running"
 echo "  Dashboard:  http://localhost:3000"
 echo "  Sidecar:    http://localhost:8000/docs"
 echo "  Press Ctrl+C to stop"

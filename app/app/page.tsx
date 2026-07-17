@@ -577,7 +577,7 @@ export default function Dashboard() {
       <header className={styles.header}>
         <div className={styles.logoArea}>
           <div className={styles.logoIcon}></div>
-          <h1 className={styles.logoTitle}>second-brain</h1>
+          <h1 className={styles.logoTitle}>Mementos</h1>
         </div>
 
         {/* Center: Tab Navigation */}
@@ -593,14 +593,14 @@ export default function Dashboard() {
             className={`${styles.tabBtn} ${activeTab === 0 ? styles.tabBtnActive : ''}`}
             onClick={() => setActiveTab(0)}
           >
-            Chat & Search
+            Deep Research (SIRA)
           </button>
           <button
             type="button"
             className={`${styles.tabBtn} ${activeTab === 1 ? styles.tabBtnActive : ''}`}
             onClick={() => setActiveTab(1)}
           >
-            Ingest & Studio
+            Knowledge Base & Search
           </button>
         </div>
 
@@ -670,12 +670,488 @@ export default function Dashboard() {
 
       {/* Main layout container with partitioned workspaces */}
       <main className={styles.layoutContainer}>
-        {/* Workspace 1: Chat & Search (Tab 0) */}
+        {/* Workspace 1: Deep Research (Tab 0) */}
         <div className={`${styles.workspace} ${activeTab !== 0 ? styles.hidden : ''}`}>
-          <div className={styles.workspaceGridTab1}>
+          <div className={styles.deepResearchContainer}>
             
-            {/* Left Column: Unified Search & RAG Query Hub */}
+            {/* Initial State: Centered Search Hero */}
+            {!researching && researchTrace.length === 0 && sources.length === 0 ? (
+              <section className={`${styles.card} ${styles.deepResearchHero}`}>
+                <h2 className={styles.cardTitle} style={{ justifyContent: 'center', fontSize: '1.4rem' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px'}}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  Deep Research (SIRA)
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem', textAlign: 'center' }}>
+                  Autonomous, multi-tool research agent querying web, arXiv, and GitHub APIs.
+                </p>
+
+                <textarea
+                  className={styles.input}
+                  placeholder="Enter your research query (e.g. 'Latest breakthroughs in quantum error correction')..."
+                  value={researchQuery}
+                  onChange={(e) => setResearchQuery(e.target.value)}
+                  rows={4}
+                  style={{ resize: 'vertical', fontSize: '1rem', padding: '1rem' }}
+                />
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    placeholder="Domains (e.g. arxiv.org, github.com)"
+                    value={researchDomains}
+                    onChange={(e) => setResearchDomains(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className={styles.input}
+                    placeholder="Filetypes (e.g. pdf, html)"
+                    value={researchFiletypes}
+                    onChange={(e) => setResearchFiletypes(e.target.value)}
+                  />
+                </div>
+
+                <button
+                  onClick={handleResearch}
+                  className={`${styles.btn} ${styles.btnAccent}`}
+                  disabled={!researchQuery.trim()}
+                  style={{ padding: '0.85rem', fontSize: '1rem', fontWeight: 600, marginTop: '0.5rem' }}
+                >
+                  Run Deep Research
+                </button>
+              </section>
+            ) : (
+              /* Active / Results State */
+              <>
+                {/* Top of screen: Shifted query banner */}
+                <div className={styles.deepResearchTopBar}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                    <span className={styles.badge} style={{ background: 'var(--primary)', color: '#fff', padding: '0.3rem 0.6rem' }}>
+                      {researching ? 'Researching' : 'Completed'}
+                    </span>
+                    <span style={{ fontWeight: 600, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      "{researchQuery}"
+                    </span>
+                    {researchDomains && (
+                      <span className={`${styles.md3Chip} ${styles.md3ChipPrimary}`} style={{ fontSize: '0.7rem' }}>
+                        Domains: {researchDomains}
+                      </span>
+                    )}
+                    {researchFiletypes && (
+                      <span className={`${styles.md3Chip} ${styles.md3ChipSecondary}`} style={{ fontSize: '0.7rem' }}>
+                        Types: {researchFiletypes}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleResetResearch}
+                    className={`${styles.btn} ${styles.btnSecondary}`}
+                    style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}
+                  >
+                    + New Research
+                  </button>
+                </div>
+
+                {/* Main 2-Column Split Grid */}
+                <div className={styles.deepResearchSplitGrid}>
+                  {/* Left Side: Execution Trace DAG Graph & Agent Thinking Accordion */}
+                  <section className={styles.card}>
+                    <h3 className={styles.cardTitle} style={{ fontSize: '1rem' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                      Execution Trace & Deliberation
+                    </h3>
+                    {researchBrief && (
+                      <div className={styles.researchBrief} style={{ marginTop: 0, padding: '0.75rem' }}>
+                        <p style={{ margin: 0, fontSize: '0.85rem' }}>{researchBrief.brief}</p>
+                        <div className={styles.researchBriefMeta} style={{ marginTop: '0.5rem' }}>
+                          <span>Tools: {researchBrief.tools.join(', ')}</span>
+                          <span>Queries: {researchBrief.queries.overview.length + researchBrief.queries.specific.length}</span>
+                        </div>
+                      </div>
+                    )}
+                    <ResearchTrace trace={researchTrace} />
+
+                    <AgentThinkingAccordion
+                      reasoningTrace={researchBrief?.reasoning_trace}
+                      supervisorThoughts={supervisorThoughts}
+                      researching={researching}
+                    />
+                  </section>
+
+                  {/* Right Side: Expected-Response Sketch Card */}
+                  <section className={styles.card}>
+                    <h3 className={styles.cardTitle} style={{ fontSize: '1rem' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                      Expected-Response Sketch
+                    </h3>
+                    {sketch ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Expected Concepts</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            {sketch.expectedConcepts.map((c, i) => (
+                              <span key={i} className={`${styles.md3Chip} ${styles.md3ChipPrimary}`}>{c}</span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Discriminative Terms</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            {sketch.discriminativeTerms.map((t, i) => (
+                              <span key={i} className={`${styles.md3Chip} ${styles.md3ChipSecondary}`}>{t}</span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {sketch.expectedPatterns && sketch.expectedPatterns.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Explanatory Patterns</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                              {sketch.expectedPatterns.map((p, i) => (
+                                <span key={i} className={`${styles.md3Chip} ${styles.md3ChipTertiary}`}>{p}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {sketch.preferredDomains && sketch.preferredDomains.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Preferred Domains</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                              {sketch.preferredDomains.map((d, i) => (
+                                <span key={i} className={`${styles.md3Chip} ${styles.md3ChipSuccess}`}>{d}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        Generating concept sketch...
+                      </div>
+                    )}
+                  </section>
+                </div>
+
+                {/* Bottom Full-Width Section: Accept Sources Box */}
+                {sources.length > 0 && (
+                  <section className={`${styles.card} ${styles.deepResearchBottomSources}`}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                      <h3 className={styles.cardTitle} style={{ margin: 0, borderBottom: 'none', paddingBottom: 0 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        Accept Sources ({selectedSources.size} of {sources.length} Selected)
+                      </h3>
+
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={toggleAllSources}
+                          className={`${styles.btn} ${styles.btnSecondary}`}
+                          style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}
+                        >
+                          {selectedSources.size === sources.length ? 'Deselect All' : 'Select All'}
+                        </button>
+
+                        <select
+                          className={styles.select}
+                          value={selectedCollection}
+                          onChange={(e) => setSelectedCollection(e.target.value)}
+                          disabled={ingestingWeb}
+                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                        >
+                          {collections.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+
+                        <button
+                          onClick={handleIngestWeb}
+                          className={`${styles.btn} ${styles.btnAccent}`}
+                          disabled={ingestingWeb || selectedSources.size === 0 || !selectedCollection}
+                          style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
+                        >
+                          {ingestingWeb ? 'Ingesting...' : `Accept & Ingest ${selectedSources.size} Sources`}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.75rem', marginTop: '1rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.4rem' }}>
+                      {sources.map((source) => {
+                        const isSelected = selectedSources.has(source.url);
+                        return (
+                          <div
+                            key={source.url}
+                            className={`${styles.researchSourceCard} ${isSelected ? styles.researchSourceCardSelected : ''}`}
+                            onClick={() => toggleSource(source.url)}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSource(source.url)}
+                              onClick={(e) => e.stopPropagation()}
+                              className={styles.checkbox}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {source.title}
+                                </span>
+                                <span className={`${styles.scoreBadge} ${source.score >= 0.3 ? styles.scoreHigh : styles.scoreMid}`}>
+                                  {(source.score * 100).toFixed(0)}%
+                                </span>
+                              </div>
+                              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                {source.snippet}
+                              </p>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', marginTop: '0.2rem' }}>
+                                {source.url}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+
+          </div>
+        </div>
+
+        {/* Workspace 2: Knowledge Base & Search (Tab 1) */}
+        <div className={`${styles.workspace} ${activeTab !== 1 ? styles.hidden : ''}`}>
+          <div className={styles.workspaceGridTab2}>
+            
+            {/* Left Column: Collections Manager & File Ingestion */}
             <div className={styles.workspaceColumn}>
+              {/* Collections Manager Card */}
+              <section className={styles.card}>
+                <h2 className={styles.cardTitle}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '2px'}}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  Collections Manager
+                </h2>
+
+                {/* Collections List Layout */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Qdrant Collections</label>
+                  {collections.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem', background: 'var(--md-sys-color-surface-container-lowest)', borderRadius: '12px', border: '1px dashed var(--md-sys-color-outline-variant)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      No collections found. Create one below to get started.
+                    </div>
+                  ) : (
+                    <div className={styles.collectionsGrid}>
+                      {collections.map((name) => {
+                        const isActive = selectedCollection === name;
+                        return (
+                          <div
+                            key={name}
+                            className={`${styles.collectionCard} ${isActive ? styles.collectionCardActive : ''}`}
+                            onClick={() => {
+                              setSelectedCollection(name);
+                              setSearchResults([]);
+                            }}
+                          >
+                            <div className={styles.collectionInfo}>
+                              <span className={styles.collectionIcon}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                              </span>
+                              <span className={styles.collectionName} title={name}>
+                                {name}
+                              </span>
+                            </div>
+                            <span className={styles.collectionBadge}>
+                              {getCollectionCount(name)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Create Collection */}
+                <form onSubmit={handleCreateCollection} className={styles.formGroup}>
+                  <label className={styles.label}>Create New Collection</label>
+                  <div className={styles.inputGroup}>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      placeholder="e.g. jakes-notes"
+                      value={newCollectionName}
+                      onChange={(e) => setNewCollectionName(e.target.value.replace(/[^a-zA-Z0-9-_]/g, ''))}
+                      disabled={isCreatingCollection || ingesting}
+                      maxLength={40}
+                    />
+                    <button
+                      type="submit"
+                      className={`${styles.btn} ${styles.btnSecondary}`}
+                      disabled={isCreatingCollection || !newCollectionName.trim() || ingesting}
+                    >
+                      {isCreatingCollection ? '...' : '+'}
+                    </button>
+                  </div>
+                  <small style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Alphanumeric, dashes, and underscores only.
+                  </small>
+                </form>
+              </section>
+
+              {/* Vector DB File Ingestion Card */}
+              <section className={styles.card}>
+                <h2 className={styles.cardTitle}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '2px'}}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  Vector DB File Ingestion
+                </h2>
+
+                {/* Chunking Rules */}
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>Chunking Rules</h3>
+                
+                <div className={styles.formGroup}>
+                  <div className={styles.label}>
+                    <span>Chunk Size</span>
+                    <span className={styles.labelValue}>{chunkSize} chars</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="200"
+                    max="2000"
+                    step="50"
+                    value={chunkSize}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setChunkSize(val);
+                      if (chunkOverlap >= val) {
+                        setChunkOverlap(val - 50);
+                      }
+                    }}
+                    className={styles.slider}
+                    disabled={ingesting}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <div className={styles.label}>
+                    <span>Chunk Overlap</span>
+                    <span className={styles.labelValue}>{chunkOverlap} chars</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max={chunkSize - 50}
+                    step="25"
+                    value={chunkOverlap}
+                    onChange={(e) => setChunkOverlap(parseInt(e.target.value, 10))}
+                    className={styles.slider}
+                    disabled={ingesting}
+                  />
+                </div>
+
+                {/* File Upload Dropzone */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Source File</label>
+                  {!file ? (
+                    <div
+                      className={`${styles.dropzone} ${isDragActive ? styles.dropzoneActive : ''}`}
+                      onDragEnter={handleDrag}
+                      onDragOver={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept=".txt,.md,.pdf"
+                        style={{ display: 'none' }}
+                      />
+                      <div className={styles.dropzoneIcon}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                      </div>
+                      <div>
+                        <p className={styles.dropzoneText}>Drag & drop document file here</p>
+                        <p className={styles.dropzoneSubtext}>Supports TXT, MD, PDF up to 10MB</p>
+                      </div>
+                      <button type="button" className={`${styles.btn} ${styles.btnSecondary}`} style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}>
+                        Browse Computer
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={styles.dropzone} style={{ borderStyle: 'solid', borderColor: 'var(--primary)' }}>
+                      <div className={styles.dropzoneIcon} style={{ color: 'var(--primary)' }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                      </div>
+                      <div className={styles.fileInfo}>
+                        <p className={styles.fileName}>{file.name}</p>
+                        <p className={styles.fileSize}>{(file.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                        className={`${styles.btn} ${styles.btnSecondary}`}
+                        style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}
+                        disabled={ingesting}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Ingest Action Button */}
+                <button
+                  onClick={handleIngest}
+                  className={`${styles.btn} ${styles.btnAccent}`}
+                  style={{ width: '100%', padding: '0.75rem', fontSize: '0.9rem', marginTop: '0.5rem' }}
+                  disabled={!file || !selectedCollection || ingesting}
+                >
+                  {ingesting ? 'Chunking & Embedding...' : 'Ingest into Collection'}
+                </button>
+
+                {/* Progress Bar & Status */}
+                {ingesting && (
+                  <div className={styles.progressContainer}>
+                    <div className={styles.progressLabel}>
+                      <span>{ingestStatus || 'Processing document...'}</span>
+                      <span className={styles.progressSpinner}></span>
+                    </div>
+                    <div className={styles.progressBarContainer}>
+                      <div className={styles.progressBar}></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ingestion Summary Result */}
+                {ingestSummary && (
+                  <div className={styles.summaryCard}>
+                    <h4 className={styles.summaryTitle}>Ingestion Successful!</h4>
+                    <div className={styles.summaryGrid}>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryLabel}>File</span>
+                        <span className={styles.summaryValue} title={ingestSummary.filename}>{ingestSummary.filename}</span>
+                      </div>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryLabel}>Chunks Created</span>
+                        <span className={styles.summaryValue}>{ingestSummary.chunksCount}</span>
+                      </div>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryLabel}>Processing Time</span>
+                        <span className={styles.summaryValue}>{ingestSummary.embeddingTimeMs} ms</span>
+                      </div>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryLabel}>Target Collection</span>
+                        <span className={styles.summaryValue}>{selectedCollection}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
+
+            {/* Right Column: Unified RAG Query Hub & LightRAG Ingestion Studio */}
+            <div className={styles.workspaceColumn}>
+              {/* Unified Search & RAG Query Hub (Moved from Tab 1) */}
               <section className={`${styles.card} ${styles.unifiedQueryCard} ${queryMode === 'rag' ? styles.ragCard : styles.searchCard}`}>
                 <div className={styles.unifiedCardHeader}>
                   <h2 className={styles.cardTitle} style={{ borderBottom: 'none', paddingBottom: 0, margin: 0, gap: '0.4rem' }}>
@@ -848,9 +1324,10 @@ export default function Dashboard() {
                         </div>
                       ) : searchResults.length > 0 ? (
                         searchResults.map((result) => {
-                          // Determine style depending on cosine similarity score
                           const isHigh = result.score >= 0.7;
                           const scoreClass = isHigh ? styles.scoreHigh : styles.scoreMid;
+                          const isExpanded = expandedResultIds.has(result.id);
+                          const isLong = result.text.length > 220;
                           
                           return (
                             <div key={result.id} className={`${styles.resultCard} ${isHigh ? styles.resultCardHighMatch : ''}`}>
@@ -866,7 +1343,26 @@ export default function Dashboard() {
                                   {(result.score * 100).toFixed(1)}% match
                                 </span>
                               </div>
-                              <p className={styles.resultText}>{result.text}</p>
+                              <p className={`${styles.resultText} ${isExpanded ? styles.resultTextExpanded : ''}`}>{result.text}</p>
+                              {isLong && (
+                                <button
+                                  type="button"
+                                  className={styles.expandBtn}
+                                  onClick={() => toggleExpandResult(result.id)}
+                                >
+                                  {isExpanded ? (
+                                    <>
+                                      <span>Show less</span>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>Show details</span>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </>
+                                  )}
+                                </button>
+                              )}
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                                 <span>Start char: {result.charStart}</span>
                                 <span>End char: {result.charEnd}</span>
@@ -890,227 +1386,6 @@ export default function Dashboard() {
                   </div>
                 )}
               </section>
-            </div>
-
-            {/* Right Column: Deep Research Panel */}
-            <div className={styles.workspaceColumn}>
-              {/* Deep Research Panel */}
-              <section className={styles.card}>
-                <h2 className={styles.cardTitle}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '2px'}}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                  Deep Research (SIRA)
-                </h2>
-
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                  <textarea
-                    className={styles.input}
-                    placeholder="Enter your research query..."
-                    value={researchQuery}
-                    onChange={(e) => setResearchQuery(e.target.value)}
-                    disabled={researching}
-                    rows={3}
-                    style={{ flex: '1', minWidth: '250px', resize: 'vertical' }}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '200px' }}>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      placeholder="Domains (e.g. arxiv.org, github.com)"
-                      value={researchDomains}
-                      onChange={(e) => setResearchDomains(e.target.value)}
-                      disabled={researching}
-                    />
-                    <input
-                      type="text"
-                      className={styles.input}
-                      placeholder="Filetypes (e.g. pdf, html)"
-                      value={researchFiletypes}
-                      onChange={(e) => setResearchFiletypes(e.target.value)}
-                      disabled={researching}
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleResearch}
-                  className={styles.btn}
-                  disabled={researching || !researchQuery.trim()}
-                >
-                  {researching ? 'Running Research...' : 'Run Deep Research'}
-                </button>
-
-                {/* Sketch Display */}
-                {sketch && (
-                  <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                    <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.15rem' }}>
-                      Expected-Response Sketch
-                    </h3>
-
-                    <div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Expected Concepts</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                        {sketch.expectedConcepts.map((c, i) => (
-                          <span key={i} className={`${styles.md3Chip} ${styles.md3ChipPrimary}`}>
-                            {c}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Discriminative Terms</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                        {sketch.discriminativeTerms.map((t, i) => (
-                          <span key={i} className={`${styles.md3Chip} ${styles.md3ChipSecondary}`}>
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {sketch.expectedPatterns && sketch.expectedPatterns.length > 0 && (
-                      <div>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Explanatory Patterns</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                          {sketch.expectedPatterns.map((p, i) => (
-                            <span key={i} className={`${styles.md3Chip} ${styles.md3ChipTertiary}`}>
-                              {p}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {sketch.preferredDomains && sketch.preferredDomains.length > 0 && (
-                      <div>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Preferred Domains</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                          {sketch.preferredDomains.map((d, i) => (
-                            <span key={i} className={`${styles.md3Chip} ${styles.md3ChipSuccess}`}>
-                              {d}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Sources List */}
-                {sources.length > 0 && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        Discovered Sources ({sources.length})
-                      </h3>
-                      <button
-                        onClick={toggleAllSources}
-                        className={`${styles.btn} ${styles.btnSecondary}`}
-                        style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem' }}
-                      >
-                        {selectedSources.size === sources.length ? 'Deselect All' : 'Select All'}
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.4rem' }}>
-                      {sources.map((source) => {
-                        const isSelected = selectedSources.has(source.url);
-                        return (
-                          <div
-                            key={source.url}
-                            className={`${styles.researchSourceCard} ${isSelected ? styles.researchSourceCardSelected : ''}`}
-                            onClick={() => toggleSource(source.url)}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSource(source.url)}
-                              onClick={(e) => e.stopPropagation()}
-                              className={styles.checkbox}
-                            />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {source.title}
-                                </span>
-                                <span className={`${styles.scoreBadge} ${source.score >= 0.3 ? styles.scoreHigh : styles.scoreMid}`}>
-                                  {(source.score * 100).toFixed(0)}%
-                                </span>
-                              </div>
-                              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                {source.snippet}
-                              </p>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
-                                {source.url}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Ingest Controls */}
-                    <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        {selectedSources.size} selected → ingest into
-                      </span>
-                      <select
-                        className={styles.select}
-                        value={selectedCollection}
-                        onChange={(e) => setSelectedCollection(e.target.value)}
-                        disabled={ingestingWeb}
-                        style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem' }}
-                      >
-                        {collections.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={handleIngestWeb}
-                        className={styles.btn}
-                        disabled={ingestingWeb || selectedSources.size === 0 || !selectedCollection}
-                        style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}
-                      >
-                        {ingestingWeb ? 'Ingesting...' : `Ingest ${selectedSources.size} Sources`}
-                      </button>
-                    </div>
-
-                    {ingestingWeb && (
-                      <div className={styles.progressContainer} style={{ marginTop: '0.75rem' }}>
-                        <div className={styles.progressLabel}>
-                          <span>{ingestWebStatus || 'Processing...'}</span>
-                          <span className={styles.progressSpinner}></span>
-                        </div>
-                        <div className={styles.progressBarContainer}>
-                          <div className={styles.progressBar} style={{ width: '60%', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </section>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Workspace 2: Ingest & Studio (Tab 1) */}
-        <div className={`${styles.workspace} ${activeTab !== 1 ? styles.hidden : ''}`}>
-          <div className={styles.workspaceGridTab2}>
-            
-            {/* Left Column: Collections Manager & File Ingestion */}
-            <div className={styles.workspaceColumn}>
-              {/* Collections Manager Card */}
-              <section className={styles.card}>
-                <h2 className={styles.cardTitle}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '2px'}}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                  Collections Manager
-                </h2>
-
-                {/* Collections List Layout */}
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Qdrant Collections</label>
-                  {collections.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '1.5rem', background: 'var(--md-sys-color-surface-container-lowest)', borderRadius: '12px', border: '1px dashed var(--md-sys-color-outline-variant)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                       No collections found. Create one below to get started.
                     </div>

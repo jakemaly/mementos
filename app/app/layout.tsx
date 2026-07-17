@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "second-brain - Dashboard",
+  title: "Mementos - Dashboard",
   description: "Minimalist glassmorphic vector ingestion and retrieval dashboard.",
 };
 

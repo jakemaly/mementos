@@ -41,7 +41,7 @@ async function fetchPageContent(url: string): Promise<string> {
 
   // Fallback: standard HTTP fetch + HTML stripping
   const resp = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SecondBrain/1.0)' },
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Mementos/1.0)' },
     signal: AbortSignal.timeout(15000),
   });
 
