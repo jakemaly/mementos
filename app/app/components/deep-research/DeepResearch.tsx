@@ -359,7 +359,12 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
       onToggleSource={handleToggleSource}
       onToggleAllSources={handleToggleAllSources}
       onIngest={handleIngest}
-      ingestDisabled={selectedSourceUrls.size === 0 || runState === 'ingesting'}
+      ingestDisabled={
+        selectedSourceUrls.size === 0
+        || runState === 'starting'
+        || runState === 'researching'
+        || runState === 'ingesting'
+      }
       ingestResult={ingestResult}
       errorMessage={errorMessage}
       onOpenKnowledgeBase={onOpenKnowledgeBase}
