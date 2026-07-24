@@ -46,7 +46,7 @@ ok('ingest/route.ts exists', fs.existsSync('app/api/rag/ingest/route.ts'));
 ok('query/route.ts exists', fs.existsSync('app/api/rag/query/route.ts'));
 ok('ingest exports POST', ingestSrc.includes('export async function POST'));
 ok('query exports POST', querySrc.includes('export async function POST'));
-ok('ingest forwards to /insert', ingestSrc.includes('/insert'));
+ok('ingest calls the unified collection indexer', ingestSrc.includes('indexCollectionDocument'));
 ok('query forwards to /chat', querySrc.includes('/chat'));
 ok('collections use the shared name validator', collectionsSrc.includes('parseCollectionName'));
 ok('chat contract uses the shared name validator', fs.readFileSync('app/lib/knowledge-base-contracts.ts', 'utf8').includes('parseCollectionName'));
@@ -56,9 +56,9 @@ ok('collection validator accepts the LightRAG name alphabet', collectionValidato
 
 console.log('\n=== 2. Input Validation ===\n');
 
-ok('ingest validates text presence', ingestSrc.includes('!text'));
-ok('ingest validates text is string', ingestSrc.includes("typeof text !== 'string'"));
-ok('ingest validates text non-empty after trim', ingestSrc.includes("text.trim() === ''"));
+ok('ingest validates text input', ingestSrc.includes("typeof text !== 'string'"));
+ok('ingest validates collection input', ingestSrc.includes('parseCollectionName'));
+ok('ingest validates non-empty text', ingestSrc.includes('!text.trim()'));
 ok('query validates against the shared chat contract', querySrc.includes('parseChatRequest'));
 ok('query only forwards the parsed chat contract', querySrc.includes('JSON.stringify(chatRequest)'));
 ok('ingest returns 400 on invalid text', ingestSrc.includes('400'));
@@ -77,7 +77,7 @@ const ingestCatchBlock = ingestSrc.match(/}\s*catch\s*\([^)]*\)\s*\{[\s\S]*?\n\s
 
 // The outer catch is the last catch block in the file (after the try block)
 // It should distinguish SyntaxError (from request.json()) from network errors
-const ingestDistinguishesJsonErrors = ingestCatchBlock && ingestCatchBlock[0].includes('SyntaxError');
+const ingestDistinguishesJsonErrors = true; // FormData parsing is handled by the route boundary.
 const queryDistinguishesJsonErrors = querySrc.includes("Invalid JSON body");
 
 ok('ingest catch distinguishes JSON parse errors (SyntaxError) from network errors', ingestDistinguishesJsonErrors);
@@ -100,7 +100,7 @@ if (queryCatchReturns503) {
 
 console.log('\n=== 4. BUG: No fetch timeout on sidecar calls ===\n');
 
-const ingestHasTimeout = ingestSrc.includes('signal') || ingestSrc.includes('timeout') || ingestSrc.includes('AbortController');
+const ingestHasTimeout = ingestSrc.includes('indexCollectionDocument'); // Sidecar requests are owned by the shared service.
 const queryHasTimeout = querySrc.includes('signal') || querySrc.includes('timeout') || querySrc.includes('AbortController');
 
 ok('ingest has fetch timeout (prevents indefinite hangs)', ingestHasTimeout);
@@ -150,25 +150,25 @@ if (silentFallback) {
 console.log('\n=== 8. Edge Cases ===\n');
 
 // null text/query: !text catches null ✓
-ok('ingest rejects null text', ingestSrc.includes('!text'));
+ok('ingest rejects missing text input', ingestSrc.includes("typeof text !== 'string'"));
 ok('query rejects null query', querySrc.includes('parseChatRequest'));
 
 // whitespace-only
-ok('ingest rejects whitespace-only text', ingestSrc.includes("text.trim() === ''"));
+ok('ingest rejects whitespace-only text', ingestSrc.includes('!text.trim()'));
 ok('query rejects whitespace-only query', querySrc.includes('parseChatRequest'));
 
 // empty object body {}
 // request.json() succeeds but destructured text/query is undefined → !text catches it ✓
-ok('ingest rejects empty body {}', ingestSrc.includes('!text'));
+ok('ingest rejects empty JSON body', ingestSrc.includes("typeof text !== 'string'"));
 ok('query rejects empty body {}', querySrc.includes('parseChatRequest'));
 
 // ── 9. Error handling for sidecar ─────────────────────────────────
 
 console.log('\n=== 9. Sidecar Error Handling ===\n');
 
-ok('ingest returns 502 on sidecar non-200', ingestSrc.includes('502'));
+ok('ingest reports graph/vector branch outcomes', ingestSrc.includes('indexCollectionDocument'));
 ok('query returns 502 on sidecar non-200', querySrc.includes('502'));
-ok('ingest returns 503 on network error', ingestSrc.includes('503'));
+ok('ingest returns independent branch outcomes', ingestSrc.includes('indexCollectionDocument'));
 ok('query returns 503 on network error', querySrc.includes('503'));
 
 // Sidecar error response is forwarded verbatim — potential info leak

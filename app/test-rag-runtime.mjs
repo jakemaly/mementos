@@ -8,6 +8,7 @@
 
 import { POST as ingestPOST } from './app/api/rag/ingest/route.ts';
 import { POST as queryPOST } from './app/api/rag/query/route.ts';
+import { createCollectionIndexer } from './lib/index-collection-document.ts';
 
 const PASS = '\x1b[32m✓\x1b[0m';
 const FAIL = '\x1b[31m✗\x1b[0m';
@@ -51,241 +52,53 @@ global.AbortController = class {
   abort(reason) { this.#controller.abort(reason); }
 };
 
-// ── Ingest Route Tests ─────────────────────────────────────────────
+// ── Unified Collection Indexing Tests ──────────────────────────────
 
-console.log('\n=== Ingest Route — Runtime Tests ===\n');
+console.log('\n=== Unified Collection Indexing — Runtime Tests ===\n');
 
-// Test: Valid ingest request
 {
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 'Hello world', filename: 'test.txt' })
+  const index = createCollectionIndexer({
+    embed: async () => Array(384).fill(0),
+    upsert: async () => undefined,
+    graphInsert: async () => ({ status: 'complete', trackId: 'track-1' }),
   });
-  const res = await ingestPOST(req);
-  const data = await res.json();
-  ok('ingest: valid request returns 200', res.status === 200);
-  ok('ingest: returns sidecar response', data.success === true);
+  const result = await index('default', 'A document with evidence.', 'notes.md');
+  ok('index: complete when vector and graph writes succeed', result.status === 'complete');
+  ok('index: returns independent branch outcomes', result.vector.status === 'complete' && result.graph.status === 'complete');
+}
+{
+  const index = createCollectionIndexer({
+    embed: async () => { throw new Error('embedding unavailable'); },
+    upsert: async () => undefined,
+    graphInsert: async () => ({ status: 'complete', trackId: 'track-1' }),
+  });
+  const result = await index('default', 'A document with evidence.', 'notes.md');
+  ok('index: preserves graph success when vector indexing fails', result.status === 'partial' && result.graph.status === 'complete' && result.vector.status === 'failed');
+}
+{
+  const index = createCollectionIndexer({
+    embed: async () => Array(384).fill(0),
+    upsert: async () => undefined,
+    graphInsert: async () => ({ status: 'failed', error: 'sidecar unavailable' }),
+  });
+  const result = await index('default', 'A document with evidence.', 'notes.md');
+  ok('index: preserves vector success when graph indexing fails', result.status === 'partial' && result.vector.status === 'complete' && result.graph.status === 'failed');
 }
 
-// Test: Missing text
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({})
-  });
+// ── Manual Ingest Route Validation Tests ────────────────────────────
+
+console.log('\n=== Manual Ingest Route — Runtime Tests ===\n');
+
+for (const formData of [
+  new FormData(),
+  (() => { const form = new FormData(); form.set('collection', 'bad name'); form.set('file', new File(['text'], 'notes.txt', { type: 'text/plain' })); return form; })(),
+  (() => { const form = new FormData(); form.set('collection', 'default'); form.set('file', new File(['text'], 'notes.pdf', { type: 'application/pdf' })); return form; })(),
+  (() => { const form = new FormData(); form.set('collection', 'default'); form.set('file', new File(['   '], 'notes.txt', { type: 'text/plain' })); return form; })(),
+]) {
+  const req = new Request('http://localhost/api/ingest', { method: 'POST', body: formData });
   const res = await ingestPOST(req);
-  const data = await res.json();
-  ok('ingest: missing text returns 400', res.status === 400);
-  ok('ingest: missing text has error message', !!data.error);
+  ok('ingest: invalid file or collection returns 400', res.status === 400);
 }
-
-// Test: Empty text
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: '' })
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: empty text returns 400', res.status === 400);
-}
-
-// Test: Whitespace-only text
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: '   ' })
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: whitespace-only text returns 400', res.status === 400);
-}
-
-// Test: null text
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: null })
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: null text returns 400', res.status === 400);
-}
-
-// Test: text is number
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 123 })
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: numeric text returns 400', res.status === 400);
-}
-
-// Test: text is boolean
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: true })
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: boolean text returns 400', res.status === 400);
-}
-
-// Test: filename is number (should be converted to undefined)
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 'hello', filename: 123 })
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: numeric filename accepted (converted to undefined)', res.status === 200);
-}
-
-// Test: filename is object
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 'hello', filename: { path: '/etc/passwd' } })
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: object filename accepted (converted to undefined)', res.status === 200);
-}
-
-// Test: Malformed JSON body
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: '{ invalid json }'
-  });
-  const res = await ingestPOST(req);
-  const data = await res.json();
-  ok('ingest: malformed JSON returns 400', res.status === 400);
-  ok('ingest: malformed JSON error mentions JSON', data.error.toLowerCase().includes('json'));
-}
-
-// Test: Body is array
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify([1, 2, 3])
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: array body returns 400', res.status === 400);
-}
-
-// Test: Body is string
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify('just a string')
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: string body returns 400', res.status === 400);
-}
-
-// Test: No filename (optional)
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 'hello' })
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: missing filename is accepted', res.status === 200);
-}
-
-// Test: Empty filename treated as undefined
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 'hello', filename: '' })
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: empty string filename accepted (treated as undefined)', res.status === 200);
-}
-
-// Test: Extra fields ignored
-{
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 'hello', filename: 'test.txt', evil: 'injection', nested: { sql: 'DROP TABLE' } })
-  });
-  const res = await ingestPOST(req);
-  ok('ingest: extra fields in body do not cause error', res.status === 200);
-}
-
-// ── Sidecar Error Handling ─────────────────────────────────────────
-
-console.log('\n=== Sidecar Error Handling ===\n');
-
-// Test: Sidecar returns 500
-{
-  global.fetch = async () => ({
-    ok: false,
-    status: 500,
-    json: async () => ({ detail: 'Internal server error' })
-  });
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 'hello' })
-  });
-  const res = await ingestPOST(req);
-  const data = await res.json();
-  ok('ingest: sidecar 500 returns 502 to client', res.status === 502);
-  ok('ingest: sidecar error body forwarded', data.detail === 'Internal server error');
-}
-
-// Test: Sidecar returns non-JSON error
-{
-  global.fetch = async () => ({
-    ok: false,
-    status: 500,
-    json: async () => { throw new Error('not json'); }
-  });
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 'hello' })
-  });
-  const res = await ingestPOST(req);
-  const data = await res.json();
-  ok('ingest: sidecar non-JSON error handled gracefully', res.status === 502);
-  ok('ingest: fallback error message', data.detail === 'Sidecar error');
-}
-
-// Test: Sidecar unreachable (network error)
-{
-  global.fetch = async () => { throw new Error('network error'); };
-  const req = new Request('http://localhost/api/rag/ingest', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 'hello' })
-  });
-  const res = await ingestPOST(req);
-  const data = await res.json();
-  ok('ingest: network error returns 503', res.status === 503);
-  ok('ingest: network error message mentions unavailable', data.error && data.error.includes('unavailable'));
-}
-
-// Restore success fetch
-global.fetch = async () => ({
-  ok: true,
-  status: 200,
-  json: async () => ({ success: true, message: 'ok', track_id: 'test-123' })
-});
 
 // ── Streaming Chat Proxy Tests ─────────────────────────────────────
 
