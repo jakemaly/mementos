@@ -106,6 +106,7 @@ export async function POST(request: Request) {
 
     const startTime = Date.now();
     const ingestedUrls: string[] = [];
+    const failedUrls: string[] = [];
     let totalChunks = 0;
 
     // Process each source sequentially (embeddings are synchronous local model)
@@ -118,20 +119,26 @@ export async function POST(request: Request) {
         content = await fetchPageContent(url);
       } catch (err: unknown) {
         console.error(`Failed to fetch ${url}: ${errorMessage(err)}`);
+        failedUrls.push(url);
         continue;
       }
 
       if (!content.trim()) {
         console.warn(`Empty content from ${url}, skipping`);
+        failedUrls.push(url);
         continue;
       }
 
-      // Chunk the text
-      const chunks = splitTextIntoChunks(content, chunkSize, chunkOverlap);
-      if (chunks.length === 0) continue;
+      try {
+        // Chunk the text
+        const chunks = splitTextIntoChunks(content, chunkSize, chunkOverlap);
+        if (chunks.length === 0) {
+          failedUrls.push(url);
+          continue;
+        }
 
-      // Generate embeddings and build points
-      const points = [];
+        // Generate embeddings and build points
+        const points = [];
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
         const vector = await getEmbedding(chunk.text);
@@ -156,21 +163,31 @@ export async function POST(request: Request) {
 
       totalChunks += chunks.length;
       ingestedUrls.push(url);
-      console.log(
-        `Ingested ${chunks.length} chunks from ${url} into '${collection}'`
-      );
+        console.log(
+          `Ingested ${chunks.length} chunks from ${url} into '${collection}'`
+        );
+      } catch (err: unknown) {
+        console.error(`Failed to ingest ${url}: ${errorMessage(err)}`);
+        failedUrls.push(url);
+      }
     }
 
     const elapsed = Date.now() - startTime;
-    const failedUrls = sources.map((source) => source.url).filter((url) => !ingestedUrls.includes(url));
+    const partial = ingestedUrls.length > 0 && failedUrls.length > 0;
+    const complete = failedUrls.length === 0;
 
     return NextResponse.json({
-      success: ingestedUrls.length > 0,
+      success: complete,
+      partial,
       totalChunks,
       ingestedUrls,
       failedUrls,
       elapsedMs: elapsed,
-      message: `Ingested ${totalChunks} chunks from ${ingestedUrls.length} of ${sources.length} sources into '${collection}'`,
+      message: complete
+        ? `Ingested ${totalChunks} chunks from ${ingestedUrls.length} sources into '${collection}'`
+        : partial
+          ? `Partially imported ${ingestedUrls.length} of ${sources.length} sources into '${collection}'`
+          : `Could not import any of the ${sources.length} selected sources into '${collection}'`,
     });
   } catch (error: unknown) {
     console.error('Research ingest error:', error);

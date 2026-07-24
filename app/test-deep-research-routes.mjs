@@ -70,6 +70,8 @@ console.log('\n=== 4. Ingestion Route ===\n');
 ok('Ingest validates sources array', ingestRoute.includes('!sources?.length'));
 ok('Ingest validates collection', ingestRoute.includes('!collection'));
 ok('Ingest returns 400 on missing data', ingestRoute.includes('400'));
+ok('Ingest reports partial outcomes', ingestRoute.includes('const partial') && ingestRoute.includes('Partially imported'));
+ok('Ingest reports failed URLs', ingestRoute.includes('failedUrls'));
 
 // ── 5. No filter fields in routes ──────────────────────────────────
 

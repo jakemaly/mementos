@@ -1,12 +1,13 @@
-import { pipeline } from '@huggingface/transformers';
+import { FeatureExtractionPipeline, pipeline } from '@huggingface/transformers';
 
-type Extractor = Awaited<ReturnType<typeof pipeline>>;
+let extractorInstance: FeatureExtractionPipeline | null = null;
 
-let extractorInstance: Extractor | null = null;
-
-async function getExtractor() {
+async function getExtractor(): Promise<FeatureExtractionPipeline> {
   if (!extractorInstance) {
-    extractorInstance = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+    extractorInstance = await pipeline(
+      'feature-extraction',
+      'Xenova/all-MiniLM-L6-v2',
+    ) as FeatureExtractionPipeline;
   }
   return extractorInstance;
 }
