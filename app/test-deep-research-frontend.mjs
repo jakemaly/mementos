@@ -13,6 +13,8 @@ function ok(name, condition) {
 
 const root = fs.readFileSync('app/components/deep-research/DeepResearch.tsx', 'utf8');
 const page = fs.readFileSync('app/page.tsx', 'utf8');
+const shell = fs.readFileSync('app/components/app-shell/AppShell.tsx', 'utf8');
+const shellCss = fs.readFileSync('app/components/app-shell/app-shell.module.css', 'utf8');
 const composer = fs.readFileSync('app/components/deep-research/ResearchComposer.tsx', 'utf8');
 const workspace = fs.readFileSync('app/components/deep-research/ResearchWorkspace.tsx', 'utf8');
 const css = fs.readFileSync('app/components/deep-research/deep-research.module.css', 'utf8');
@@ -26,7 +28,11 @@ ok('Composer renders collection selector', composer.includes('aria-label="Target
 ok('Composer supports Shift+Enter newline behavior', composer.includes('e.shiftKey'));
 ok('Composer prevents default Enter submission', composer.includes('e.preventDefault()'));
 ok('Composer has accessible submit action', composer.includes('aria-label="Start research"'));
-ok('Composer includes the shared sidebar', root.includes('className={styles.composerContainer}') && root.includes('aria-label="Open knowledge base"'));
+ok('Composer uses the shared application shell', root.includes('<AppShell activeDestination="research"'));
+ok('Shell has semantic main navigation', shell.includes('aria-label="Main navigation"'));
+ok('Shell exposes destination actions', shell.includes('Deep Research') && shell.includes('Knowledge Base') && shell.includes('Collections'));
+ok('Shell includes disabled future Settings', shell.includes('Settings (not available yet)'));
+ok('Shell uses compact mobile navigation', shellCss.includes('@media (max-width: 768px)') && shellCss.includes('overflow-x: auto'));
 ok('Page owns collection loading', page.includes("fetch('/api/collections')") && page.includes('setCollectionUnavailable'));
 ok('Deep Research receives shared collection state', root.includes('collectionUnavailable: boolean') && root.includes('onCollectionChange: (collection: string) => void'));
 ok('Deep Research does not refetch collections', !root.includes("fetch('/api/collections')"));
@@ -67,7 +73,7 @@ ok('Mobile panes use graph/sketch/observability/sources order', css.includes('or
 ok('Visible focus styles exist', css.includes(':focus-visible'));
 ok('Cherry accent is scoped', css.includes('--accent: #9f1239') && css.includes('var(--accent)'));
 ok('Reduced motion is respected', css.includes('prefers-reduced-motion: reduce'));
-ok('Settings entry is present', workspace.includes('Settings'));
+ok('Settings entry is present', shell.includes('Settings (not available yet)'));
 
 console.log(`\n${PASS} ${passed} passed`);
 console.log(`${FAIL} ${failed} failed`);

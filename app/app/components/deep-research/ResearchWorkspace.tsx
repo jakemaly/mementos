@@ -35,7 +35,6 @@ interface ResearchWorkspaceProps {
   ingestDisabled: boolean;
   ingestResult: IngestResult | null;
   errorMessage: string;
-  onOpenKnowledgeBase?: () => void;
 }
 
 function formatElapsed(ms: number): string {
@@ -62,7 +61,6 @@ export function ResearchWorkspace({
   ingestDisabled,
   ingestResult,
   errorMessage,
-  onOpenKnowledgeBase,
 }: ResearchWorkspaceProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
@@ -81,25 +79,7 @@ export function ResearchWorkspace({
   }, [runState]);
 
   return (
-    <div className={styles.workspace}>
-      {/* Sidebar */}
-      <aside className={styles.sidebar}>
-        <div className={styles.sidebarWordmark}>Mementos</div>
-        <button className={styles.sidebarBtn} onClick={onNewResearch} aria-label="New research">
-          New research
-        </button>
-        <button className={styles.sidebarBtn} type="button" disabled aria-label="Settings (not available yet)" title="Settings will be available in a future release">
-          Settings
-        </button>
-        {onOpenKnowledgeBase && (
-          <button className={styles.sidebarBtn} onClick={onOpenKnowledgeBase} aria-label="Open knowledge base">
-            Knowledge base
-          </button>
-        )}
-      </aside>
-
-      {/* Main content */}
-      <div className={styles.mainContent}>
+    <div className={styles.mainContent}>
         {/* Top bar */}
         <div className={styles.topBar}>
           <div className={styles.queryStatus}>
@@ -170,7 +150,6 @@ export function ResearchWorkspace({
             </section>
           </div>
         </div>
-      </div>
     </div>
   );
 }

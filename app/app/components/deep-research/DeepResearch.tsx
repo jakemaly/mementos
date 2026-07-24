@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { ResearchComposer } from './ResearchComposer';
+import { AppShell } from '@/app/components/app-shell/AppShell';
 import { ResearchWorkspace } from './ResearchWorkspace';
 import { Source, TraceEvent, ResearchBrief, Sketch } from '@/app/lib/research-contracts';
 import styles from './deep-research.module.css';
@@ -323,21 +324,7 @@ export function DeepResearch({
 
   if (runState === 'idle') {
     return (
-      <div className={styles.composerContainer}>
-        <aside className={styles.sidebar}>
-          <div className={styles.sidebarWordmark}>Mementos</div>
-          <button className={styles.sidebarBtn} type="button" disabled aria-label="New research">
-            New research
-          </button>
-          <button className={styles.sidebarBtn} type="button" disabled aria-label="Settings (not available yet)" title="Settings will be available in a future release">
-            Settings
-          </button>
-          {onOpenKnowledgeBase && (
-            <button className={styles.sidebarBtn} type="button" onClick={onOpenKnowledgeBase} aria-label="Open knowledge base">
-              Knowledge base
-            </button>
-          )}
-        </aside>
+      <AppShell activeDestination="research" onOpenKnowledgeBase={onOpenKnowledgeBase}>
         <main className={styles.composerMain}>
           <h1 className={styles.wordmark}>Mementos</h1>
           <ResearchComposer
@@ -352,12 +339,13 @@ export function DeepResearch({
           />
           {errorMessage && <div className={styles.error} role="alert">{errorMessage}</div>}
         </main>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <ResearchWorkspace
+    <AppShell activeDestination="research" onNewResearch={handleNewResearch} onOpenKnowledgeBase={onOpenKnowledgeBase}>
+      <ResearchWorkspace
       query={query}
       runState={runState}
       elapsedMs={elapsedMs}
@@ -379,7 +367,7 @@ export function DeepResearch({
       }
       ingestResult={ingestResult}
       errorMessage={errorMessage}
-      onOpenKnowledgeBase={onOpenKnowledgeBase}
-    />
+      />
+    </AppShell>
   );
 }
