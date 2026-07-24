@@ -61,8 +61,6 @@ async def node_brief(state: ResearchState) -> dict:
 
     brief, sketch = await generate_brief_and_sketch(
         query=state["query"],
-        domains=state.get("user_domains") or None,
-        filetypes=state.get("user_filetypes") or None,
     )
 
     ev = _emit(trace, "brief_generated", {

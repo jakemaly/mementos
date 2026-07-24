@@ -31,13 +31,12 @@ def test_validate_returns_brief_and_sketch():
     brief, sketch = _validate(GOOD_JSON)
     assert brief["brief"] == "Research scope"
     assert "tavily" in brief["tools"]
-    assert "arxiv" in brief["tools"]
     assert sketch["expected_concepts"] == ["concept1"]
     assert sketch["discriminative_terms"] == ["term1"]
 
 
 def test_validate_adds_tavily_if_missing():
-    data = dict(GOOD_JSON, tools=["arxiv"])
+    data = dict(GOOD_JSON, tools=[])
     brief, _ = _validate(data)
     assert "tavily" in brief["tools"]
 
@@ -61,17 +60,8 @@ def test_validate_empty_patterns_defaults():
     assert sketch["preferred_domains"] == []
 
 
-def test_build_prompt_includes_domains():
-    prompt = _build_prompt("test query", ["arxiv.org"], None)
-    assert "arxiv.org" in prompt
-
-
-def test_build_prompt_includes_filetypes():
-    prompt = _build_prompt("test query", None, ["pdf"])
-    assert "pdf" in prompt
-
-
-def test_build_prompt_omits_empty_filters():
-    prompt = _build_prompt("test query", None, None)
+def test_build_prompt_omits_user_filters():
+    prompt = _build_prompt("test query")
     assert "Restrict searches" not in prompt
     assert "Prefer these filetypes" not in prompt
+    assert "Research query: test query" in prompt

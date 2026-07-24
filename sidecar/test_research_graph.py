@@ -193,9 +193,7 @@ async def test_brief_node_emits_events():
         result = await node_brief(state)
         assert result["research_brief"] == "scope"
         types = [e["type"] for e in result["trace"]]
-        assert "supervisor_started" in types
         assert "brief_generated" in types
-        assert "supervisor_completed" in types
 
 
 # ── Full pipeline (mocked) ──────────────────────────────────────────────

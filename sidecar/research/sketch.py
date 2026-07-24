@@ -13,18 +13,10 @@ logger = logging.getLogger("sidecar")
 _MAX_RETRIES = 2
 
 
-def _build_prompt(query: str, domains: list[str] | None, filetypes: list[str] | None) -> str:
-    domain_hint = ""
-    if domains:
-        domain_hint = f"\nRestrict searches to these domains: {', '.join(domains)}"
-    filetype_hint = ""
-    if filetypes:
-        filetype_hint = f"\nPrefer these filetypes: {', '.join(filetypes)}"
-
+def _build_prompt(query: str) -> str:
     return (
         f"You are a research assistant. Analyze the research query and produce a research brief.\n"
-        f"Determine if it is question-based, definitional, explanatory, technical, or software-related.\n"
-        f"{domain_hint}{filetype_hint}\n\n"
+        f"Determine if it is question-based, definitional, explanatory, technical, or software-related.\n\n"
         f"Return ONLY valid JSON with this exact schema:\n"
         f"{{\n"
         f'  "reasoning_trace": ["step 1", "step 2", ...],\n'
@@ -113,8 +105,6 @@ def _validate(data: dict) -> tuple[ResearchBrief, Sketch]:
 
 async def generate_brief_and_sketch(
     query: str,
-    domains: list[str] | None = None,
-    filetypes: list[str] | None = None,
 ) -> tuple[ResearchBrief, Sketch]:
     """Generate research brief and sketch via LLM. Retries on malformed JSON."""
     api_key = os.getenv("OPENAI_API_KEY")
@@ -128,7 +118,7 @@ async def generate_brief_and_sketch(
         temperature=0,
     )
 
-    prompt = _build_prompt(query, domains, filetypes)
+    prompt = _build_prompt(query)
     last_error: Exception | None = None
 
     for attempt in range(1, _MAX_RETRIES + 1):
