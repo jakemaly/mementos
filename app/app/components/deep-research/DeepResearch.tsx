@@ -23,14 +23,22 @@ interface IngestResult {
 }
 
 interface DeepResearchProps {
+  collections: string[];
+  selectedCollection: string;
+  collectionUnavailable: boolean;
+  onCollectionChange: (collection: string) => void;
   onOpenKnowledgeBase?: () => void;
 }
 
-export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
+export function DeepResearch({
+  collections,
+  selectedCollection,
+  collectionUnavailable,
+  onCollectionChange,
+  onOpenKnowledgeBase,
+}: DeepResearchProps) {
   const [runState, setRunState] = useState<RunState>('idle');
   const [query, setQuery] = useState('');
-  const [selectedCollection, setSelectedCollection] = useState('default');
-  const [collections, setCollections] = useState<string[]>(['default']);
   const [trace, setTrace] = useState<TraceEvent[]>([]);
   const [brief, setBrief] = useState<ResearchBrief | null>(null);
   const [sketch, setSketch] = useState<Sketch | null>(null);
@@ -46,28 +54,6 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
   const deselectedUrlsRef = useRef<Set<string>>(new Set());
 
   const isCurrentRun = useCallback((runId: string) => runIdRef.current === runId, []);
-
-  // Fetch collections on mount
-  useEffect(() => {
-    async function fetchCollections() {
-      try {
-        const res = await fetch('/api/collections');
-        const data = await res.json();
-        if (res.ok) {
-          const list = (data.collections as string[]) || [];
-          setCollections(list.length > 0 ? list : ['default']);
-          setSelectedCollection((prev) => prev || list[0] || 'default');
-        } else {
-          setCollections(['default']);
-          setSelectedCollection('default');
-        }
-      } catch {
-        setCollections(['default']);
-        setSelectedCollection('default');
-      }
-    }
-    fetchCollections();
-  }, []);
 
   // Auto-clear error after 6s
   useEffect(() => {
@@ -103,7 +89,7 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
   }, []);
 
   const handleSubmit = useCallback(() => {
-    if (!query.trim() || !selectedCollection) return;
+    if (!query.trim() || !selectedCollection || collectionUnavailable) return;
 
     clearRun(false);
 
@@ -249,7 +235,7 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
       .finally(() => {
         if (isCurrentRun(runId)) abortRef.current = null;
       });
-  }, [query, selectedCollection, clearRun, isCurrentRun]);
+  }, [query, selectedCollection, collectionUnavailable, clearRun, isCurrentRun]);
 
   const handleCancel = useCallback(() => {
     clearRun();
@@ -290,7 +276,7 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
   }, [sources, selectedSourceUrls]);
 
   const handleIngest = useCallback(async () => {
-    if (selectedSourceUrls.size === 0 || !selectedCollection) return;
+    if (selectedSourceUrls.size === 0 || !selectedCollection || collectionUnavailable) return;
 
     setRunState('ingesting');
     setIngestResult(null);
@@ -333,7 +319,7 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
       setErrorMessage('Network error during ingestion');
       setRunState('completed');
     }
-  }, [sources, selectedSourceUrls, selectedCollection]);
+  }, [sources, selectedSourceUrls, selectedCollection, collectionUnavailable]);
 
   if (runState === 'idle') {
     return (
@@ -358,10 +344,10 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
             query={query}
             onQueryChange={setQuery}
             selectedCollection={selectedCollection}
-            onCollectionChange={setSelectedCollection}
+            onCollectionChange={onCollectionChange}
             collections={collections}
             onSubmit={handleSubmit}
-            disabled={!query.trim() || !selectedCollection}
+            disabled={collectionUnavailable || !query.trim() || !selectedCollection}
             placeholder="What should Mementos research?"
           />
           {errorMessage && <div className={styles.error} role="alert">{errorMessage}</div>}

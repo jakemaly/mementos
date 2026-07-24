@@ -12,6 +12,7 @@ function ok(name, condition) {
 }
 
 const root = fs.readFileSync('app/components/deep-research/DeepResearch.tsx', 'utf8');
+const page = fs.readFileSync('app/page.tsx', 'utf8');
 const composer = fs.readFileSync('app/components/deep-research/ResearchComposer.tsx', 'utf8');
 const workspace = fs.readFileSync('app/components/deep-research/ResearchWorkspace.tsx', 'utf8');
 const css = fs.readFileSync('app/components/deep-research/deep-research.module.css', 'utf8');
@@ -26,6 +27,9 @@ ok('Composer supports Shift+Enter newline behavior', composer.includes('e.shiftK
 ok('Composer prevents default Enter submission', composer.includes('e.preventDefault()'));
 ok('Composer has accessible submit action', composer.includes('aria-label="Start research"'));
 ok('Composer includes the shared sidebar', root.includes('className={styles.composerContainer}') && root.includes('aria-label="Open knowledge base"'));
+ok('Page owns collection loading', page.includes("fetch('/api/collections')") && page.includes('setCollectionUnavailable'));
+ok('Deep Research receives shared collection state', root.includes('collectionUnavailable: boolean') && root.includes('onCollectionChange: (collection: string) => void'));
+ok('Deep Research does not refetch collections', !root.includes("fetch('/api/collections')"));
 
 console.log('\n=== Run lifecycle ===\n');
 ok('Explicit run states exist', root.includes("'starting'") && root.includes("'researching'") && root.includes("'ingested'"));

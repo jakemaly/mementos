@@ -29,6 +29,7 @@ export default function Dashboard() {
   // Collections state
   const [collections, setCollections] = useState<string[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>('');
+  const [collectionUnavailable, setCollectionUnavailable] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState<string>('');
   const [isCreatingCollection, setIsCreatingCollection] = useState<boolean>(false);
 
@@ -102,16 +103,20 @@ export default function Dashboard() {
       const res = await fetch('/api/collections');
       const data = await res.json();
       if (res.ok) {
-        const rawCollections = data.collections || [];
-        const collectionsList = rawCollections.length > 0 ? rawCollections : ['default'];
+        const collectionsList = Array.isArray(data.collections) ? data.collections : [];
         setCollections(collectionsList);
-        setSelectedCollection((prev) => prev || collectionsList[0]);
+        setSelectedCollection((prev) => collectionsList.includes(prev) ? prev : (collectionsList[0] || ''));
+        setCollectionUnavailable(Boolean(data.unavailable));
       } else {
-        setCollections(['default']);
-        setSelectedCollection('default');
+        setCollections([]);
+        setSelectedCollection('');
+        setCollectionUnavailable(true);
       }
     } catch (err) {
       console.error(err);
+      setCollections([]);
+      setSelectedCollection('');
+      setCollectionUnavailable(true);
       setErrorMsg('Error connecting to API server');
     }
   }, []);
@@ -451,7 +456,13 @@ export default function Dashboard() {
   };
 
   if (activeTab === 0) {
-    return <DeepResearch onOpenKnowledgeBase={() => setActiveTab(1)} />;
+    return <DeepResearch
+      collections={collections}
+      selectedCollection={selectedCollection}
+      collectionUnavailable={collectionUnavailable}
+      onCollectionChange={setSelectedCollection}
+      onOpenKnowledgeBase={() => setActiveTab(1)}
+    />;
   }
 
   return (
