@@ -26,6 +26,7 @@ interface GraphEdge {
   from: string;
   to: string;
   label?: string;
+  loop?: boolean;
 }
 
 export function ExecutionGraph({
@@ -74,7 +75,7 @@ export function ExecutionGraph({
           const to = positions.get(edge.to);
           if (!from || !to) return null;
           const active = edge.label === 'continue' && isResearching;
-          const loop = to.y <= from.y;
+          const loop = edge.loop || to.y <= from.y;
           const path = loop
             ? `M ${from.x + columnWidth / 2} ${from.y + rowHeight} C ${from.x + columnWidth + 35} ${from.y + rowHeight + 24}, ${to.x + columnWidth + 35} ${to.y - 24}, ${to.x + columnWidth / 2} ${to.y}`
             : `M ${from.x + columnWidth / 2} ${from.y + rowHeight} L ${to.x + columnWidth / 2} ${to.y}`;
@@ -224,8 +225,10 @@ function buildGraph(trace: TraceEvent[]): { nodes: GraphNode[]; edges: GraphEdge
   for (let index = 1; index < supervisorIds.length; index += 1) {
     const priorIteration = iterationIds[index - 1];
     const supervisor = byId.get(supervisorIds[index]);
-    if (priorIteration && supervisor) edges.push({ from: priorIteration, to: supervisor.id, label: 'continue' });
+    if (priorIteration && supervisor) edges.push({ from: priorIteration, to: supervisor.id, label: 'continue', loop: true });
   }
 
-  return { nodes, edges };
+  const uniqueEdges = new Map<string, GraphEdge>();
+  for (const edge of edges) uniqueEdges.set(`${edge.from}-${edge.to}`, edge);
+  return { nodes, edges: [...uniqueEdges.values()] };
 }

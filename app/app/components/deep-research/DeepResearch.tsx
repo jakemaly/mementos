@@ -186,7 +186,12 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
                   selectDiscoveredSources(prev, newSources, deselectedUrlsRef.current),
                 );
               } else if (eventType === 'done') {
-                setTrace((prev) => [...prev, data]);
+                setTrace((prev) => [...prev, {
+                  id: `done-${runId}`,
+                  type: 'done',
+                  payload: { source_count: Array.isArray(data.sources) ? data.sources.length : 0, partial: Boolean(data.partial) },
+                  timestamp: Date.now() / 1000,
+                }]);
                 if (data.sources) {
                   const finalSources = data.sources.map((s: { url: string; title?: string; snippet?: string; score?: number }) => ({
                     url: s.url,
@@ -217,8 +222,13 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
                   setRunState('completed');
                 }
               } else if (eventType === 'error') {
-                setTrace((prev) => [...prev, data]);
-                setErrorMessage(data.payload?.message || 'Research error');
+                setTrace((prev) => [...prev, {
+                  id: `error-${runId}`,
+                  type: 'error',
+                  payload: { message: data.payload?.message || data.message || 'Research error' },
+                  timestamp: Date.now() / 1000,
+                }]);
+                setErrorMessage(data.payload?.message || data.message || 'Research error');
                 setRunState('failed');
               } else {
                 setTrace((prev) => [...prev, data]);
