@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { qdrant } from '@/lib/qdrant';
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error';
+}
+
 // GET /api/collections - List all collections
 export async function GET() {
   try {
@@ -14,15 +18,15 @@ export async function GET() {
           vectors: { size: 384, distance: 'Cosine' },
         });
         collectionNames = ['default'];
-      } catch (e: any) {
-        console.warn('Auto-creation of default collection warning:', e.message);
+      } catch (e: unknown) {
+        console.warn('Auto-creation of default collection warning:', errorMessage(e));
         collectionNames = ['default'];
       }
     }
 
     return NextResponse.json({ collections: collectionNames });
-  } catch (error: any) {
-    console.warn('Qdrant offline or unreachable at 127.0.0.1:6333:', error.message);
+  } catch (error: unknown) {
+    console.warn('Qdrant offline or unreachable at 127.0.0.1:6333:', errorMessage(error));
     return NextResponse.json(
       { collections: ['default'], offline: true, message: 'Qdrant database is offline' },
       { status: 200 }
@@ -58,17 +62,17 @@ export async function POST(request: Request) {
       await qdrant.createCollection(cleanName, {
         vectors: { size: 384, distance: 'Cosine' },
       });
-    } catch (e: any) {
-      console.warn(`Qdrant collection creation warning for '${cleanName}':`, e.message);
+    } catch (e: unknown) {
+      console.warn(`Qdrant collection creation warning for '${cleanName}':`, errorMessage(e));
     }
 
     return NextResponse.json({
       message: `Collection '${cleanName}' created successfully!`,
       name: cleanName,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || 'Failed to create collection' },
+      { error: errorMessage(error) || 'Failed to create collection' },
       { status: 500 }
     );
   }

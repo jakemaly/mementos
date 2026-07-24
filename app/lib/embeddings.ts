@@ -1,6 +1,8 @@
 import { pipeline } from '@huggingface/transformers';
 
-let extractorInstance: any = null;
+type Extractor = Awaited<ReturnType<typeof pipeline>>;
+
+let extractorInstance: Extractor | null = null;
 
 async function getExtractor() {
   if (!extractorInstance) {

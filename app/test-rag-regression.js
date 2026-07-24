@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * Adversarial regression tests for Step 7: Frontend RAG Styles (page.module.css)
  * Tests CSS completeness, parity with original inline styles, edge cases, and rubric compliance.

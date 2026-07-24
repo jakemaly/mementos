@@ -81,10 +81,10 @@ export async function POST(request: Request) {
       embeddingTimeMs: embeddingTime,
       message: `Successfully ingested ${chunks.length} chunks into '${collectionName}'`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error during file ingestion:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to ingest file' },
+      { error: error instanceof Error ? error.message : 'Failed to ingest file' },
       { status: 500 }
     );
   }
