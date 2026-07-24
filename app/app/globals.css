@@ -96,14 +96,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   
-  /* Very soft, muted pastel mesh gradient for light mode glass pop */
-  background-color: #f8fafc;
-  background-image: 
-    radial-gradient(at 10% 20%, rgba(99, 102, 241, 0.04) 0px, transparent 55%),
-    radial-gradient(at 90% 10%, rgba(244, 63, 94, 0.03) 0px, transparent 50%),
-    radial-gradient(at 50% 80%, rgba(20, 184, 166, 0.03) 0px, transparent 60%),
-    radial-gradient(at 80% 90%, rgba(139, 92, 246, 0.04) 0px, transparent 50%);
-  background-attachment: fixed;
+  background-color: #f8f7f3;
 }
 
 body {
@@ -135,6 +128,24 @@ body {
 input, select, textarea, button {
   font-family: inherit;
   font-size: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #9f1239;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Micro-animations */

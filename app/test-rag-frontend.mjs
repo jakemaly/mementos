@@ -16,6 +16,7 @@ const chatComposer = fs.readFileSync('app/components/knowledge-base/ChatComposer
 const citations = fs.readFileSync('app/components/knowledge-base/CitationList.tsx', 'utf8');
 const drawer = fs.readFileSync('app/components/collections/CollectionsDrawer.tsx', 'utf8');
 const drawerCss = fs.readFileSync('app/components/collections/collections-drawer.module.css', 'utf8');
+const globals = fs.readFileSync('app/globals.css', 'utf8');
 
 console.log('\n=== Knowledge Base redesign ===\n');
 ok('page composes Deep Research and Knowledge Base views', page.includes('<DeepResearch') && page.includes('<KnowledgeBase'));
@@ -35,6 +36,13 @@ ok('external citations are safe and local sources stay text', citations.includes
 ok('drawer is hidden by default and uses dialog semantics', drawer.includes('if (!open) return null') && drawer.includes('role="dialog"'));
 ok('drawer retains a partial-failure file and restores focus', drawer.includes("if (data.status === 'complete') setFile(null)") && drawer.includes("getElementById('collections-trigger')?.focus()"));
 ok('drawer is full-width on narrow screens', drawerCss.includes('@media (max-width: 768px)') && drawerCss.includes('width: 100%'));
+
+console.log('\n=== Accessibility and Responsive Quality ===\n');
+ok('global surface is matte rather than gradient', !globals.includes('radial-gradient'));
+ok('global visible focus treatment exists', globals.includes('button:focus-visible') && globals.includes('#9f1239'));
+ok('reduced motion is respected globally', globals.includes('prefers-reduced-motion: reduce'));
+ok('streamed tokens are not individually announced', ragChat.includes('aria-live="off"') && ragChat.includes('role="status"'));
+ok('shell prevents narrow-screen horizontal overflow', fs.readFileSync('app/components/app-shell/app-shell.module.css', 'utf8').includes('overflow-x: auto'));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
