@@ -52,3 +52,25 @@ async def test_tavily_search_success():
         assert sources[0]["source"] == "tavily"
         assert observed[0][0] == "example query"
         assert observed[0][1][0]["url"] == "https://example.com/doc1"
+
+
+@pytest.mark.asyncio
+async def test_tavily_deduplicates_same_url_across_queries():
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"results": [{"url": "https://example.com/doc/", "title": "Doc", "content": "content"}]}
+    mock_response.raise_for_status = MagicMock()
+    mock_client = AsyncMock()
+    mock_client.post = AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    with patch("research.tools.tavily.httpx.AsyncClient", return_value=mock_client):
+        observed: list[tuple[str, list[dict]]] = []
+        sources = await tavily_search(
+            ["first", "second"],
+            on_query_results=lambda query, result: observed.append((query, result)),
+        )
+
+    assert len(sources) == 1
+    assert len(observed) == 2
+    assert sum(len(result) for _, result in observed) == 1

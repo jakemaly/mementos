@@ -157,12 +157,34 @@ async def test_tools_dedup():
     with patch("research.graph.tavily_search", new_callable=AsyncMock) as mock_tav:
         existing = [{"url": "https://example.com/1", "title": "E", "snippet": "", "score": 0}]
         mock_tav.return_value = [
-            {"url": "https://example.com/1", "title": "Dup", "snippet": "", "score": 0, "source": "tavily"},
+            {"url": "https://example.com/1/", "title": "Dup", "snippet": "", "score": 0, "source": "tavily"},
             {"url": "https://example.com/2", "title": "New", "snippet": "", "score": 0, "source": "tavily"},
         ]
         state = _state({"all_sources": existing, "tool_selection": ["tavily"]})
         result = await node_tools(state)
         assert len(result["all_sources"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_sources_discovered_precedes_done():
+    async def mocked_search(queries, on_query_results=None):
+        sources = [{"url": "https://example.com/live", "title": "Live", "snippet": "c1 t1", "score": 0}]
+        if on_query_results:
+            on_query_results(queries[0], sources)
+        return sources
+
+    with (
+        patch("research.graph.generate_brief_and_sketch", new_callable=AsyncMock) as mock_gen,
+        patch("research.graph.tavily_search", side_effect=mocked_search),
+    ):
+        mock_gen.return_value = (
+            {"reasoning_trace": [], "brief": "scope", "tools": ["tavily"], "queries": {"overview": ["what is X?"], "specific": []}},
+            {"expected_concepts": ["c1"], "discriminative_terms": ["t1"], "expected_patterns": [], "preferred_domains": []},
+        )
+        result = await run_research("what is X?")
+
+    types = [event["type"] for event in result["trace"]]
+    assert types.index("sources_discovered") < types.index("done")
 
 
 # ── Scoring node ────────────────────────────────────────────────────────
