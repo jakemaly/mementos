@@ -1,16 +1,10 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
-import { qdrant } from '@/lib/qdrant';
-import { getEmbedding } from '@/lib/embeddings';
-import { splitTextIntoChunks } from '@/lib/text';
+import { parseCollectionName } from '@/lib/collections';
+import { indexCollectionDocument, type CollectionIndexResult } from '@/lib/index-collection-document';
 
 interface ResearchSourceInput {
   url: string;
   title?: string;
-}
-
-interface CollectionsResponse {
-  collections?: Array<{ name: string }>;
 }
 
 function errorMessage(error: unknown): string {
@@ -28,172 +22,81 @@ function stripHtml(html: string): string {
 }
 
 async function fetchPageContent(url: string): Promise<string> {
-  // Try Tavily Extract API first if key is available
   const tavilyKey = process.env.TAVILY_API_KEY;
   if (tavilyKey) {
     try {
-      const resp = await fetch('https://api.tavily.com/extract', {
+      const response = await fetch('https://api.tavily.com/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          api_key: tavilyKey,
-          urls: [url],
-          include_raw_content: true,
-        }),
+        body: JSON.stringify({ api_key: tavilyKey, urls: [url], include_raw_content: true }),
       });
-      if (resp.ok) {
-        const data = await resp.json();
+      if (response.ok) {
+        const data = await response.json() as { results?: Array<{ raw_content?: string; content?: string }> };
         const result = data.results?.[0];
-        if (result?.raw_content) return result.raw_content;
-        if (result?.content) return result.content;
+        if (result?.raw_content || result?.content) return result.raw_content || result.content || '';
       }
     } catch {
-      // Fall through to standard fetch
+      // Fall through to direct extraction.
     }
   }
 
-  // Fallback: standard HTTP fetch + HTML stripping
-  const resp = await fetch(url, {
+  const response = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Mementos/1.0)' },
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(15_000),
   });
-
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch ${url}: ${resp.status}`);
-  }
-
-  const text = await resp.text();
-  return stripHtml(text);
+  if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status}`);
+  return stripHtml(await response.text());
 }
 
+type SourceOutcome = { url: string; result?: CollectionIndexResult; error?: string };
+
 export async function POST(request: Request) {
+  let body: { sources?: ResearchSourceInput[]; collection?: unknown };
   try {
-    const body = await request.json() as {
-      sources?: ResearchSourceInput[];
-      collection?: string;
-      chunkSize?: number;
-      chunkOverlap?: number;
-    };
-    const {
-      sources,
-      collection,
-      chunkSize = 500,
-      chunkOverlap = 50,
-    } = body;
-
-    if (!sources?.length || !collection || sources.some((source) => !source?.url)) {
-      return NextResponse.json(
-        { error: 'Sources array and collection name are required' },
-        { status: 400 }
-      );
-    }
-
-    // Ensure collection exists (auto-create 384-d cosine if missing)
-    try {
-      const collections = await qdrant.getCollections() as unknown as CollectionsResponse;
-      const collectionExists = collections.collections?.some(
-        (c) => c.name === collection
-      );
-      if (!collectionExists) {
-        console.log(`Auto-creating collection '${collection}' in Qdrant...`);
-        await qdrant.createCollection(collection, {
-          vectors: { size: 384, distance: 'Cosine' },
-        });
-      }
-    } catch (e: unknown) {
-      console.warn(`Collection check/create warning: ${errorMessage(e)}`);
-    }
-
-    const startTime = Date.now();
-    const ingestedUrls: string[] = [];
-    const failedUrls: string[] = [];
-    let totalChunks = 0;
-
-    // Process each source sequentially (embeddings are synchronous local model)
-    for (const source of sources) {
-      const { url, title } = source;
-      console.log(`Fetching content from: ${url}`);
-
-      let content: string;
-      try {
-        content = await fetchPageContent(url);
-      } catch (err: unknown) {
-        console.error(`Failed to fetch ${url}: ${errorMessage(err)}`);
-        failedUrls.push(url);
-        continue;
-      }
-
-      if (!content.trim()) {
-        console.warn(`Empty content from ${url}, skipping`);
-        failedUrls.push(url);
-        continue;
-      }
-
-      try {
-        // Chunk the text
-        const chunks = splitTextIntoChunks(content, chunkSize, chunkOverlap);
-        if (chunks.length === 0) {
-          failedUrls.push(url);
-          continue;
-        }
-
-        // Generate embeddings and build points
-        const points = [];
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-        const vector = await getEmbedding(chunk.text);
-
-        points.push({
-          id: crypto.randomUUID(),
-          vector,
-          payload: {
-            text: chunk.text,
-            filename: title || url,
-            url,
-            chunk_index: i,
-            char_start: chunk.charStart,
-            char_end: chunk.charEnd,
-            total_chunks: chunks.length,
-          },
-        });
-      }
-
-      // Upsert to Qdrant
-      await qdrant.upsert(collection, { wait: true, points });
-
-      totalChunks += chunks.length;
-      ingestedUrls.push(url);
-        console.log(
-          `Ingested ${chunks.length} chunks from ${url} into '${collection}'`
-        );
-      } catch (err: unknown) {
-        console.error(`Failed to ingest ${url}: ${errorMessage(err)}`);
-        failedUrls.push(url);
-      }
-    }
-
-    const elapsed = Date.now() - startTime;
-    const partial = ingestedUrls.length > 0 && failedUrls.length > 0;
-    const complete = failedUrls.length === 0;
-
-    return NextResponse.json({
-      success: complete,
-      partial,
-      totalChunks,
-      ingestedUrls,
-      failedUrls,
-      elapsedMs: elapsed,
-      message: complete
-        ? `Ingested ${totalChunks} chunks from ${ingestedUrls.length} sources into '${collection}'`
-        : partial
-          ? `Partially imported ${ingestedUrls.length} of ${sources.length} sources into '${collection}'`
-          : `Could not import any of the ${sources.length} selected sources into '${collection}'`,
-    });
-  } catch (error: unknown) {
-    console.error('Research ingest error:', error);
-    return NextResponse.json(
-      { error: errorMessage(error) || 'Ingestion failed' },
-      { status: 500 }
-    );
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
+
+  const collection = parseCollectionName(body.collection);
+  if (!Array.isArray(body.sources) || !body.sources.length || !collection || body.sources.some((source) => !source || typeof source.url !== 'string' || !source.url)) {
+    return NextResponse.json({ error: 'Sources array and a valid collection name are required' }, { status: 400 });
+  }
+
+  const startTime = Date.now();
+  const outcomes: SourceOutcome[] = [];
+  let totalChunks = 0;
+
+  for (const source of body.sources) {
+    try {
+      const content = await fetchPageContent(source.url);
+      if (!content.trim()) throw new Error('Source content is empty');
+      const result = await indexCollectionDocument(collection, content, source.title || source.url);
+      if (result.vector.status === 'complete') totalChunks += result.vector.chunks ?? 0;
+      outcomes.push({ url: source.url, result });
+    } catch (error) {
+      console.error(`Failed to import ${source.url}:`, error);
+      outcomes.push({ url: source.url, error: errorMessage(error) });
+    }
+  }
+
+  const ingestedUrls = outcomes.filter((outcome) => outcome.result?.status !== 'failed').map((outcome) => outcome.url);
+  const failedUrls = outcomes.filter((outcome) => !outcome.result || outcome.result.status === 'failed').map((outcome) => outcome.url);
+  const partial = outcomes.some((outcome) => outcome.result?.status === 'partial') || (ingestedUrls.length > 0 && failedUrls.length > 0);
+  const complete = !partial && failedUrls.length === 0;
+
+  return NextResponse.json({
+    success: complete,
+    partial,
+    totalChunks,
+    ingestedUrls,
+    failedUrls,
+    outcomes,
+    elapsedMs: Date.now() - startTime,
+    message: complete
+      ? `Imported ${ingestedUrls.length} sources into '${collection}'`
+      : partial
+        ? `Partially imported ${ingestedUrls.length} of ${body.sources.length} sources into '${collection}'`
+        : `Could not import any of the ${body.sources.length} selected sources into '${collection}'`,
+  }, { status: ingestedUrls.length ? 200 : 502 });
 }
