@@ -3,18 +3,19 @@ import crypto from 'crypto';
 import { qdrant } from '@/lib/qdrant';
 import { getEmbedding } from '@/lib/embeddings';
 import { splitTextIntoChunks } from '@/lib/text';
+import { parseCollectionName } from '@/lib/collections';
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const collectionName = formData.get('collection') as string | null;
+    const collectionName = parseCollectionName(formData.get('collection'));
     const chunkSizeStr = formData.get('chunkSize') as string | null;
     const chunkOverlapStr = formData.get('chunkOverlap') as string | null;
 
     if (!file || !collectionName) {
       return NextResponse.json(
-        { error: 'File and collection name are required' },
+        { error: 'File and collection name are required; collection names use 1-64 letters, numbers, hyphens, or underscores' },
         { status: 400 }
       );
     }

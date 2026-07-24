@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { qdrant } from '@/lib/qdrant';
 import { getEmbedding } from '@/lib/embeddings';
+import { parseCollectionName } from '@/lib/collections';
 
 export async function POST(request: Request) {
   try {
@@ -13,9 +14,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!collection || typeof collection !== 'string') {
+    const collectionName = parseCollectionName(collection);
+    if (!collectionName) {
       return NextResponse.json(
-        { error: 'Collection name is required' },
+        { error: 'Collection names must use 1-64 letters, numbers, hyphens, or underscores' },
         { status: 400 }
       );
     }
@@ -26,12 +28,12 @@ export async function POST(request: Request) {
     // Verify collection exists first
     const collectionsResult = await qdrant.getCollections();
     const collectionExists = collectionsResult.collections.some(
-      (c) => c.name === collection
+      (c) => c.name === collectionName
     );
 
     if (!collectionExists) {
       return NextResponse.json(
-        { error: `Collection '${collection}' does not exist` },
+        { error: `Collection '${collectionName}' does not exist` },
         { status: 404 }
       );
     }
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
     const queryVector = await getEmbedding(cleanQuery);
 
     // Query Qdrant for similar vectors
-    const searchResult = await qdrant.search(collection, {
+    const searchResult = await qdrant.search(collectionName, {
       vector: queryVector,
       limit: searchLimit,
       with_payload: true,
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       query: cleanQuery,
-      collection: collection,
+      collection: collectionName,
       results: results,
     });
   } catch (error: unknown) {

@@ -35,6 +35,8 @@ function warnMsg(name, message) {
 
 const ingestSrc = fs.readFileSync('app/api/rag/ingest/route.ts', 'utf8');
 const querySrc = fs.readFileSync('app/api/rag/query/route.ts', 'utf8');
+const collectionsSrc = fs.readFileSync('app/api/collections/route.ts', 'utf8');
+const collectionValidatorSrc = fs.readFileSync('lib/collections.ts', 'utf8');
 
 // ── 1. Structural checks ──────────────────────────────────────────
 
@@ -46,6 +48,9 @@ ok('ingest exports POST', ingestSrc.includes('export async function POST'));
 ok('query exports POST', querySrc.includes('export async function POST'));
 ok('ingest forwards to /insert', ingestSrc.includes('/insert'));
 ok('query forwards to /chat', querySrc.includes('/chat'));
+ok('collections use the shared name validator', collectionsSrc.includes('parseCollectionName'));
+ok('chat contract uses the shared name validator', fs.readFileSync('app/lib/knowledge-base-contracts.ts', 'utf8').includes('parseCollectionName'));
+ok('collection validator accepts the LightRAG name alphabet', collectionValidatorSrc.includes('A-Za-z0-9_-'));
 
 // ── 2. Input validation ───────────────────────────────────────────
 
@@ -177,7 +182,16 @@ if (queryForwardsSidecarError) {
   warnMsg('query forwards sidecar error verbatim', 'May leak internal details (stack traces, DB errors)');
 }
 
-// ── 10. Build verification ────────────────────────────────────────
+// ── 10. Collection availability semantics ───────────────────────────
+
+console.log('\n=== 10. Collection Availability Semantics ===\n');
+
+ok('collections do not synthesize a default collection', !collectionsSrc.includes("collections: ['default']"));
+ok('collections return explicit unavailable state', collectionsSrc.includes('unavailable: true') && collectionsSrc.includes('503'));
+ok('creation confirms collection after Qdrant create', collectionsSrc.includes('const confirmed = await qdrant.getCollections()'));
+ok('duplicates return a conflict', collectionsSrc.includes('status: 409'));
+
+// ── 11. Build verification ────────────────────────────────────────
 
 console.log('\n=== 10. Build Verification ===\n');
 

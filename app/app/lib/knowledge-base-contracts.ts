@@ -1,3 +1,5 @@
+import { parseCollectionName } from '@/lib/collections';
+
 export type ChatRole = 'user' | 'assistant';
 
 export interface ChatMessage {
@@ -20,7 +22,6 @@ export type ChatEvent =
   | { event: 'error'; data: { turn_id: string; error: string } }
   | { event: 'done'; data: { turn_id: string } };
 
-const COLLECTION_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 const TURN_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const MAX_QUERY_CHARS = 4_000;
 const MAX_HISTORY_MESSAGES = 20;
@@ -34,7 +35,8 @@ export function parseChatRequest(value: unknown): ChatRequest | null {
   const query = typeof body.query === 'string' ? body.query.trim() : '';
   const collection = body.collection;
   const turnId = body.turn_id;
-  if (!query || query.length > MAX_QUERY_CHARS || typeof collection !== 'string' || !COLLECTION_NAME.test(collection) || typeof turnId !== 'string' || !TURN_ID.test(turnId) || !Array.isArray(body.history) || body.history.length > MAX_HISTORY_MESSAGES) return null;
+  const parsedCollection = parseCollectionName(collection);
+  if (!query || query.length > MAX_QUERY_CHARS || !parsedCollection || typeof turnId !== 'string' || !TURN_ID.test(turnId) || !Array.isArray(body.history) || body.history.length > MAX_HISTORY_MESSAGES) return null;
 
   const history: ChatMessage[] = [];
   for (const message of body.history) {
@@ -46,5 +48,5 @@ export function parseChatRequest(value: unknown): ChatRequest | null {
     history.push({ role, content: trimmedContent });
   }
 
-  return { query, collection, turn_id: turnId, history };
+  return { query, collection: parsedCollection, turn_id: turnId, history };
 }
