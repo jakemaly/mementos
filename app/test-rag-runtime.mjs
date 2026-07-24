@@ -46,8 +46,9 @@ global.fetch = fetchImpl;
 // Mock AbortController
 const OriginalAbortController = global.AbortController;
 global.AbortController = class {
-  signal = { aborted: false };
-  abort() { this.signal.aborted = true; }
+  #controller = new OriginalAbortController();
+  signal = this.#controller.signal;
+  abort(reason) { this.#controller.abort(reason); }
 };
 
 // ── Ingest Route Tests ─────────────────────────────────────────────
@@ -286,171 +287,122 @@ global.fetch = async () => ({
   json: async () => ({ success: true, message: 'ok', track_id: 'test-123' })
 });
 
-// ── Query Route Tests ──────────────────────────────────────────────
+// ── Streaming Chat Proxy Tests ─────────────────────────────────────
 
-console.log('\n=== Query Route — Runtime Tests ===\n');
+console.log('\n=== Streaming Chat Proxy — Runtime Tests ===\n');
 
-// Test: Valid query request
+function sseResponse(events, status = 200) {
+  const encoder = new TextEncoder();
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: new Headers({ 'content-type': 'text/event-stream; charset=utf-8' }),
+    body: new ReadableStream({
+      start(controller) {
+        for (const event of events) controller.enqueue(encoder.encode(event));
+        controller.close();
+      },
+    }),
+    json: async () => ({ detail: 'sidecar error' }),
+  };
+}
+
+// The proxy forwards only the supported contract and preserves event order.
 {
-  global.fetch = async () => ({
-    ok: true,
-    status: 200,
-    json: async () => ({ answer: 'AI is...', mode: 'hybrid' })
-  });
+  let forwarded;
+  global.fetch = async (_url, options) => {
+    forwarded = JSON.parse(options.body);
+    return sseResponse([
+      'event: status\ndata: {"turn_id":"turn-1","status":"retrieving"}\n\n',
+      'event: done\ndata: {"turn_id":"turn-1"}\n\n',
+    ]);
+  };
   const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: 'What is AI?', mode: 'hybrid' })
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: '  What is AI?  ', collection: 'default', turn_id: 'turn-1',
+      history: [{ role: 'user', content: 'Earlier question' }],
+    }),
   });
   const res = await queryPOST(req);
-  ok('query: valid request returns 200', res.status === 200);
+  ok('chat: valid request returns 200', res.status === 200);
+  ok('chat: preserves SSE content type', res.headers.get('content-type')?.startsWith('text/event-stream'));
+  ok('chat: forwards only validated fields', JSON.stringify(forwarded) === JSON.stringify({
+    query: 'What is AI?', collection: 'default', turn_id: 'turn-1',
+    history: [{ role: 'user', content: 'Earlier question' }],
+  }));
+  const streamText = await res.text();
+  ok('chat: preserves SSE event order', streamText.indexOf('event: status') < streamText.indexOf('event: done'));
 }
 
-// Test: Missing query
-{
+for (const body of [
+  {},
+  { query: '', collection: 'default', turn_id: 'turn-1', history: [] },
+  { query: 'test', collection: 'bad name', turn_id: 'turn-1', history: [] },
+  { query: 'test', collection: 'default', turn_id: '', history: [] },
+  { query: 'test', collection: 'default', turn_id: 'turn-1', history: [{ role: 'system', content: 'no' }] },
+  { query: 'test', collection: 'default', turn_id: 'turn-1', history: [], mode: 'naive' },
+]) {
   const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({})
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   });
   const res = await queryPOST(req);
-  ok('query: missing query returns 400', res.status === 400);
+  ok('chat: invalid contract returns 400', res.status === 400);
 }
 
-// Test: Invalid mode
-{
-  const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: 'test', mode: 'invalid_mode' })
-  });
-  const res = await queryPOST(req);
-  const data = await res.json();
-  ok('query: invalid mode returns 400', res.status === 400);
-  ok('query: invalid mode error lists valid modes', data.error && data.error.includes('naive'));
-}
-
-// Test: Missing mode defaults to hybrid
-{
-  const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: 'test' })
-  });
-  const res = await queryPOST(req);
-  ok('query: missing mode accepted (defaults to hybrid)', res.status === 200);
-}
-
-// Test: All valid modes
-for (const mode of ['naive', 'local', 'global', 'hybrid']) {
-  const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: 'test', mode })
-  });
-  const res = await queryPOST(req);
-  ok(`query: mode '${mode}' accepted`, res.status === 200);
-}
-
-// Test: query is null
+// Malformed JSON remains a client error.
 {
   const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: null })
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{ bad json }',
   });
   const res = await queryPOST(req);
-  ok('query: null query returns 400', res.status === 400);
+  ok('chat: malformed JSON returns 400', res.status === 400);
 }
 
-// Test: query is number
+// Client cancellation aborts the in-flight sidecar request.
 {
-  const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: 42 })
+  global.fetch = async (_url, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true });
   });
-  const res = await queryPOST(req);
-  ok('query: numeric query returns 400', res.status === 400);
+  const clientController = new OriginalAbortController();
+  const req = new Request('http://localhost/api/rag/query', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: clientController.signal,
+    body: JSON.stringify({ query: 'test', collection: 'default', turn_id: 'turn-1', history: [] }),
+  });
+  const response = queryPOST(req);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  clientController.abort();
+  const res = await response;
+  ok('chat: client abort cancels sidecar request', res.status === 499);
 }
 
-// Test: query is array
+// Upstream errors are safe and distinguish validation from availability.
 {
+  global.fetch = async () => sseResponse([], 400);
   const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: ['test'] })
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: 'test', collection: 'default', turn_id: 'turn-1', history: [] }),
   });
   const res = await queryPOST(req);
-  ok('query: array query returns 400', res.status === 400);
+  ok('chat: sidecar validation error remains 400', res.status === 400);
 }
-
-// Test: mode is number
 {
+  global.fetch = async () => sseResponse([], 500);
   const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: 'test', mode: 123 })
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: 'test', collection: 'default', turn_id: 'turn-1', history: [] }),
   });
   const res = await queryPOST(req);
-  ok('query: numeric mode accepted (defaults to hybrid)', res.status === 200);
+  ok('chat: sidecar failure returns 502', res.status === 502);
 }
-
-// Test: mode is null
-{
-  const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: 'test', mode: null })
-  });
-  const res = await queryPOST(req);
-  ok('query: null mode accepted (defaults to hybrid)', res.status === 200);
-}
-
-// Test: Malformed JSON
-{
-  const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: '{ bad json }'
-  });
-  const res = await queryPOST(req);
-  const data = await res.json();
-  ok('query: malformed JSON returns 400', res.status === 400);
-  ok('query: malformed JSON error mentions JSON', data.error.toLowerCase().includes('json'));
-}
-
-// ── Query Sidecar Error Handling ───────────────────────────────────
-
-console.log('\n=== Query Sidecar Error Handling ===\n');
-
-// Test: query sidecar 500
-{
-  global.fetch = async () => ({
-    ok: false,
-    status: 500,
-    json: async () => ({ detail: 'Internal server error' })
-  });
-  const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: 'test' })
-  });
-  const res = await queryPOST(req);
-  ok('query: sidecar 500 returns 502', res.status === 502);
-}
-
-// Test: query network error
 {
   global.fetch = async () => { throw new Error('network error'); };
   const req = new Request('http://localhost/api/rag/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: 'test' })
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: 'test', collection: 'default', turn_id: 'turn-1', history: [] }),
   });
   const res = await queryPOST(req);
-  const data = await res.json();
-  ok('query: network error returns 503', res.status === 503);
+  ok('chat: network failure returns 503', res.status === 503);
 }
 
 // ── Summary ────────────────────────────────────────────────────────

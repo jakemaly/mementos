@@ -1,65 +1,87 @@
 import { NextResponse } from 'next/server';
+import { parseChatRequest } from '@/app/lib/knowledge-base-contracts';
 
-const SIDECAR_URL = 'http://localhost:8000/query';
-const VALID_MODES = ['naive', 'local', 'global', 'hybrid'] as const;
-type ValidMode = (typeof VALID_MODES)[number];
+const SIDECAR_URL = 'http://localhost:8000/chat';
+const CONNECT_TIMEOUT_MS = 120_000;
 
 export async function POST(request: Request) {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const chatRequest = parseChatRequest(body);
+  if (!chatRequest) {
+    return NextResponse.json({ error: 'Invalid chat request' }, { status: 400 });
+  }
+
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 120_000);
+  const timeout = setTimeout(() => controller.abort(), CONNECT_TIMEOUT_MS);
+  const abortForClient = () => controller.abort(request.signal.reason);
+  if (request.signal.aborted) abortForClient();
+  else request.signal.addEventListener('abort', abortForClient, { once: true });
 
   try {
-    const body = await request.json();
+    const upstream = await fetch(SIDECAR_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(chatRequest),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
 
-    if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-      return NextResponse.json({ error: 'Request body must be a JSON object' }, { status: 400 });
-    }
-
-    const { query, mode } = body as { query?: unknown; mode?: unknown };
-
-    if (!query || typeof query !== 'string' || query.trim() === '') {
+    if (!upstream.ok || !upstream.body) {
+      request.signal.removeEventListener('abort', abortForClient);
+      await upstream.body?.cancel();
       return NextResponse.json(
-        { error: 'Query is required and must be a non-empty string' },
-        { status: 400 }
+        { error: upstream.status >= 400 && upstream.status < 500 ? 'Invalid chat request' : 'Knowledge base is unavailable' },
+        { status: upstream.status >= 400 && upstream.status < 500 ? 400 : 502 },
       );
     }
 
-    // Validate mode upfront — reject invalid values instead of silently falling back
-    let selectedMode: ValidMode = 'hybrid';
-    if (typeof mode === 'string') {
-      if (!VALID_MODES.includes(mode as ValidMode)) {
-        return NextResponse.json(
-          { error: `Invalid mode "${mode}". Must be one of: ${VALID_MODES.join(', ')}` },
-          { status: 400 }
-        );
-      }
-      selectedMode = mode as ValidMode;
-    }
-
-    const res = await fetch(SIDECAR_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: query.trim(), mode: selectedMode }),
-      signal: controller.signal,
+    const reader = upstream.body.getReader();
+    const cleanup = () => {
+      request.signal.removeEventListener('abort', abortForClient);
+      clearTimeout(timeout);
+    };
+    const stream = new ReadableStream<Uint8Array>({
+      async pull(streamController) {
+        try {
+          const { done, value } = await reader.read();
+          if (done) {
+            cleanup();
+            streamController.close();
+          } else if (value) {
+            streamController.enqueue(value);
+          }
+        } catch (error) {
+          cleanup();
+          streamController.error(error);
+        }
+      },
+      async cancel() {
+        controller.abort();
+        cleanup();
+        await reader.cancel();
+      },
     });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Sidecar error' }));
-      return NextResponse.json(err, { status: 502 });
-    }
-
-    const data = await res.json();
-    return NextResponse.json(data);
+    return new Response(stream, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Content-Type': upstream.headers.get('content-type') ?? 'text/event-stream; charset=utf-8',
+        'X-Accel-Buffering': 'no',
+      },
+    });
   } catch (error: unknown) {
-    if (error instanceof SyntaxError) {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
+    clearTimeout(timeout);
+    request.signal.removeEventListener('abort', abortForClient);
     if (error instanceof DOMException && error.name === 'AbortError') {
-      return NextResponse.json({ error: 'Sidecar request timed out' }, { status: 504 });
+      return NextResponse.json({ error: request.signal.aborted ? 'Request cancelled' : 'Knowledge base request timed out' }, { status: request.signal.aborted ? 499 : 504 });
     }
-    console.error('RAG query proxy error:', error);
-    return NextResponse.json({ error: 'Sidecar unavailable' }, { status: 503 });
-  } finally {
-    clearTimeout(timer);
+    console.error('RAG chat proxy error:', error);
+    return NextResponse.json({ error: 'Knowledge base is unavailable' }, { status: 503 });
   }
 }

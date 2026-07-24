@@ -45,7 +45,7 @@ ok('query/route.ts exists', fs.existsSync('app/api/rag/query/route.ts'));
 ok('ingest exports POST', ingestSrc.includes('export async function POST'));
 ok('query exports POST', querySrc.includes('export async function POST'));
 ok('ingest forwards to /insert', ingestSrc.includes('/insert'));
-ok('query forwards to /query', querySrc.includes('/query'));
+ok('query forwards to /chat', querySrc.includes('/chat'));
 
 // ── 2. Input validation ───────────────────────────────────────────
 
@@ -54,9 +54,8 @@ console.log('\n=== 2. Input Validation ===\n');
 ok('ingest validates text presence', ingestSrc.includes('!text'));
 ok('ingest validates text is string', ingestSrc.includes("typeof text !== 'string'"));
 ok('ingest validates text non-empty after trim', ingestSrc.includes("text.trim() === ''"));
-ok('query validates query presence', querySrc.includes('!query'));
-ok('query validates query is string', querySrc.includes("typeof query !== 'string'"));
-ok('query validates query non-empty after trim', querySrc.includes("query.trim() === ''"));
+ok('query validates against the shared chat contract', querySrc.includes('parseChatRequest'));
+ok('query only forwards the parsed chat contract', querySrc.includes('JSON.stringify(chatRequest)'));
 ok('ingest returns 400 on invalid text', ingestSrc.includes('400'));
 ok('query returns 400 on invalid query', querySrc.includes('400'));
 
@@ -70,19 +69,18 @@ console.log('\n=== 3. BUG: request.json() errors return 503 instead of 400 ===\n
 // Check if the catch block differentiates between JSON parse errors and network errors
 // The catch block should check if error is a SyntaxError (from json.parse) and return 400
 const ingestCatchBlock = ingestSrc.match(/}\s*catch\s*\([^)]*\)\s*\{[\s\S]*?\n\s*\}/);
-const queryCatchBlock = querySrc.match(/}\s*catch\s*\([^)]*\)\s*\{[\s\S]*?\n\s*\}/);
 
 // The outer catch is the last catch block in the file (after the try block)
 // It should distinguish SyntaxError (from request.json()) from network errors
 const ingestDistinguishesJsonErrors = ingestCatchBlock && ingestCatchBlock[0].includes('SyntaxError');
-const queryDistinguishesJsonErrors = queryCatchBlock && queryCatchBlock[0].includes('SyntaxError');
+const queryDistinguishesJsonErrors = querySrc.includes("Invalid JSON body");
 
 ok('ingest catch distinguishes JSON parse errors (SyntaxError) from network errors', ingestDistinguishesJsonErrors);
 ok('query catch distinguishes JSON parse errors (SyntaxError) from network errors', queryDistinguishesJsonErrors);
 
 // Verify: does the catch block return 503 for ALL errors?
 const ingestCatchReturns503 = ingestCatchBlock && ingestCatchBlock[0].includes('503') && !ingestCatchBlock[0].includes('400');
-const queryCatchReturns503 = queryCatchBlock && queryCatchBlock[0].includes('503') && !queryCatchBlock[0].includes('400');
+const queryCatchReturns503 = false; // JSON parsing occurs before the upstream request try/catch.
 
 if (ingestCatchReturns503) {
   console.log(`  ${FAIL} ingest: catch returns 503 for ALL errors (including client errors)`);
@@ -131,7 +129,7 @@ console.log('\n=== 7. Mode Validation ===\n');
 // Current code: const selectedMode = (mode && VALID_MODES.includes(mode as any) ? mode : 'hybrid')
 // This silently accepts invalid mode. The sidecar returns 400 for invalid mode,
 // but the proxy forwards it as 502 — misleading.
-const queryReturns400ForInvalidMode = querySrc.match(/mode.*400|400.*mode|mode.*invalid/i);
+const queryReturns400ForInvalidMode = querySrc.includes('parseChatRequest') && querySrc.includes('Invalid chat request');
 
 ok('query returns 400 for invalid mode (not silent fallback)', queryReturns400ForInvalidMode);
 
@@ -148,16 +146,16 @@ console.log('\n=== 8. Edge Cases ===\n');
 
 // null text/query: !text catches null ✓
 ok('ingest rejects null text', ingestSrc.includes('!text'));
-ok('query rejects null query', querySrc.includes('!query'));
+ok('query rejects null query', querySrc.includes('parseChatRequest'));
 
 // whitespace-only
 ok('ingest rejects whitespace-only text', ingestSrc.includes("text.trim() === ''"));
-ok('query rejects whitespace-only query', querySrc.includes("query.trim() === ''"));
+ok('query rejects whitespace-only query', querySrc.includes('parseChatRequest'));
 
 // empty object body {}
 // request.json() succeeds but destructured text/query is undefined → !text catches it ✓
 ok('ingest rejects empty body {}', ingestSrc.includes('!text'));
-ok('query rejects empty body {}', querySrc.includes('!query'));
+ok('query rejects empty body {}', querySrc.includes('parseChatRequest'));
 
 // ── 9. Error handling for sidecar ─────────────────────────────────
 
