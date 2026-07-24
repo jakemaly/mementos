@@ -33,11 +33,16 @@ export function ObservabilityTimeline({ trace, brief, isResearching, focusedNode
         const conf = (payload.confidence_score as number) ?? 0;
         const reason = (payload.reason as string) || '';
         const gaps = (payload.gap_analysis as string) || '';
+        const subQuestions = Array.isArray(payload.sub_questions)
+          ? (payload.sub_questions as Array<{ question?: string; status?: string }>)
+              .map((question) => `${question.status || 'unresolved'}: ${question.question || 'sub-question'}`)
+              .join('\n')
+          : '';
         items.push({
           id: ev.id,
           time: ev.timestamp,
           label: `Supervisor evaluation (Iter ${iteration + 1})`,
-          detail: `${conf}% confidence${reason ? ` · ${reason}` : ''}${gaps ? `\nGap: ${gaps}` : ''}`,
+          detail: `${conf}% confidence${reason ? ` · ${reason}` : ''}${gaps ? `\nGap: ${gaps}` : ''}${subQuestions ? `\n${subQuestions}` : ''}`,
           status: 'completed',
         });
       } else if (ev.type === 'supervisor_completed') {
@@ -63,11 +68,12 @@ export function ObservabilityTimeline({ trace, brief, isResearching, focusedNode
         const tool = (payload.tool as string) || 'tool';
         const count = (payload.result_count as number) ?? 0;
         const dur = (payload.duration as number) ?? 0;
+        const query = (payload.query as string | string[]) || '';
         items.push({
           id: ev.id,
           time: ev.timestamp,
           label: `${tool} completed`,
-          detail: `${count} results in ${dur}s`,
+          detail: `${count} results in ${dur}s${query ? `\nQuery: ${typeof query === 'string' ? query : query.join(', ')}` : ''}`, 
           status: 'completed',
         });
       } else if (ev.type === 'tool_failed') {
