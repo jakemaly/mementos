@@ -31,7 +31,7 @@ export function AppShell({
           <button type="button" className={styles.destination} aria-current={activeDestination === 'knowledge-base' ? 'page' : undefined} onClick={onOpenKnowledgeBase}>
             Knowledge Base
           </button>
-          <button type="button" className={styles.destination} onClick={onOpenCollections}>
+          <button id="collections-trigger" type="button" className={styles.destination} onClick={onOpenCollections}>
             Collections
           </button>
           <button type="button" className={styles.destination} disabled aria-label="Settings (not available yet)">

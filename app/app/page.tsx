@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './page.module.css';
 import { DeepResearch } from './components/deep-research/DeepResearch';
+import { CollectionsDrawer } from './components/collections/CollectionsDrawer';
 
 
 interface QueryResult {
@@ -30,6 +31,7 @@ export default function Dashboard() {
   const [collections, setCollections] = useState<string[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>('');
   const [collectionUnavailable, setCollectionUnavailable] = useState(false);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState<string>('');
   const [isCreatingCollection, setIsCreatingCollection] = useState<boolean>(false);
 
@@ -456,13 +458,25 @@ export default function Dashboard() {
   };
 
   if (activeTab === 0) {
-    return <DeepResearch
-      collections={collections}
-      selectedCollection={selectedCollection}
-      collectionUnavailable={collectionUnavailable}
-      onCollectionChange={setSelectedCollection}
-      onOpenKnowledgeBase={() => setActiveTab(1)}
-    />;
+    return <>
+      <DeepResearch
+        collections={collections}
+        selectedCollection={selectedCollection}
+        collectionUnavailable={collectionUnavailable}
+        onCollectionChange={setSelectedCollection}
+        onOpenCollections={() => setCollectionsOpen(true)}
+        onOpenKnowledgeBase={() => setActiveTab(1)}
+      />
+      <CollectionsDrawer
+        open={collectionsOpen}
+        collections={collections}
+        selectedCollection={selectedCollection}
+        unavailable={collectionUnavailable}
+        onClose={() => setCollectionsOpen(false)}
+        onCollectionChange={setSelectedCollection}
+        onRefresh={fetchCollections}
+      />
+    </>;
   }
 
   return (

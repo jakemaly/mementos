@@ -33,6 +33,8 @@ function warnMsg(name, message) {
 
 const src = fs.readFileSync('app/page.tsx', 'utf8');
 const css = fs.readFileSync('app/page.module.css', 'utf8');
+const drawer = fs.readFileSync('app/components/collections/CollectionsDrawer.tsx', 'utf8');
+const drawerCss = fs.readFileSync('app/components/collections/collections-drawer.module.css', 'utf8');
 
 // ── 1. Structural checks ───────────────────────────────────────────
 
@@ -319,6 +321,19 @@ console.log('\n=== 22. Type Safety ===\n');
 
 const ragFileInputRefType = src.includes('useRef<HTMLInputElement>(null)');
 ok('ragFileInputRef properly typed as HTMLInputElement', ragFileInputRefType);
+
+// ── Collections drawer ─────────────────────────────────────────────
+
+console.log('\n=== 23. Collections Drawer ===\n');
+
+ok('drawer is hidden unless explicitly opened', drawer.includes('if (!open) return null'));
+ok('drawer has dialog semantics', drawer.includes('role="dialog"') && drawer.includes('aria-modal="true"'));
+ok('drawer restores safe close behavior during ingestion', drawer.includes('if (ingesting) return') && drawer.includes('disabled={ingesting}'));
+ok('drawer focuses close control on open and restores its trigger', drawer.includes('closeRef.current?.focus()') && drawer.includes("getElementById('collections-trigger')?.focus()"));
+ok('drawer supports only TXT and Markdown file selection', drawer.includes('accept=".txt,.md,.markdown,text/plain,text/markdown"'));
+ok('drawer reports independent vector and graph outcomes', drawer.includes('Vector: ${data.vector?.status') && drawer.includes('Graph: ${data.graph?.status'));
+ok('drawer retains file unless all branches complete', drawer.includes("if (data.status === 'complete') setFile(null)"));
+ok('drawer becomes full width on narrow layouts', drawerCss.includes('@media (max-width: 768px)') && drawerCss.includes('width: 100%'));
 
 // ── Summary ────────────────────────────────────────────────────────
 

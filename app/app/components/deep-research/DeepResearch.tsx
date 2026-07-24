@@ -28,6 +28,7 @@ interface DeepResearchProps {
   selectedCollection: string;
   collectionUnavailable: boolean;
   onCollectionChange: (collection: string) => void;
+  onOpenCollections?: () => void;
   onOpenKnowledgeBase?: () => void;
 }
 
@@ -36,6 +37,7 @@ export function DeepResearch({
   selectedCollection,
   collectionUnavailable,
   onCollectionChange,
+  onOpenCollections,
   onOpenKnowledgeBase,
 }: DeepResearchProps) {
   const [runState, setRunState] = useState<RunState>('idle');
@@ -324,7 +326,7 @@ export function DeepResearch({
 
   if (runState === 'idle') {
     return (
-      <AppShell activeDestination="research" onOpenKnowledgeBase={onOpenKnowledgeBase}>
+      <AppShell activeDestination="research" onOpenKnowledgeBase={onOpenKnowledgeBase} onOpenCollections={onOpenCollections}>
         <main className={styles.composerMain}>
           <h1 className={styles.wordmark}>Mementos</h1>
           <ResearchComposer
@@ -344,7 +346,7 @@ export function DeepResearch({
   }
 
   return (
-    <AppShell activeDestination="research" onNewResearch={handleNewResearch} onOpenKnowledgeBase={onOpenKnowledgeBase}>
+    <AppShell activeDestination="research" onNewResearch={handleNewResearch} onOpenKnowledgeBase={onOpenKnowledgeBase} onOpenCollections={onOpenCollections}>
       <ResearchWorkspace
       query={query}
       runState={runState}

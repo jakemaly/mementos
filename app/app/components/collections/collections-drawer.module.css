@@ -1,0 +1,13 @@
+.backdrop { position: fixed; inset: 0; z-index: 20; display: flex; justify-content: flex-end; background: rgb(28 27 25 / 20%); }
+.drawer { width: min(420px, 100%); min-height: 100%; overflow-y: auto; padding: 1.25rem; background: #f8f7f3; border-left: 1px solid #d6d1cc; box-shadow: -12px 0 28px rgb(28 27 25 / 10%); }
+.header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+.header h2 { margin: 0; font-size: 1.1rem; }
+.section { display: grid; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #d6d1cc; }
+.label { display: grid; gap: 0.4rem; color: #49454f; font-size: 0.85rem; }
+.label input, .label select { min-height: 40px; padding: 0.5rem; border: 1px solid #d6d1cc; border-radius: 6px; background: #fff; font: inherit; color: #1c1b19; }
+.drawer button { min-height: 40px; border: 0; border-radius: 6px; padding: 0.5rem 0.75rem; background: #9f1239; color: #fff; font: inherit; cursor: pointer; }
+.header button { background: transparent; color: #49454f; }
+.drawer button:disabled { opacity: 0.55; cursor: not-allowed; }
+.drawer button:focus-visible, .label input:focus-visible, .label select:focus-visible { outline: 2px solid #9f1239; outline-offset: 2px; }
+.fileName, .message { margin: 0.25rem 0 0; font-size: 0.85rem; color: #49454f; overflow-wrap: anywhere; }
+@media (max-width: 768px) { .drawer { width: 100%; border-left: 0; } }
