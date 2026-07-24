@@ -217,10 +217,7 @@ async def node_tools(state: ResearchState) -> dict:
         start = time.monotonic()
         try:
             if tool == "tavily":
-                results = await tavily_search(
-                    all_query_strings,
-                    include_domains=state.get("user_domains") or None,
-                )
+                results = await tavily_search(all_query_strings)
             else:
                 logger.warning("Unknown tool: %s", tool)
                 results = []
@@ -354,8 +351,6 @@ def get_graph_topology() -> dict:
 
 async def run_research(
     query: str,
-    domains: list[str] | None = None,
-    filetypes: list[str] | None = None,
     deadline: float = _DEADLINE_SECONDS,
     on_event: Any = None,
 ) -> dict:
@@ -368,8 +363,6 @@ async def run_research(
 
     initial_state: ResearchState = {
         "query": query,
-        "user_domains": domains or [],
-        "user_filetypes": filetypes or [],
         "on_event": on_event,
         "reasoning_trace": [],
         "research_brief": "",

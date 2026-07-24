@@ -292,9 +292,6 @@ async def research_stream(request: Request):
     if not query or not isinstance(query, str) or not query.strip():
         return JSONResponse(status_code=400, content={"error": "query is required and must be non-empty"})
 
-    domains = data.get("domains") or []
-    filetypes = data.get("filetypes") or []
-
     async def event_generator():
         from research.graph import run_research
 
@@ -306,8 +303,6 @@ async def research_stream(request: Request):
         task = asyncio.create_task(
             run_research(
                 query=query,
-                domains=domains if domains else None,
-                filetypes=filetypes if filetypes else None,
                 on_event=_on_event,
             )
         )

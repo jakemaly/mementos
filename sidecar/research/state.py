@@ -7,8 +7,6 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 class ResearchRequest(TypedDict):
     query: str
-    domains: NotRequired[list[str]]
-    filetypes: NotRequired[list[str]]
 
 
 # ── Phase 1: Brief + Sketch ─────────────────────────────────────────────
@@ -90,8 +88,6 @@ class ResearchResult(TypedDict):
 class ResearchState(TypedDict):
     # User input
     query: str
-    user_domains: list[str]
-    user_filetypes: list[str]
 
     # Phase 1 outputs
     reasoning_trace: list[str]

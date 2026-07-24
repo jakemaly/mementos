@@ -23,8 +23,6 @@ from research.state import QueryPlan, ResearchState, TraceEvent
 def _state(overrides: dict | None = None) -> ResearchState:
     base: ResearchState = {
         "query": "test query",
-        "user_domains": [],
-        "user_filetypes": [],
         "reasoning_trace": [],
         "research_brief": "",
         "tool_selection": ["tavily"],

@@ -17,7 +17,6 @@ _MAX_CONCURRENCY = 10
 
 async def tavily_search(
     queries: list[str],
-    include_domains: list[str] | None = None,
     _api_key: str | None = None,
 ) -> list[Source]:
     """Execute Tavily searches with bounded concurrency and return normalized sources."""
@@ -37,7 +36,6 @@ async def tavily_search(
                     resp = await client.post(_TAVILY_URL, json={
                         "api_key": api_key,
                         "query": query,
-                        "include_domains": include_domains,
                         "max_results": 10,
                         "search_depth": "basic",
                     })

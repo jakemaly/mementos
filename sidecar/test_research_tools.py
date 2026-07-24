@@ -16,7 +16,8 @@ async def test_stubs_return_empty():
 
 @pytest.mark.asyncio
 async def test_tavily_search_success():
-    mock_tavily_response = {
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
         "results": [
             {
                 "url": "https://example.com/doc1",
@@ -26,8 +27,16 @@ async def test_tavily_search_success():
             }
         ]
     }
-    with patch("research.tools.tavily.tcl") as mock_tcl:
-        mock_tcl.search = MagicMock(return_value=mock_tavily_response)
+    mock_response.raise_for_status = MagicMock()
+
+    async def mock_post(*_a, **_kw):
+        return mock_response
+
+    mock_client = AsyncMock()
+    mock_client.post = mock_post
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    with patch("research.tools.tavily.httpx.AsyncClient", return_value=mock_client):
         sources = await tavily_search(["example query"])
         assert len(sources) == 1
         assert sources[0]["url"] == "https://example.com/doc1"
