@@ -2,6 +2,10 @@ import { NextRequest } from 'next/server';
 
 const SIDECAR_URL = process.env.SIDECAR_URL || 'http://localhost:8000';
 
+function hasQuery(value: unknown): value is { query: unknown } {
+  return typeof value === 'object' && value !== null && 'query' in value;
+}
+
 export async function POST(request: NextRequest) {
   const abortController = new AbortController();
 
@@ -11,9 +15,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const body: unknown = await request.json();
 
-    if (!body?.query || typeof body.query !== 'string' || !body.query.trim()) {
+    if (!hasQuery(body) || typeof body.query !== 'string' || !body.query.trim()) {
       return new Response(
         JSON.stringify({ error: 'query is required and must be non-empty' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } },
@@ -74,13 +78,14 @@ export async function POST(request: NextRequest) {
         'X-Accel-Buffering': 'no',
       },
     });
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
       return new Response(null, { status: 499 });
     }
+    const message = error instanceof Error ? error.message : 'Research proxy failed';
     console.error('Research proxy error:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Research proxy failed' }),
+      JSON.stringify({ error: message }),
       { status: 502, headers: { 'Content-Type': 'application/json' } },
     );
   }

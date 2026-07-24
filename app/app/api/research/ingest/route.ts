@@ -4,6 +4,19 @@ import { qdrant } from '@/lib/qdrant';
 import { getEmbedding } from '@/lib/embeddings';
 import { splitTextIntoChunks } from '@/lib/text';
 
+interface ResearchSourceInput {
+  url: string;
+  title?: string;
+}
+
+interface CollectionsResponse {
+  collections?: Array<{ name: string }>;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error';
+}
+
 /** Strip HTML tags and extract clean text. */
 function stripHtml(html: string): string {
   return html
@@ -55,14 +68,20 @@ async function fetchPageContent(url: string): Promise<string> {
 
 export async function POST(request: Request) {
   try {
+    const body = await request.json() as {
+      sources?: ResearchSourceInput[];
+      collection?: string;
+      chunkSize?: number;
+      chunkOverlap?: number;
+    };
     const {
       sources,
       collection,
       chunkSize = 500,
       chunkOverlap = 50,
-    } = await request.json();
+    } = body;
 
-    if (!sources?.length || !collection) {
+    if (!sources?.length || !collection || sources.some((source) => !source?.url)) {
       return NextResponse.json(
         { error: 'Sources array and collection name are required' },
         { status: 400 }
@@ -71,9 +90,9 @@ export async function POST(request: Request) {
 
     // Ensure collection exists (auto-create 384-d cosine if missing)
     try {
-      const collections = await qdrant.getCollections();
-      const collectionExists = (collections as any).collections?.some(
-        (c: any) => c.name === collection
+      const collections = await qdrant.getCollections() as unknown as CollectionsResponse;
+      const collectionExists = collections.collections?.some(
+        (c) => c.name === collection
       );
       if (!collectionExists) {
         console.log(`Auto-creating collection '${collection}' in Qdrant...`);
@@ -81,8 +100,8 @@ export async function POST(request: Request) {
           vectors: { size: 384, distance: 'Cosine' },
         });
       }
-    } catch (e: any) {
-      console.warn(`Collection check/create warning: ${e.message}`);
+    } catch (e: unknown) {
+      console.warn(`Collection check/create warning: ${errorMessage(e)}`);
     }
 
     const startTime = Date.now();
@@ -97,8 +116,8 @@ export async function POST(request: Request) {
       let content: string;
       try {
         content = await fetchPageContent(url);
-      } catch (err: any) {
-        console.error(`Failed to fetch ${url}: ${err.message}`);
+      } catch (err: unknown) {
+        console.error(`Failed to fetch ${url}: ${errorMessage(err)}`);
         continue;
       }
 
@@ -143,7 +162,7 @@ export async function POST(request: Request) {
     }
 
     const elapsed = Date.now() - startTime;
-    const failedUrls = sources.map((s: any) => s.url).filter((url: string) => !ingestedUrls.includes(url));
+    const failedUrls = sources.map((source) => source.url).filter((url) => !ingestedUrls.includes(url));
 
     return NextResponse.json({
       success: ingestedUrls.length > 0,
@@ -153,10 +172,10 @@ export async function POST(request: Request) {
       elapsedMs: elapsed,
       message: `Ingested ${totalChunks} chunks from ${ingestedUrls.length} of ${sources.length} sources into '${collection}'`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Research ingest error:', error);
     return NextResponse.json(
-      { error: error.message || 'Ingestion failed' },
+      { error: errorMessage(error) || 'Ingestion failed' },
       { status: 500 }
     );
   }
