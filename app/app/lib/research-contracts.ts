@@ -59,6 +59,7 @@ export type TraceEventType =
   | 'tool_failed'
   | 'iteration_complete'
   | 'scoring_started'
+  | 'sources_discovered'
   | 'sources_ranked'
   | 'done'
   | 'error';

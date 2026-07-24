@@ -65,7 +65,7 @@ export function ResearchTrace({ trace }: { trace: TraceEvent[] }) {
 
     return {
       id: ev.id,
-      parentIds: ev.parent_ids || (ev.parent_id ? [ev.parent_id] : []),
+      parentIds: (ev.parent_id ? [ev.parent_id] : []),
       type: effectiveType,
       layoutRow,
       label: tool ? `${color.label}: ${tool}` : color.label,

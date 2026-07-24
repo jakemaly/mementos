@@ -179,6 +179,17 @@ export default function Dashboard() {
     setSelectedSources(new Set());
   };
 
+  // Vector search result expansion state
+  const [expandedResultIds, setExpandedResultIds] = useState<Set<string>>(new Set());
+  const toggleExpandResult = (id: string) => {
+    setExpandedResultIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   // RAG Query state
   const [ragQuery, setRagQuery] = useState<string>('');
   const [ragMode, setRagMode] = useState<string>('hybrid');

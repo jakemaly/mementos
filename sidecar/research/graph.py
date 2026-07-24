@@ -218,6 +218,13 @@ async def node_tools(state: ResearchState) -> dict:
         try:
             if tool == "tavily":
                 results = await tavily_search(all_query_strings)
+
+                # Emit live sources for the frontend before scoring
+                _emit(trace, "sources_discovered", {
+                    "tool": tool,
+                    "query": all_query_strings[0] if len(all_query_strings) == 1 else all_query_strings,
+                    "sources": results,
+                }, iteration=iteration, parent_id=tool_id["id"], on_event=on_event)
             else:
                 logger.warning("Unknown tool: %s", tool)
                 results = []

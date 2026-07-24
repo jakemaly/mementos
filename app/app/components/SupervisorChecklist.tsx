@@ -134,7 +134,7 @@ export function SupervisorChecklist({
                       border: 'none',
                       color: 'inherit',
                       display: 'flex',
-                      justify: 'space-between',
+                      justifyContent: 'space-between',
                       alignItems: 'center',
                       cursor: 'pointer',
                       fontSize: '0.82rem',
