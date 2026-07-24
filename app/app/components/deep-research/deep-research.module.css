@@ -3,6 +3,11 @@
 /* ── Composer (View A) ─────────────────────────────────────────────── */
 
 .composerContainer {
+  --accent: #9f1239;
+  --text-primary: #1c1b19;
+  --text-secondary: #49454f;
+  --text-muted: #79747e;
+  --border-muted: #d6d1cc;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -102,8 +107,14 @@
 /* ── Workspace (View B) ────────────────────────────────────────────── */
 
 .workspace {
+  --accent: #9f1239;
+  --text-primary: #1c1b19;
+  --text-secondary: #49454f;
+  --text-muted: #79747e;
+  --border-muted: #d6d1cc;
   display: flex;
   min-height: 100vh;
+  background: #f8f7f3;
 }
 
 /* Sidebar */

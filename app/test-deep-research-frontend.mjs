@@ -57,7 +57,7 @@ ok('Responsive layout exists', css.includes('@media (max-width: 768px)'));
 ok('1024px remains two-column', css.includes('@media (max-width: 900px)'));
 ok('Mobile panes use graph/sketch/observability/sources order', css.includes('order: 1') && css.includes('order: 2') && css.includes('order: 3') && css.includes('order: 4'));
 ok('Visible focus styles exist', css.includes(':focus-visible'));
-ok('Cherry accent is scoped', css.includes('var(--accent)'));
+ok('Cherry accent is scoped', css.includes('--accent: #9f1239') && css.includes('var(--accent)'));
 
 console.log(`\n${PASS} ${passed} passed`);
 console.log(`${FAIL} ${failed} failed`);

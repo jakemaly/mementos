@@ -17,7 +17,7 @@ from research.state import (
     Source,
     TraceEvent,
 )
-from research.tools.tavily import tavily_search
+from research.tools.tavily import canonical_url, tavily_search
 
 logger = logging.getLogger("sidecar")
 
@@ -263,10 +263,11 @@ async def node_tools(state: ResearchState) -> dict:
             new_sources.extend(result)
 
     # Dedup against existing sources
-    seen = {s["url"].lower() for s in existing_sources}
+    seen = {canonical_url(s["url"]) for s in existing_sources}
     for s in new_sources:
-        if s["url"].lower() not in seen:
-            seen.add(s["url"].lower())
+        source_key = canonical_url(s["url"])
+        if source_key not in seen:
+            seen.add(source_key)
             existing_sources.append(s)
 
     iter_ev = _emit(trace, "iteration_complete", {

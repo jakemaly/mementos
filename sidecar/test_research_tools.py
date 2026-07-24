@@ -5,13 +5,18 @@ import pytest
 
 from research.tools.arxiv import arxiv_search
 from research.tools.github import github_search
-from research.tools.tavily import tavily_search
+from research.tools.tavily import canonical_url, tavily_search
 
 
 @pytest.mark.asyncio
 async def test_stubs_return_empty():
     assert await arxiv_search(["test"]) == []
     assert await github_search(["test"]) == []
+
+
+def test_canonical_url_drops_fragment_and_trailing_slash():
+    assert canonical_url("HTTPS://Example.com/path/#section") == "https://example.com/path"
+    assert canonical_url("https://example.com/path") == "https://example.com/path"
 
 
 @pytest.mark.asyncio

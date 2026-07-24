@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from collections.abc import Callable
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
@@ -14,6 +15,16 @@ logger = logging.getLogger("sidecar")
 
 _TAVILY_URL = "https://api.tavily.com/search"
 _MAX_CONCURRENCY = 10
+
+
+def canonical_url(url: str) -> str:
+    parts = urlsplit(url)
+    hostname = (parts.hostname or '').lower()
+    netloc = hostname
+    if parts.port:
+        netloc = f'{hostname}:{parts.port}'
+    path = parts.path.rstrip('/') or '/'
+    return urlunsplit((parts.scheme.lower(), netloc, path, parts.query, '')).lower()
 
 
 async def tavily_search(
@@ -47,8 +58,9 @@ async def tavily_search(
                 sources = []
                 for r in data.get("results") or []:
                     url = r["url"]
-                    if url.lower() not in seen_urls:
-                        seen_urls.add(url.lower())
+                    key = canonical_url(url)
+                    if key not in seen_urls:
+                        seen_urls.add(key)
                         sources.append(Source(
                             url=url,
                             title=r.get("title") or url,
