@@ -9,13 +9,19 @@
   --text-muted: #79747e;
   --border-muted: #d6d1cc;
   display: flex;
+  min-height: 100vh;
+  background: #f8f7f3;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.composerMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
   align-items: center;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   justify-content: center;
-  min-height: 100vh;
   padding: 2rem;
-  background: #f8f7f3;
   gap: 2rem;
 }
 
@@ -705,7 +711,8 @@
 }
 
 @media (max-width: 768px) {
-  .workspace {
+  .workspace,
+  .composerContainer {
     flex-direction: column;
   }
 

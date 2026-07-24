@@ -338,18 +338,34 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
   if (runState === 'idle') {
     return (
       <div className={styles.composerContainer}>
-        <h1 className={styles.wordmark}>Mementos</h1>
-        <ResearchComposer
-          query={query}
-          onQueryChange={setQuery}
-          selectedCollection={selectedCollection}
-          onCollectionChange={setSelectedCollection}
-          collections={collections}
-          onSubmit={handleSubmit}
-          disabled={!query.trim() || !selectedCollection}
-          placeholder="What should Mementos research?"
-        />
-        {errorMessage && <div className={styles.error} role="alert">{errorMessage}</div>}
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarWordmark}>Mementos</div>
+          <button className={styles.sidebarBtn} type="button" disabled aria-label="New research">
+            New research
+          </button>
+          <button className={styles.sidebarBtn} type="button" disabled aria-label="Settings (not available yet)" title="Settings will be available in a future release">
+            Settings
+          </button>
+          {onOpenKnowledgeBase && (
+            <button className={styles.sidebarBtn} type="button" onClick={onOpenKnowledgeBase} aria-label="Open knowledge base">
+              Knowledge base
+            </button>
+          )}
+        </aside>
+        <main className={styles.composerMain}>
+          <h1 className={styles.wordmark}>Mementos</h1>
+          <ResearchComposer
+            query={query}
+            onQueryChange={setQuery}
+            selectedCollection={selectedCollection}
+            onCollectionChange={setSelectedCollection}
+            collections={collections}
+            onSubmit={handleSubmit}
+            disabled={!query.trim() || !selectedCollection}
+            placeholder="What should Mementos research?"
+          />
+          {errorMessage && <div className={styles.error} role="alert">{errorMessage}</div>}
+        </main>
       </div>
     );
   }

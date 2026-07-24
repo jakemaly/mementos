@@ -25,6 +25,7 @@ ok('Composer renders collection selector', composer.includes('aria-label="Target
 ok('Composer supports Shift+Enter newline behavior', composer.includes('e.shiftKey'));
 ok('Composer prevents default Enter submission', composer.includes('e.preventDefault()'));
 ok('Composer has accessible submit action', composer.includes('aria-label="Start research"'));
+ok('Composer includes the shared sidebar', root.includes('className={styles.composerContainer}') && root.includes('aria-label="Open knowledge base"'));
 
 console.log('\n=== Run lifecycle ===\n');
 ok('Explicit run states exist', root.includes("'starting'") && root.includes("'researching'") && root.includes("'ingested'"));
