@@ -1,0 +1,691 @@
+/* Deep Research — matte, minimally bordered, cherry accent */
+
+/* ── Composer (View A) ─────────────────────────────────────────────── */
+
+.composerContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  gap: 2rem;
+}
+
+.wordmark {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.composerForm {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.composerInput {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--border-muted);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--md-sys-color-surface-container-lowest);
+  color: var(--text-primary);
+  line-height: 1.5;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.composerInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.15);
+}
+
+.composerFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.collectionSelect {
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border: 1px solid var(--border-muted);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  background: var(--md-sys-color-surface-container-lowest);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.collectionSelect:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.submitButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.submitButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.submitButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.error {
+  color: #b91c1c;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+/* ── Workspace (View B) ────────────────────────────────────────────── */
+
+.workspace {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 56px;
+  border-right: 1px solid var(--border-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 0.5rem;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.sidebarWordmark {
+  font-size: 1.25rem;
+  font-weight: 600;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.sidebarBtn {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: 1px solid var(--border-muted);
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
+}
+
+.sidebarBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.sidebarBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Main content */
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Top bar */
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border-muted);
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.queryStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.queryText {
+  font-size: 0.9rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.statusBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.status-starting {
+  background: rgba(103, 80, 164, 0.1);
+  color: #6750a4;
+}
+
+.status-researching {
+  background: rgba(103, 80, 164, 0.1);
+  color: #6750a4;
+}
+
+.status-completed {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.status-failed {
+  background: rgba(185, 28, 28, 0.1);
+  color: #b91c1c;
+}
+
+.status-ingesting {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.status-ingested {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.elapsed {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+.cancelButton,
+.newButton {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-muted);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cancelButton:hover,
+.newButton:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.cancelButton:focus-visible,
+.newButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  flex: 1;
+  overflow: hidden;
+}
+
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-right: 1px solid var(--border-muted);
+  overflow: hidden;
+}
+
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+
+/* Pane */
+.pane {
+  flex: 1;
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.paneTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
+  flex-shrink: 0;
+}
+
+/* ── Execution Graph ───────────────────────────────────────────────── */
+
+.graphContainer {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.graphSvg {
+  width: 100%;
+  height: auto;
+}
+
+.graphNode {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.graphNode:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.graphNodeRect {
+  fill: var(--md-sys-color-surface-container-lowest);
+  stroke: var(--border-muted);
+  stroke-width: 1;
+  transition: stroke 0.2s ease;
+}
+
+.graphNode-running .graphNodeRect {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.graphNode-failed .graphNodeRect {
+  stroke: #b91c1c;
+}
+
+.graphEmpty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.graphText {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.graphTextItem::after {
+  content: '→';
+  margin-left: 0.5rem;
+  opacity: 0.5;
+}
+
+.graphTextItem:last-child::after {
+  content: '';
+}
+
+/* ── Observability Timeline ────────────────────────────────────────── */
+
+.timelineList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.timelineItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  border-left: 2px solid transparent;
+}
+
+.timelineItem-completed {
+  border-left-color: rgba(16, 185, 129, 0.5);
+}
+
+.timelineItem-running {
+  border-left-color: var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.timelineItem-failed {
+  border-left-color: #b91c1c;
+}
+
+.timelineItemFocused {
+  background: rgba(225, 29, 72, 0.05);
+}
+
+.timelineLabel {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.timelineDetail {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: pre-line;
+}
+
+.timelineEmpty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* ── Research Sketch ───────────────────────────────────────────────── */
+
+.sketchContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sketchSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sketchLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.sketchList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sketchItem {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--border-muted);
+}
+
+.sketchEmpty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* ── Source List ───────────────────────────────────────────────────── */
+
+.sourceListContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.sourceControls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.sourceToggleAll {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.sourceToggleAll:hover {
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.sourceCount {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex: 1;
+  text-align: right;
+}
+
+.ingestButton {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.ingestButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.ingestButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sourceRows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.sourceRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sourceRow:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.sourceRow input[type="checkbox"] {
+  margin-top: 0.15rem;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.sourceInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.sourceTitle {
+  font-size: 0.8rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sourceLink {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.sourceLink:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.sourceDomain {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sourceSnippet {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.sourceEmpty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.ingestResult {
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ingestSuccess {
+  color: #059669;
+}
+
+.ingestFailed {
+  color: #d97706;
+  font-size: 0.75rem;
+}
+
+.sourceError {
+  color: #b91c1c;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  background: rgba(185, 28, 28, 0.05);
+  border: 1px solid rgba(185, 28, 28, 0.15);
+}
+
+/* ── Responsive ────────────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .leftColumn {
+    border-right: none;
+    border-bottom: 1px solid var(--border-muted);
+  }
+
+  .sidebar {
+    width: 48px;
+  }
+}
+
+@media (max-width: 768px) {
+  .workspace {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--border-muted);
+    padding: 0.5rem 1rem;
+    justify-content: space-between;
+  }
+
+  .sidebarWordmark {
+    writing-mode: horizontal-tb;
+    transform: none;
+    font-size: 1rem;
+  }
+
+  .sidebarBtn {
+    writing-mode: horizontal-tb;
+    transform: none;
+  }
+
+  .pane {
+    padding: 0.75rem 1rem;
+  }
+
+  .topBar {
+    padding: 0.5rem 1rem;
+  }
+}

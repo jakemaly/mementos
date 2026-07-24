@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import styles from './page.module.css';
+import { DeepResearch } from './components/deep-research/DeepResearch';
 import { ResearchTrace } from './components/ResearchTrace';
 import { AgentThinkingAccordion } from './components/AgentThinkingAccordion';
 import { ReactFlowGraph } from './components/ReactFlowGraph';
@@ -746,6 +747,10 @@ export default function Dashboard() {
     }
   };
 
+  if (activeTab === 0) {
+    return <DeepResearch onOpenKnowledgeBase={() => setActiveTab(1)} />;
+  }
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -846,265 +851,10 @@ export default function Dashboard() {
       <main className={styles.layoutContainer}>
         {/* Workspace 1: Deep Research (Tab 0) */}
         <div className={`${styles.workspace} ${activeTab !== 0 ? styles.hidden : ''}`}>
-          <div className={styles.deepResearchContainer}>
-            
-            {/* Initial State: Centered Search Hero */}
-            {!researching && researchTrace.length === 0 && sources.length === 0 ? (
-              <section className={`${styles.card} ${styles.deepResearchHero}`}>
-                <h2 className={styles.cardTitle} style={{ justifyContent: 'center', fontSize: '1.4rem' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px'}}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                  Deep Research (SIRA)
-                </h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem', textAlign: 'center' }}>
-                  Autonomous, multi-tool research agent querying web, arXiv, and GitHub APIs.
-                </p>
-
-                <textarea
-                  className={styles.input}
-                  placeholder="Enter your research query (e.g. 'Latest breakthroughs in quantum error correction')..."
-                  value={researchQuery}
-                  onChange={(e) => setResearchQuery(e.target.value)}
-                  rows={4}
-                  style={{ resize: 'vertical', fontSize: '1rem', padding: '1rem' }}
-                />
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <input
-                    type="text"
-                    className={styles.input}
-                    placeholder="Domains (e.g. arxiv.org, github.com)"
-                    value={researchDomains}
-                    onChange={(e) => setResearchDomains(e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    className={styles.input}
-                    placeholder="Filetypes (e.g. pdf, html)"
-                    value={researchFiletypes}
-                    onChange={(e) => setResearchFiletypes(e.target.value)}
-                  />
-                </div>
-
-                <button
-                  onClick={handleResearch}
-                  className={`${styles.btn} ${styles.btnAccent}`}
-                  disabled={!researchQuery.trim()}
-                  style={{ padding: '0.85rem', fontSize: '1rem', fontWeight: 600, marginTop: '0.5rem' }}
-                >
-                  Run Deep Research
-                </button>
-              </section>
-            ) : (
-              /* Active / Results State */
-              <>
-                {/* Top of screen: Shifted query banner */}
-                <div className={styles.deepResearchTopBar}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                    <span className={styles.badge} style={{ background: 'var(--primary)', color: '#fff', padding: '0.3rem 0.6rem' }}>
-                      {researching ? 'Researching' : 'Completed'}
-                    </span>
-                    <span style={{ fontWeight: 600, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      "{researchQuery}"
-                    </span>
-                    {researchDomains && (
-                      <span className={`${styles.md3Chip} ${styles.md3ChipPrimary}`} style={{ fontSize: '0.7rem' }}>
-                        Domains: {researchDomains}
-                      </span>
-                    )}
-                    {researchFiletypes && (
-                      <span className={`${styles.md3Chip} ${styles.md3ChipSecondary}`} style={{ fontSize: '0.7rem' }}>
-                        Types: {researchFiletypes}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={handleResetResearch}
-                    className={`${styles.btn} ${styles.btnSecondary}`}
-                    style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}
-                  >
-                    + New Research
-                  </button>
-                </div>
-
-                {/* Main 2-Column Split Grid */}
-                <div className={styles.deepResearchSplitGrid}>
-                  {/* Left Side: Execution Trace DAG Graph & Agent Thinking Accordion */}
-                  <section className={styles.card}>
-                    <h3 className={styles.cardTitle} style={{ fontSize: '1rem' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                      Execution Trace & Deliberation
-                    </h3>
-                    {researchBrief && (
-                      <div className={styles.researchBrief} style={{ marginTop: 0, padding: '0.75rem' }}>
-                        <p style={{ margin: 0, fontSize: '0.85rem' }}>{researchBrief.brief}</p>
-                        <div className={styles.researchBriefMeta} style={{ marginTop: '0.5rem' }}>
-                          <span>Tools: {researchBrief.tools.join(', ')}</span>
-                          <span>Queries: {researchBrief.queries.overview.length + researchBrief.queries.specific.length}</span>
-                        </div>
-                      </div>
-                    )}
-                    <div style={{ marginBottom: '1rem' }}>
-                      <ReactFlowGraph trace={researchTrace} isResearching={researching} />
-                    </div>
-
-                    <SupervisorChecklist
-                      evaluations={supervisorEvaluations}
-                      subQuestions={latestSubQuestions}
-                      confidenceScore={confidenceScore}
-                      isResearching={researching}
-                    />
-
-                    <ResearchTrace trace={researchTrace} />
-
-                    <AgentThinkingAccordion
-                      reasoningTrace={researchBrief?.reasoning_trace}
-                      supervisorThoughts={supervisorThoughts}
-                      researching={researching}
-                    />
-                  </section>
-
-                  {/* Right Side: Expected-Response Sketch Card */}
-                  <section className={styles.card}>
-                    <h3 className={styles.cardTitle} style={{ fontSize: '1rem' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                      Expected-Response Sketch
-                    </h3>
-                    {sketch ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div>
-                          <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Expected Concepts</div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                            {sketch.expectedConcepts.map((c, i) => (
-                              <span key={i} className={`${styles.md3Chip} ${styles.md3ChipPrimary}`}>{c}</span>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Discriminative Terms</div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                            {sketch.discriminativeTerms.map((t, i) => (
-                              <span key={i} className={`${styles.md3Chip} ${styles.md3ChipSecondary}`}>{t}</span>
-                            ))}
-                          </div>
-                        </div>
-
-                        {sketch.expectedPatterns && sketch.expectedPatterns.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Explanatory Patterns</div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                              {sketch.expectedPatterns.map((p, i) => (
-                                <span key={i} className={`${styles.md3Chip} ${styles.md3ChipTertiary}`}>{p}</span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {sketch.preferredDomains && sketch.preferredDomains.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Preferred Domains</div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                              {sketch.preferredDomains.map((d, i) => (
-                                <span key={i} className={`${styles.md3Chip} ${styles.md3ChipSuccess}`}>{d}</span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                        Generating concept sketch...
-                      </div>
-                    )}
-                  </section>
-                </div>
-
-                {/* Bottom Full-Width Section: Accept Sources Box */}
-                {sources.length > 0 && (
-                  <section className={`${styles.card} ${styles.deepResearchBottomSources}`}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                      <h3 className={styles.cardTitle} style={{ margin: 0, borderBottom: 'none', paddingBottom: 0 }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        Accept Sources ({selectedSources.size} of {sources.length} Selected)
-                      </h3>
-
-                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <button
-                          onClick={toggleAllSources}
-                          className={`${styles.btn} ${styles.btnSecondary}`}
-                          style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}
-                        >
-                          {selectedSources.size === sources.length ? 'Deselect All' : 'Select All'}
-                        </button>
-
-                        <select
-                          className={styles.select}
-                          value={selectedCollection}
-                          onChange={(e) => setSelectedCollection(e.target.value)}
-                          disabled={ingestingWeb}
-                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
-                        >
-                          {collections.map((c) => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
-                        </select>
-
-                        <button
-                          onClick={handleIngestWeb}
-                          className={`${styles.btn} ${styles.btnAccent}`}
-                          disabled={ingestingWeb || selectedSources.size === 0 || !selectedCollection}
-                          style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}
-                        >
-                          {ingestingWeb ? 'Ingesting...' : `Accept & Ingest ${selectedSources.size} Sources`}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.75rem', marginTop: '1rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.4rem' }}>
-                      {sources.map((source) => {
-                        const isSelected = selectedSources.has(source.url);
-                        return (
-                          <div
-                            key={source.url}
-                            className={`${styles.researchSourceCard} ${isSelected ? styles.researchSourceCardSelected : ''}`}
-                            onClick={() => toggleSource(source.url)}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSource(source.url)}
-                              onClick={(e) => e.stopPropagation()}
-                              className={styles.checkbox}
-                            />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {source.title}
-                                </span>
-                                <span className={`${styles.scoreBadge} ${source.score >= 0.3 ? styles.scoreHigh : styles.scoreMid}`}>
-                                  {(source.score * 100).toFixed(0)}%
-                                </span>
-                              </div>
-                              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                {source.snippet}
-                              </p>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', marginTop: '0.2rem' }}>
-                                {source.url}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
-              </>
-            )}
-
-          </div>
+          <DeepResearch onOpenKnowledgeBase={() => setActiveTab(1)} />
         </div>
 
-        {/* Workspace 2: Knowledge Base & Search (Tab 1) */}
+                {/* Workspace 2: Knowledge Base & Search (Tab 1) */}
         <div className={`${styles.workspace} ${activeTab !== 1 ? styles.hidden : ''}`}>
           <div className={styles.workspaceGridTab2}>
             
