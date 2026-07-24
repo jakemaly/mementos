@@ -32,6 +32,7 @@ function warnMsg(name, message) {
 }
 
 const src = fs.readFileSync('app/page.tsx', 'utf8');
+const css = fs.readFileSync('app/page.module.css', 'utf8');
 
 // ── 1. Structural checks ───────────────────────────────────────────
 
@@ -45,7 +46,7 @@ ok('Answer display present', src.includes('ragAnswer'));
 ok('Text ingestion textarea present', src.includes('ragIngestText'));
 ok('File ingestion present', src.includes('ragFile'));
 ok('Loading spinner present', src.includes('ragQuerying'));
-ok('white-space: pre-wrap on answer', src.includes('pre-wrap'));
+ok('white-space: pre-wrap on answer', css.includes('white-space: pre-wrap'));
 
 // ── 2. BUG: handleRagQuery not disabled during loading ─────────────
 
@@ -225,7 +226,7 @@ if (!ingestLoadingFeedback) {
 console.log('\n=== 14. Edge Case: Long Answer Display ===\n');
 
 // Answer has maxHeight: '400px' and overflowY: 'auto' — scrolls. Good.
-const answerHasScroll = src.match(/ragAnswer[\s\S]*?maxHeight.*overflowY/s);
+const answerHasScroll = css.match(/\.ragAnswer[\s\S]*?max-height:[\s\S]*?overflow-y:/s);
 ok('Long answer scrolls (maxHeight + overflowY)', !!answerHasScroll);
 
 // ── 15. Edge case: XSS in ragAnswer ─────────────────────────────────
@@ -262,13 +263,13 @@ ok('Vector Search panel still present', src.includes('Vector Search Query'));
 ok('Search handler still present', src.includes('handleSearch'));
 ok('Search results still rendered', src.includes('searchResults'));
 
-// Deep Research panel should be unchanged
-ok('Deep Research panel still present', src.includes('Deep Research'));
-ok('Research handler still present', src.includes('handleResearch'));
-ok('Sources still rendered', src.includes('sources.map'));
+// Deep Research is now delegated to its dedicated component.
+ok('Deep Research component remains reachable', src.includes("import { DeepResearch }"));
+ok('Old research handler removed from dashboard', !src.includes('handleResearch'));
+ok('Old research source rendering removed from dashboard', !src.includes('sources.map'));
 
-// File ingestion panel should be unchanged
-ok('File Ingestion panel still present', src.includes('File Ingestion Portal'));
+// Knowledge Base file ingestion remains unchanged.
+ok('File ingestion panel still present', src.includes('Vector DB File Ingestion'));
 ok('Ingest handler still present', src.includes('handleIngest'));
 
 // ── 19. Bug: eslint error on line 342 ──────────────────────────────
