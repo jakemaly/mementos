@@ -346,8 +346,9 @@
 }
 
 .graphSvg {
-  width: 100%;
+  width: 85%;
   height: auto;
+  margin: 0 auto;
 }
 
 .graphNode {
@@ -764,6 +765,10 @@
 
   .topBar {
     padding: 0.5rem 1rem;
+  }
+
+  .graphSvg {
+    width: 100%;
   }
 }
 
