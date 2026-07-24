@@ -1,13 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './page.module.css';
 import { DeepResearch } from './components/deep-research/DeepResearch';
-import { ResearchTrace } from './components/ResearchTrace';
-import { AgentThinkingAccordion } from './components/AgentThinkingAccordion';
-import { ReactFlowGraph } from './components/ReactFlowGraph';
-import { SupervisorChecklist } from './components/SupervisorChecklist';
-import type { TraceEvent, ResearchBrief, SupervisorThought, SupervisorEvaluation, SubQuestion } from './lib/research-contracts';
+
 
 interface QueryResult {
   id: string;
@@ -23,21 +19,6 @@ interface IngestSummary {
   filename: string;
   chunksCount: number;
   embeddingTimeMs: number;
-}
-
-interface ResearchSource {
-  url: string;
-  title: string;
-  snippet: string;
-  score: number;
-}
-
-interface ResearchSketch {
-  expectedConcepts: string[];
-  discriminativeTerms: string[];
-  searchQueries: string[];
-  expectedPatterns?: string[];
-  preferredDomains?: string[];
 }
 
 export default function Dashboard() {
@@ -88,97 +69,6 @@ export default function Dashboard() {
   const [searchResults, setSearchResults] = useState<QueryResult[]>([]);
   const [searchLimit, setSearchLimit] = useState<number>(5);
 
-  // Deep Research state
-  const [researchQuery, setResearchQuery] = useState<string>('');
-  const [researchDomains, setResearchDomains] = useState<string>('');
-  const [researchFiletypes, setResearchFiletypes] = useState<string>('');
-  const [researchTrace, setResearchTrace] = useState<TraceEvent[]>([]);
-  const [researchBrief, setResearchBrief] = useState<ResearchBrief | null>(null);
-  const [sketch, setSketch] = useState<ResearchSketch | null>(null);
-  const [sources, setSources] = useState<ResearchSource[]>([]);
-  const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
-  const [researching, setResearching] = useState<boolean>(false);
-  const [ingestingWeb, setIngestingWeb] = useState<boolean>(false);
-  const [ingestWebStatus, setIngestWebStatus] = useState<string>('');
-
-  const supervisorThoughts = useMemo<SupervisorThought[]>(() => {
-    const list: SupervisorThought[] = [];
-    researchTrace.forEach((event) => {
-      if (event.type === 'supervisor_started' || event.type === 'supervisor_completed') {
-        const payload = event.payload || {};
-        list.push({
-          iteration: event.iteration ?? (payload.iteration as number) ?? (list.length + 1),
-          reasoning:
-            (payload.reasoning as string) ||
-            (payload.reason as string) ||
-            (event.type === 'supervisor_started'
-              ? 'Formulated query strategy and evaluated tool requirements.'
-              : 'Supervisor completed iteration.'),
-          decision:
-            (payload.decision as 'continue' | 'done') ||
-            (event.type === 'supervisor_completed' ? 'done' : 'continue'),
-          tools: (payload.tools as string[]) || [],
-          queries: (payload.queries as { overview?: string[]; specific?: string[] }) || undefined,
-        });
-      }
-    });
-
-    if (list.length === 0 && researchBrief) {
-      list.push({
-        iteration: 1,
-        reasoning: researchBrief.brief || 'Formulated initial research brief and query plan.',
-        decision: 'continue',
-        tools: researchBrief.tools || [],
-        queries: researchBrief.queries,
-      });
-    }
-
-    return list;
-  }, [researchTrace, researchBrief]);
-
-  const supervisorEvaluations = useMemo<SupervisorEvaluation[]>(() => {
-    const evals: SupervisorEvaluation[] = [];
-    researchTrace.forEach((event) => {
-      if (event.type === 'supervisor_evaluation') {
-        const payload = event.payload || {};
-        evals.push({
-          iteration: (event.iteration as number) ?? (payload.iteration as number) ?? evals.length + 1,
-          reflection: (payload.reflection as string) || '',
-          gap_analysis: (payload.gap_analysis as string) || '',
-          sub_questions: (payload.sub_questions as SubQuestion[]) || [],
-          confidence_score: (payload.confidence_score as number) || 0,
-          decision: (payload.decision as string) || 'continue',
-          reason: (payload.reason as string) || '',
-        });
-      }
-    });
-    return evals;
-  }, [researchTrace]);
-
-  const latestSubQuestions = useMemo<SubQuestion[]>(() => {
-    if (supervisorEvaluations.length > 0) {
-      return supervisorEvaluations[supervisorEvaluations.length - 1].sub_questions;
-    }
-    return [];
-  }, [supervisorEvaluations]);
-
-  const confidenceScore = useMemo<number>(() => {
-    if (supervisorEvaluations.length > 0) {
-      return supervisorEvaluations[supervisorEvaluations.length - 1].confidence_score;
-    }
-    return 0;
-  }, [supervisorEvaluations]);
-
-  const handleResetResearch = () => {
-    setResearchQuery('');
-    setResearchDomains('');
-    setResearchFiletypes('');
-    setResearchTrace([]);
-    setResearchBrief(null);
-    setSketch(null);
-    setSources([]);
-    setSelectedSources(new Set());
-  };
 
   // Vector search result expansion state
   const [expandedResultIds, setExpandedResultIds] = useState<Set<string>>(new Set());
@@ -418,145 +308,6 @@ export default function Dashboard() {
   };
 
   // Deep Research handlers
-  const handleResearch = async () => {
-    if (!researchQuery.trim()) {
-      setErrorMsg('Enter a research query');
-      return;
-    }
-
-    setResearching(true);
-    setErrorMsg('');
-    setResearchTrace([]);
-    setResearchBrief(null);
-    setSketch(null);
-    setSources([]);
-    setSelectedSources(new Set());
-
-    try {
-      const res = await fetch('/api/research', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: researchQuery,
-          domains: researchDomains
-            ? researchDomains.split(',').map((d) => d.trim()).filter(Boolean)
-            : [],
-          filetypes: researchFiletypes
-            ? researchFiletypes.split(',').map((f) => f.trim()).filter(Boolean)
-            : [],
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Research failed' }));
-        setErrorMsg(err.error || 'Research failed');
-        setResearching(false);
-        return;
-      }
-
-      const reader = res.body?.getReader();
-      if (!reader) {
-        setErrorMsg('No response stream');
-        setResearching(false);
-        return;
-      }
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
-
-        for (const block of lines) {
-          const eventMatch = block.match(/^event:\s*(.+)$/m);
-          const dataMatch = block.match(/^data:\s*(.+)$/m);
-          if (!eventMatch || !dataMatch) continue;
-
-          const event = eventMatch[1].trim();
-          try {
-            const data = JSON.parse(dataMatch[1].trim());
-
-            if (event === 'brief_generated') {
-              const payload = data.payload || data;
-              setResearchBrief({
-                reasoning_trace: payload.reasoning || [],
-                brief: payload.brief || '',
-                tools: payload.tools || [],
-                queries: payload.queries || { overview: [], specific: [] },
-              });
-              const sk = payload.sketch;
-              if (sk) {
-                setSketch({
-                  expectedConcepts: sk.expected_concepts || sk.expectedConcepts || [],
-                  discriminativeTerms: sk.discriminative_terms || sk.discriminativeTerms || [],
-                  searchQueries: sk.search_queries || sk.searchQueries || [],
-                  expectedPatterns: sk.expected_patterns || sk.expectedPatterns || [],
-                  preferredDomains: sk.preferred_domains || sk.preferredDomains || [],
-                });
-              }
-            } else if (event === 'done') {
-              if (data.sources) {
-                const srcList = data.sources.map((s: any) => ({
-                  url: s.url,
-                  title: s.title || s.url,
-                  snippet: s.snippet || '',
-                  score: s.score || 0,
-                }));
-                setSources(srcList);
-                setSelectedSources(new Set(srcList.map((s: any) => s.url)));
-              }
-              const sk = data.sketch;
-              if (sk) {
-                setSketch({
-                  expectedConcepts: sk.expected_concepts || sk.expectedConcepts || [],
-                  discriminativeTerms: sk.discriminative_terms || sk.discriminativeTerms || [],
-                  searchQueries: sk.search_queries || sk.searchQueries || [],
-                  expectedPatterns: sk.expected_patterns || sk.expectedPatterns || [],
-                  preferredDomains: sk.preferred_domains || sk.preferredDomains || [],
-                });
-              }
-            }
-
-            if (event !== 'done') {
-              setResearchTrace((prev) => [...prev, data]);
-            }
-          } catch (e) {
-            console.error('SSE parse error:', e);
-          }
-        }
-      }
-    } catch {
-      setErrorMsg('Network error during research');
-    } finally {
-      setResearching(false);
-    }
-  };
-
-  const toggleSource = (url: string) => {
-    setSelectedSources((prev) => {
-      const next = new Set(prev);
-      if (next.has(url)) {
-        next.delete(url);
-      } else {
-        next.add(url);
-      }
-      return next;
-    });
-  };
-
-  const toggleAllSources = () => {
-    setSelectedSources((prev) =>
-      prev.size === sources.length
-        ? new Set()
-        : new Set(sources.map((s) => s.url))
-    );
-  };
-
   // RAG Query handler
   const handleRagQuery = async () => {
     if (!ragQuery.trim()) {
@@ -699,54 +450,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleIngestWeb = async () => {
-    if (selectedSources.size === 0 || !selectedCollection) {
-      setErrorMsg('Select sources and a collection to ingest');
-      return;
-    }
-
-    setIngestingWeb(true);
-    setIngestWebStatus('Starting ingestion...');
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    try {
-      setIngestWebStatus('Fetching and processing selected sources...');
-
-      const res = await fetch('/api/research/ingest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sources: sources.filter((s) => selectedSources.has(s.url)),
-          collection: selectedCollection,
-          chunkSize,
-          chunkOverlap,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setSuccessMsg(data.message || 'Ingestion complete!');
-        
-        // Update session counts with estimated chunks
-        const mockChunks = selectedSources.size * 4;
-        setSessionCounts((prev) => ({
-          ...prev,
-          [selectedCollection]: (prev[selectedCollection] || 0) + mockChunks,
-        }));
-
-        setIngestWebStatus('');
-      } else {
-        setErrorMsg(data.error || 'Ingestion failed');
-      }
-    } catch {
-      setErrorMsg('Network error during ingestion');
-    } finally {
-      setIngestingWeb(false);
-    }
-  };
-
   if (activeTab === 0) {
     return <DeepResearch onOpenKnowledgeBase={() => setActiveTab(1)} />;
   }
@@ -849,12 +552,7 @@ export default function Dashboard() {
 
       {/* Main layout container with partitioned workspaces */}
       <main className={styles.layoutContainer}>
-        {/* Workspace 1: Deep Research (Tab 0) */}
-        <div className={`${styles.workspace} ${activeTab !== 0 ? styles.hidden : ''}`}>
-          <DeepResearch onOpenKnowledgeBase={() => setActiveTab(1)} />
-        </div>
-
-                {/* Workspace 2: Knowledge Base & Search (Tab 1) */}
+        {/* Workspace 2: Knowledge Base & Search (Tab 1) */}
         <div className={`${styles.workspace} ${activeTab !== 1 ? styles.hidden : ''}`}>
           <div className={styles.workspaceGridTab2}>
             
