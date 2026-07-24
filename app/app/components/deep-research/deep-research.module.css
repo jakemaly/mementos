@@ -61,6 +61,10 @@
 }
 
 .collectionSelect {
+  width: auto !important;
+  max-width: calc(100% - 3.25rem);
+  min-width: 0;
+  flex: 0 1 auto;
   padding: 0.5rem 2rem 0.5rem 0.75rem;
   border: 1px solid var(--border-muted);
   border-radius: 6px;
@@ -77,6 +81,7 @@
 }
 
 .submitButton {
+  flex: 0 0 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
