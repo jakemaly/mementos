@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './page.module.css';
 import { DeepResearch } from './components/deep-research/DeepResearch';
 import { CollectionsDrawer } from './components/collections/CollectionsDrawer';
+import { KnowledgeBase } from './components/knowledge-base/KnowledgeBase';
 
 
 interface QueryResult {
@@ -466,6 +467,28 @@ export default function Dashboard() {
         onCollectionChange={setSelectedCollection}
         onOpenCollections={() => setCollectionsOpen(true)}
         onOpenKnowledgeBase={() => setActiveTab(1)}
+      />
+      <CollectionsDrawer
+        open={collectionsOpen}
+        collections={collections}
+        selectedCollection={selectedCollection}
+        unavailable={collectionUnavailable}
+        onClose={() => setCollectionsOpen(false)}
+        onCollectionChange={setSelectedCollection}
+        onRefresh={fetchCollections}
+      />
+    </>;
+  }
+
+  if (activeTab === 1) {
+    return <>
+      <KnowledgeBase
+        collections={collections}
+        selectedCollection={selectedCollection}
+        unavailable={collectionUnavailable}
+        onCollectionChange={setSelectedCollection}
+        onOpenResearch={() => setActiveTab(0)}
+        onOpenCollections={() => setCollectionsOpen(true)}
       />
       <CollectionsDrawer
         open={collectionsOpen}

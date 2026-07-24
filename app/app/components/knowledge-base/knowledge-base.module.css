@@ -1,0 +1,23 @@
+.workspace { width: min(960px, 100%); padding: 2rem; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem; }
+.header h1 { margin: 0; font-size: 1.35rem; }
+.switcher { display: inline-flex; gap: 0.25rem; padding: 0.2rem; background: #ebe7e1; border-radius: 7px; }
+.switcher button, .searchForm button { min-height: 38px; border: 0; border-radius: 5px; padding: 0.4rem 0.7rem; font: inherit; cursor: pointer; }
+.switcher button[aria-selected='true'], .searchForm button { background: #9f1239; color: #fff; }
+.switcher button:focus-visible, .searchForm input:focus-visible, .searchForm select:focus-visible, .disclosure:focus-visible { outline: 2px solid #9f1239; outline-offset: 2px; }
+.view { display: grid; gap: 1.5rem; }
+.searchForm { display: flex; flex-wrap: wrap; align-items: end; gap: 0.65rem; }
+.searchForm input { flex: 1 1 280px; min-height: 40px; border: 1px solid #d6d1cc; border-radius: 6px; padding: 0.5rem 0.65rem; font: inherit; }
+.searchForm label { display: grid; gap: 0.3rem; font-size: 0.8rem; color: #49454f; }
+.searchForm select { min-height: 40px; border: 1px solid #d6d1cc; border-radius: 6px; padding: 0.4rem; background: #fff; font: inherit; }
+.searchForm button:disabled { opacity: .55; cursor: not-allowed; }
+.results { display: grid; gap: 0.75rem; }
+.result { padding: 1rem 0; border-top: 1px solid #d6d1cc; }
+.result header { display: flex; justify-content: space-between; gap: 1rem; }
+.result header span { color: #79747e; font-variant-numeric: tabular-nums; }
+.result p { margin: 0.5rem 0; color: #49454f; line-height: 1.55; white-space: pre-wrap; }
+.disclosure { border: 0; padding: 0; color: #9f1239; background: transparent; font: inherit; cursor: pointer; }
+.notice { color: #49454f; }
+.placeholder { padding: 2rem 0; color: #49454f; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+@media (max-width: 768px) { .workspace { padding: 1.25rem; } .header { align-items: flex-start; flex-direction: column; } .searchForm { align-items: stretch; } }

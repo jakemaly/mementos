@@ -35,6 +35,8 @@ const src = fs.readFileSync('app/page.tsx', 'utf8');
 const css = fs.readFileSync('app/page.module.css', 'utf8');
 const drawer = fs.readFileSync('app/components/collections/CollectionsDrawer.tsx', 'utf8');
 const drawerCss = fs.readFileSync('app/components/collections/collections-drawer.module.css', 'utf8');
+const knowledgeBase = fs.readFileSync('app/components/knowledge-base/KnowledgeBase.tsx', 'utf8');
+const vectorSearch = fs.readFileSync('app/components/knowledge-base/VectorSearch.tsx', 'utf8');
 
 // ── 1. Structural checks ───────────────────────────────────────────
 
@@ -334,6 +336,17 @@ ok('drawer supports only TXT and Markdown file selection', drawer.includes('acce
 ok('drawer reports independent vector and graph outcomes', drawer.includes('Vector: ${data.vector?.status') && drawer.includes('Graph: ${data.graph?.status'));
 ok('drawer retains file unless all branches complete', drawer.includes("if (data.status === 'complete') setFile(null)"));
 ok('drawer becomes full width on narrow layouts', drawerCss.includes('@media (max-width: 768px)') && drawerCss.includes('width: 100%'));
+
+// ── Separate Vector Search ─────────────────────────────────────────
+
+console.log('\n=== 24. Separate Vector Search ===\n');
+
+ok('Knowledge Base has text-labelled local view tabs', knowledgeBase.includes('>Chat</button>') && knowledgeBase.includes('>Vector Search</button>'));
+ok('Vector Search supports 5, 10, and 20 results', vectorSearch.includes('[5, 10, 20]'));
+ok('Vector Search clears results on collection changes', vectorSearch.includes('}, [selectedCollection])'));
+ok('Vector Search has idle, loading, empty, and error states', vectorSearch.includes("'idle' | 'loading' | 'empty' | 'error'"));
+ok('Vector Search exposes accessible snippet disclosure', vectorSearch.includes('aria-expanded={expanded.has(result.id)}'));
+ok('Vector results present source, snippet, and score only', vectorSearch.includes('result.filename') && vectorSearch.includes('result.score.toFixed(2)') && !vectorSearch.includes('charStart'));
 
 // ── Summary ────────────────────────────────────────────────────────
 

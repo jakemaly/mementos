@@ -9,6 +9,7 @@ interface AppShellProps {
   activeDestination: Destination;
   children: ReactNode;
   onNewResearch?: () => void;
+  onOpenResearch?: () => void;
   onOpenKnowledgeBase?: () => void;
   onOpenCollections?: () => void;
 }
@@ -17,6 +18,7 @@ export function AppShell({
   activeDestination,
   children,
   onNewResearch,
+  onOpenResearch,
   onOpenKnowledgeBase,
   onOpenCollections,
 }: AppShellProps) {
@@ -25,7 +27,7 @@ export function AppShell({
       <nav className={styles.navigation} aria-label="Main navigation">
         <span className={styles.wordmark}>Mementos</span>
         <div className={styles.destinations}>
-          <button type="button" className={styles.destination} aria-current={activeDestination === 'research' ? 'page' : undefined}>
+          <button type="button" className={styles.destination} aria-current={activeDestination === 'research' ? 'page' : undefined} onClick={onOpenResearch}>
             Deep Research
           </button>
           <button type="button" className={styles.destination} aria-current={activeDestination === 'knowledge-base' ? 'page' : undefined} onClick={onOpenKnowledgeBase}>
