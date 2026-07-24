@@ -152,10 +152,12 @@ async def insert(request: Request):
     try:
         rag = await get_rag()
         track_id = await rag.ainsert(text)
+        snapshot = await refresh_graph_dump()
         return JSONResponse({
             "success": True,
             "message": f"Ingested {len(text)} characters",
             "track_id": track_id,
+            "graph_snapshot_id": snapshot["snapshot_id"],
         })
     except Exception as e:
         logger.exception("Insert failed")
@@ -196,22 +198,74 @@ async def query(request: Request):
 
 _GRAPH_DUMP = Path(__file__).parent / "graph_dump.json"
 _MODES = ("naive", "local", "global", "hybrid")
+_graph_dump_lock = asyncio.Lock()
 
 
-def _load_lookups() -> tuple[dict[str, str], dict[tuple[str, str], str]]:
-    """entity_name -> qdrant id; (src,tgt) -> relationship qdrant id."""
+def _snapshot_id(data: dict) -> str:
+    """Stable identifier for the exact graph payload consumed by TD."""
+    import hashlib
+
+    encoded = json.dumps(data, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _load_graph_snapshot() -> dict:
+    """Load one complete, atomically-published graph snapshot."""
     if not _GRAPH_DUMP.exists():
         raise FileNotFoundError(f"Run dump_graph.py first; missing {_GRAPH_DUMP}")
-    data = json.loads(_GRAPH_DUMP.read_text())
-    name_to_id = data["name_to_id"]
+    data = json.loads(_GRAPH_DUMP.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("graph_dump.json must contain a JSON object")
+    return {**data, "snapshot_id": _snapshot_id(data)}
+
+
+def _lookups_from_snapshot(snapshot: dict) -> tuple[dict[str, str], dict[tuple[str, str], str]]:
+    """entity_name -> qdrant id; (src,tgt) -> relationship qdrant id."""
+    name_to_id = snapshot["name_to_id"]
     pair_to_rel: dict[tuple[str, str], str] = {}
-    for r in data.get("relationships", []):
+    for r in snapshot.get("relationships", []):
         p = r.get("payload") or {}
         src, tgt = p.get("src_id"), p.get("tgt_id")
         if src and tgt:
             pair_to_rel[(src, tgt)] = r["id"]
             pair_to_rel[(tgt, src)] = r["id"]  # ponytail: undirected graph
     return name_to_id, pair_to_rel
+
+
+def _load_lookups() -> tuple[dict[str, str], dict[tuple[str, str], str]]:
+    """Compatibility helper for callers that only need ID lookups."""
+    return _lookups_from_snapshot(_load_graph_snapshot())
+
+
+async def refresh_graph_dump() -> dict:
+    """Rebuild and atomically publish the TD graph after a completed insert."""
+    async with _graph_dump_lock:
+        from dump_graph import dump, write_dump
+
+        data = await asyncio.to_thread(dump)
+        await asyncio.to_thread(write_dump, data, _GRAPH_DUMP)
+        return _load_graph_snapshot()
+
+
+@app.get("/td/graph")
+async def td_graph():
+    """Return the current complete graph plus its immutable snapshot ID."""
+    try:
+        return JSONResponse(_load_graph_snapshot())
+    except Exception as e:
+        logger.exception("TD graph snapshot unavailable")
+        return JSONResponse(status_code=503, content={"error": str(e)})
+
+
+@app.post("/td/refresh")
+async def td_refresh():
+    """Retry graph publication without re-ingesting a document."""
+    try:
+        snapshot = await refresh_graph_dump()
+        return JSONResponse({"success": True, "snapshot_id": snapshot["snapshot_id"]})
+    except Exception as e:
+        logger.exception("TD graph refresh failed")
+        return JSONResponse(status_code=503, content={"error": str(e)})
 
 
 async def _mode_ids(rag, query: str, mode: str, name_to_id, pair_to_rel) -> dict:
@@ -234,16 +288,17 @@ async def _mode_ids(rag, query: str, mode: str, name_to_id, pair_to_rel) -> dict
 @app.websocket("/ws/retrieval")
 async def retrieval_socket(ws: WebSocket):
     await ws.accept()
-    try:
-        name_to_id, pair_to_rel = _load_lookups()
-    except Exception as e:
-        await ws.send_json({"error": str(e)})
-        await ws.close()
-        return
     rag = await get_rag()
     try:
         while True:
             query = await ws.receive_text()
+            try:
+                snapshot = _load_graph_snapshot()
+                name_to_id, pair_to_rel = _lookups_from_snapshot(snapshot)
+            except Exception as e:
+                await ws.send_json({"error": str(e)})
+                continue
+
             result = {}
             for mode in _MODES:
                 try:
@@ -251,7 +306,7 @@ async def retrieval_socket(ws: WebSocket):
                 except Exception as e:
                     logger.exception("retrieval mode=%s failed", mode)
                     result[mode] = {"entity_ids": [], "relation_ids": [], "error": str(e)}
-            await ws.send_json(result)
+            await ws.send_json({"snapshot_id": snapshot["snapshot_id"], "modes": result})
     except WebSocketDisconnect:
         return
 

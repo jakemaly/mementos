@@ -1,9 +1,13 @@
 fastapi
 uvicorn
-lightrag-hku
+# aquery_data is the TD bridge's structured retrieval contract.
+lightrag-hku==1.5.4
 sentence-transformers
 qdrant-client
 networkx
+# dump_graph.py imports NumPy and sklearn.decomposition.PCA directly.
+numpy==2.5.0
+scikit-learn==1.9.0
 langgraph
 langchain-core
 langchain-openai

@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 import networkx as nx
@@ -164,6 +166,35 @@ def dump() -> dict:
     }
 
 
+def slim_dump(data: dict) -> dict:
+    """Return the TD payload without raw embedding vectors."""
+    return {
+        "entities": [
+            {"id": e["id"], "xyz": e["xyz"], "payload": e["payload"]}
+            for e in data["entities"]
+        ],
+        "relationships": [
+            {"id": r["id"], "payload": r["payload"]} for r in data["relationships"]
+        ],
+        "edges": data["edges"],
+        "name_to_id": data["name_to_id"],
+        "meta": data["meta"],
+    }
+
+
+def write_dump(data: dict, path: Path = OUT_PATH) -> None:
+    """Atomically publish a validated TD graph snapshot."""
+    self_check(data)
+    payload = slim_dump(data)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", dir=path.parent, delete=False
+    ) as tmp:
+        json.dump(payload, tmp)
+        tmp_path = Path(tmp.name)
+    os.replace(tmp_path, path)
+
+
 def self_check(data: dict) -> None:
     assert data["entities"], "no entities"
     assert data["name_to_id"], "empty name_to_id"
@@ -180,28 +211,9 @@ def self_check(data: dict) -> None:
 
 if __name__ == "__main__":
     data = dump()
-    # drop vectors from on-disk dump — TD only needs xyz; reconnect via id if needed
-    slim_entities = []
-    for e in data["entities"]:
-        slim_entities.append(
-            {
-                "id": e["id"],
-                "xyz": e["xyz"],
-                "payload": e["payload"],
-            }
-        )
-    out = {
-        "entities": slim_entities,
-        "relationships": [
-            {"id": r["id"], "payload": r["payload"]} for r in data["relationships"]
-        ],
-        "edges": data["edges"],
-        "name_to_id": data["name_to_id"],
-        "meta": data["meta"],
-    }
-    # self-check on full data (with vectors), then write slim
-    self_check(data)
-    OUT_PATH.write_text(json.dumps(out))
+    # self-check on full data (with vectors), then atomically publish the slim payload.
+    write_dump(data)
+    out = slim_dump(data)
     print(
         f"Wrote {OUT_PATH}: {len(out['entities'])} entities, "
         f"{len(out['edges'])} edges, dropped={out['meta']['dropped_edges']}"
