@@ -37,6 +37,8 @@ const drawer = fs.readFileSync('app/components/collections/CollectionsDrawer.tsx
 const drawerCss = fs.readFileSync('app/components/collections/collections-drawer.module.css', 'utf8');
 const knowledgeBase = fs.readFileSync('app/components/knowledge-base/KnowledgeBase.tsx', 'utf8');
 const vectorSearch = fs.readFileSync('app/components/knowledge-base/VectorSearch.tsx', 'utf8');
+const ragChat = fs.readFileSync('app/components/knowledge-base/RagChat.tsx', 'utf8');
+const chatComposer = fs.readFileSync('app/components/knowledge-base/ChatComposer.tsx', 'utf8');
 
 // ── 1. Structural checks ───────────────────────────────────────────
 
@@ -347,6 +349,19 @@ ok('Vector Search clears results on collection changes', vectorSearch.includes('
 ok('Vector Search has idle, loading, empty, and error states', vectorSearch.includes("'idle' | 'loading' | 'empty' | 'error'"));
 ok('Vector Search exposes accessible snippet disclosure', vectorSearch.includes('aria-expanded={expanded.has(result.id)}'));
 ok('Vector results present source, snippet, and score only', vectorSearch.includes('result.filename') && vectorSearch.includes('result.score.toFixed(2)') && !vectorSearch.includes('charStart'));
+
+// ── Streaming RAG Chat ─────────────────────────────────────────────
+
+console.log('\n=== 25. Streaming RAG Chat ===\n');
+
+ok('Chat is the default Knowledge Base view', knowledgeBase.includes("useState<'chat' | 'vector'>('chat')"));
+ok('Chat sends collection-bound streaming requests', ragChat.includes("fetch('/api/rag/query'") && ragChat.includes('collection, turn_id: turnId, history'));
+ok('Chat retains bounded completed-turn history', ragChat.includes("messages.filter((message) => message.status === 'complete')"));
+ok('Chat rejects late events from older turns', ragChat.includes('turnRef.current !== turnId'));
+ok('Chat Stop aborts the active request', ragChat.includes('controllerRef.current?.abort()'));
+ok('Chat provides a New chat action', ragChat.includes('>New chat</button>'));
+ok('Chat confirms collection resets', knowledgeBase.includes("window.confirm('Changing collections starts a new chat. Continue?')"));
+ok('Composer supports Enter send and Shift+Enter newline', chatComposer.includes("event.key === 'Enter' && !event.shiftKey") && chatComposer.includes('event.preventDefault()'));
 
 // ── Summary ────────────────────────────────────────────────────────
 

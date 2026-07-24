@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { AppShell } from '@/app/components/app-shell/AppShell';
 import { VectorSearch } from './VectorSearch';
+import { RagChat } from './RagChat';
 import styles from './knowledge-base.module.css';
 
 interface KnowledgeBaseProps {
@@ -15,14 +16,21 @@ interface KnowledgeBaseProps {
 }
 
 export function KnowledgeBase(props: KnowledgeBaseProps) {
-  const [view, setView] = useState<'chat' | 'vector'>('vector');
+  const [view, setView] = useState<'chat' | 'vector'>('chat');
+  const [chatKey, setChatKey] = useState(0);
+  const changeCollection = (collection: string) => {
+    if (collection === props.selectedCollection) return;
+    if (window.confirm('Changing collections starts a new chat. Continue?')) setChatKey((key) => key + 1);
+    else return;
+    props.onCollectionChange(collection);
+  };
   return <AppShell activeDestination="knowledge-base" onOpenResearch={props.onOpenResearch} onOpenCollections={props.onOpenCollections}>
     <main className={styles.workspace}>
       <header className={styles.header}><h1>Knowledge Base</h1><div className={styles.switcher} role="tablist" aria-label="Knowledge Base view">
         <button type="button" role="tab" aria-selected={view === 'chat'} onClick={() => setView('chat')}>Chat</button>
         <button type="button" role="tab" aria-selected={view === 'vector'} onClick={() => setView('vector')}>Vector Search</button>
       </div></header>
-      {view === 'chat' ? <section className={styles.placeholder} aria-label="Chat"><h2>Chat</h2><p>Conversational RAG will appear here.</p></section> : <VectorSearch {...props} />}
+      {view === 'chat' ? <RagChat key={chatKey} collection={props.selectedCollection} unavailable={props.unavailable} onNewChat={() => setChatKey((key) => key + 1)} /> : <VectorSearch collections={props.collections} selectedCollection={props.selectedCollection} unavailable={props.unavailable} onCollectionChange={changeCollection} />}
     </main>
   </AppShell>;
 }
