@@ -307,19 +307,29 @@ async def research_stream(request: Request):
             )
         )
 
-        while not task.done() or not queue.empty():
-            try:
-                event = await asyncio.wait_for(queue.get(), timeout=0.1)
-                yield _sse_frame(event["type"], json.dumps(event))
-            except asyncio.TimeoutError:
-                continue
-
         try:
+            while not task.done() or not queue.empty():
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=0.1)
+                    yield _sse_frame(event["type"], json.dumps(event))
+                except asyncio.TimeoutError:
+                    continue
+
             result = await task
             yield _sse_frame("done", json.dumps(result))
+        except asyncio.CancelledError:
+            task.cancel()
+            raise
         except Exception as e:
             logger.exception("Research stream failed")
             yield _sse_frame("error", json.dumps({"phase": "stream", "message": str(e)}))
+        finally:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except (asyncio.CancelledError, Exception):
+                    pass
 
     return StreamingResponse(
         event_generator(),

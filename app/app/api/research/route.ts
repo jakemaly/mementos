@@ -61,6 +61,9 @@ export async function POST(request: NextRequest) {
         };
         pump();
       },
+      cancel() {
+        reader.releaseLock();
+      },
     });
 
     return new Response(stream, {
