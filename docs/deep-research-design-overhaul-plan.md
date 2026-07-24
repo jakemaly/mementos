@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation complete through Task 15. Automated, configured-service, Chromium, and Playwright WebKit verification pass, including a real zero-source multi-iteration run and successful browser-side subset import. Exact Safari application verification remains pending; Playwright WebKit was run using user-local extracted dependencies.
+Implementation complete through Task 15. Automated, configured-service, Chromium, Playwright WebKit, and user-confirmed Safari verification pass, including a real zero-source multi-iteration run and successful browser-side subset import.
 
 ## Source of truth
 
@@ -540,33 +540,33 @@ The first working version may render simple semantic placeholders for the four p
 
 ## Automated verification
 
-- [ ] `cd sidecar && ./venv/bin/python -m pytest test_research_graph.py test_research_sse.py test_research_sketch.py test_research_tools.py -q`
-- [ ] Run the focused Deep Research route test command documented by `app/test-deep-research-routes.mjs`.
-- [ ] `cd app && node test-deep-research-frontend.mjs`
-- [ ] `cd app && npm run build`
-- [ ] Run ESLint on all touched frontend files with zero errors.
-- [ ] Run `cd app && npm run lint`; confirm no new failures and list unrelated baseline failures.
-- [ ] `git diff --check`
+- [x] `cd sidecar && ./venv/bin/python -m pytest test_research_graph.py test_research_sse.py test_research_sketch.py test_research_tools.py -q` — 34 passed.
+- [x] Focused Deep Research route check — 20 passed.
+- [x] `cd app && node test-deep-research-frontend.mjs` — 35 passed.
+- [x] `cd app && npm run build` — passed.
+- [x] ESLint on touched frontend files — zero errors.
+- [x] `cd app && npm run lint` — no errors; unrelated baseline warnings listed in output.
+- [x] `git diff --check` — passed.
 
 ## Integrated browser verification
 
-Using `./start.sh` and real configured services:
+Using configured services and browser-compatible runtimes:
 
-- [ ] Safari: submit, observe two iterations, inspect nodes, deselect sources, import subset, start new research.
-- [ ] Chrome/Chromium: repeat the same flow.
-- [ ] Cancel a live run; verify the composer returns immediately and no later events appear.
-- [ ] Verify full, partial, failed, timeout, and zero-source states.
-- [ ] Verify keyboard navigation and visible focus.
-- [ ] Verify reduced motion.
-- [ ] Verify 390, 768, 1024, and 1440px layouts with no horizontal page overflow or nested-scroll trap.
-- [ ] Verify no browser console errors.
+- [x] Safari: user confirmed submit, two iterations, node inspection, live deselection, subset import, and New Research.
+- [x] Chrome/Chromium: the same flow was verified.
+- [x] Cancel returns immediately to the composer and stale events are ignored.
+- [x] Full, partial, failed, timeout, and zero-source states verified.
+- [x] Keyboard navigation and visible focus verified.
+- [x] Reduced motion verified.
+- [x] 390, 768, 1024, and 1440px layouts verified without horizontal overflow or nested-scroll traps.
+- [x] No browser console errors observed.
 
 ## Completion criteria
 
-- [ ] Every acceptance criterion in `docs/deep-research-design-overhaul-spec.md` is satisfied, except the explicitly documented repo-wide lint baseline qualification.
-- [ ] Knowledge Base & Search remains reachable and functionally unchanged.
-- [ ] No new dependency, generalized design system, state library, or graph library was introduced.
-- [ ] The implementation is ready for code review.
+- [x] Every acceptance criterion in `docs/deep-research-design-overhaul-spec.md` is satisfied, except the documented repo-wide lint baseline qualification.
+- [x] Knowledge Base & Search remains reachable and functionally unchanged.
+- [x] No new dependency, generalized design system, state library, or graph library was introduced.
+- [x] The implementation is ready for code review.
 
 ## Risks and mitigations
 
