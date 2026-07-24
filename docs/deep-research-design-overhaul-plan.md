@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — implementation starts only after this plan is approved.
+Implementation complete through Task 15. Automated, configured-service, and Chromium verification pass; Safari verification remains pending because no Safari/WebKit runtime is available in this environment.
 
 ## Source of truth
 
