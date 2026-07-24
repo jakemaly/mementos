@@ -35,6 +35,7 @@ ok('Source selection uses canonical URL keys', state.includes('canonicalSourceKe
 ok('Live sources are merged without duplicates', root.includes('mergeSources(prev, newSources)'));
 ok('Deselections survive final reconciliation', root.includes('reconcileFinalSources(finalSources'));
 ok('New sources default to selected', root.includes('selectDiscoveredSources(prev, newSources'));
+ok('Import waits for completed research', root.includes("runState === 'researching'") && root.includes('ingestDisabled'));
 
 console.log('\\n=== Event-derived graph ===\\n');
 ok('Graph derives tool nodes from tool_started events', graph.includes("event.type === 'tool_started'"));
