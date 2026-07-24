@@ -62,6 +62,7 @@ console.log('\n=== 3. Proxy Abort Handling ===\n');
 ok('Proxy creates AbortController', researchRoute.includes('new AbortController'));
 ok('Proxy forwards abort signal to sidecar fetch', researchRoute.includes('signal: abortController.signal'));
 ok('Proxy handles client disconnect', researchRoute.includes('request.signal'));
+ok('Proxy cancels and releases the reader', researchRoute.includes('reader.cancel()') && researchRoute.includes('reader.releaseLock()'));
 
 // ── 4. Ingestion route ─────────────────────────────────────────────
 
@@ -72,6 +73,7 @@ ok('Ingest validates collection', ingestRoute.includes('!collection'));
 ok('Ingest returns 400 on missing data', ingestRoute.includes('400'));
 ok('Ingest reports partial outcomes', ingestRoute.includes('const partial') && ingestRoute.includes('Partially imported'));
 ok('Ingest reports failed URLs', ingestRoute.includes('failedUrls'));
+ok('Ingest distinguishes complete, partial, and total failure', ingestRoute.includes('const complete') && ingestRoute.includes('const partial') && ingestRoute.includes('Could not import any'));
 
 // ── 5. No filter fields in routes ──────────────────────────────────
 

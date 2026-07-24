@@ -11,6 +11,8 @@ import styles from './deep-research.module.css';
 type RunState = 'starting' | 'researching' | 'completed' | 'failed' | 'ingesting' | 'ingested';
 
 interface IngestResult {
+  success: boolean;
+  partial: boolean;
   totalChunks: number;
   ingestedUrls: string[];
   failedUrls: string[];
@@ -65,6 +67,7 @@ export function ResearchWorkspace({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const isRunning = runState === 'starting' || runState === 'researching';
+  const briefNodeId = trace.find((event) => event.type === 'brief_generated')?.id;
   const statusLabel = useMemo(() => {
     switch (runState) {
       case 'starting': return 'Starting';
@@ -84,6 +87,9 @@ export function ResearchWorkspace({
         <div className={styles.sidebarWordmark}>Mementos</div>
         <button className={styles.sidebarBtn} onClick={onNewResearch} aria-label="New research">
           New research
+        </button>
+        <button className={styles.sidebarBtn} type="button" disabled aria-label="Settings (not available yet)" title="Settings will be available in a future release">
+          Settings
         </button>
         {onOpenKnowledgeBase && (
           <button className={styles.sidebarBtn} onClick={onOpenKnowledgeBase} aria-label="Open knowledge base">
@@ -145,7 +151,7 @@ export function ResearchWorkspace({
           <div className={styles.rightColumn}>
             <section className={styles.pane} aria-label="Research sketch">
               <h2 className={styles.paneTitle}>Research Sketch</h2>
-              <ResearchSketch sketch={sketch} brief={brief} />
+              <ResearchSketch sketch={sketch} brief={brief} focused={selectedNodeId === briefNodeId} />
             </section>
             <section className={styles.pane} aria-label="Sources">
               <h2 className={styles.paneTitle}>

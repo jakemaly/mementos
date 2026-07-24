@@ -6,9 +6,10 @@ import styles from './deep-research.module.css';
 interface ResearchSketchProps {
   sketch: Sketch | null;
   brief: ResearchBrief | null;
+  focused?: boolean;
 }
 
-export function ResearchSketch({ sketch, brief }: ResearchSketchProps) {
+export function ResearchSketch({ sketch, brief, focused = false }: ResearchSketchProps) {
   if (!sketch) {
     return <div className={styles.sketchEmpty}>Generating concept sketch...</div>;
   }
@@ -26,7 +27,7 @@ export function ResearchSketch({ sketch, brief }: ResearchSketchProps) {
   }
 
   return (
-    <div className={styles.sketchContent}>
+    <div className={`${styles.sketchContent} ${focused ? styles.sketchFocused : ''}`} aria-label={focused ? 'Selected brief details' : undefined}>
       {sections.map((section) => (
         <div key={section.label} className={styles.sketchSection}>
           <h3 className={styles.sketchLabel}>{section.label}</h3>

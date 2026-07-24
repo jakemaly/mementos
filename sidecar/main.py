@@ -265,13 +265,6 @@ def _sse_frame(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
 
 
-@app.get("/research/graph/topology")
-async def research_topology():
-    """Return JSON graph topology nodes and edges for UI visualization."""
-    from research.graph import get_graph_topology
-    return get_graph_topology()
-
-
 @app.post("/research/stream")
 async def research_stream(request: Request):
     """SSE endpoint for the agentic research pipeline.

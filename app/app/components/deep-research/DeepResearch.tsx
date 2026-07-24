@@ -15,6 +15,8 @@ import {
 type RunState = 'idle' | 'starting' | 'researching' | 'completed' | 'failed' | 'ingesting' | 'ingested';
 
 interface IngestResult {
+  success: boolean;
+  partial: boolean;
   totalChunks: number;
   ingestedUrls: string[];
   failedUrls: string[];
@@ -240,7 +242,7 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
         }
       })
       .catch((err) => {
-        if (err.name === 'AbortError') return;
+        if (err.name === 'AbortError' || !isCurrentRun(runId)) return;
         setErrorMessage('Network error during research');
         setRunState('failed');
       })
@@ -309,12 +311,20 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
       const data = await res.json();
 
       if (res.ok) {
-        setIngestResult({
+        const result: IngestResult = {
+          success: Boolean(data.success),
+          partial: Boolean(data.partial),
           totalChunks: data.totalChunks || 0,
           ingestedUrls: data.ingestedUrls || [],
           failedUrls: data.failedUrls || [],
-        });
-        setRunState('ingested');
+        };
+        setIngestResult(result);
+        if (!result.success && !result.partial) {
+          setErrorMessage(data.message || 'No selected sources could be imported');
+          setRunState('completed');
+        } else {
+          setRunState('ingested');
+        }
       } else {
         setErrorMessage(data.error || 'Ingestion failed');
         setRunState('completed');

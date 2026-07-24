@@ -342,26 +342,6 @@ def build_graph():
     return graph.compile()
 
 
-def get_graph_topology() -> dict:
-    """Return JSON graph topology nodes and edges for UI visualization."""
-    return {
-        "nodes": [
-            {"id": "brief", "label": "Brief Generator", "type": "brief"},
-            {"id": "supervisor", "label": "ODR Supervisor", "type": "supervisor"},
-            {"id": "tools", "label": "Tavily Web Search", "type": "tool"},
-            {"id": "scoring", "label": "SIRA Sketch Scoring", "type": "scoring"},
-            {"id": "ingest", "label": "LightRAG Ingest", "type": "ingest"},
-        ],
-        "edges": [
-            {"source": "brief", "target": "supervisor"},
-            {"source": "supervisor", "target": "tools", "label": "continue"},
-            {"source": "tools", "target": "supervisor"},
-            {"source": "supervisor", "target": "scoring", "label": "done"},
-            {"source": "scoring", "target": "ingest"},
-        ],
-    }
-
-
 # ── Runner with deadline ────────────────────────────────────────────────
 
 async def run_research(

@@ -49,24 +49,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let cancelled = false;
     const stream = new ReadableStream({
       start(controller) {
         const pump = () => {
+          if (cancelled) return;
           reader.read().then(({ done, value }) => {
-            if (done) {
-              controller.close();
+            if (done || cancelled) {
+              if (!cancelled) controller.close();
               return;
             }
             controller.enqueue(value);
             pump();
           }).catch((err) => {
-            controller.error(err);
+            if (!cancelled) controller.error(err);
           });
         };
         pump();
       },
-      cancel() {
-        reader.releaseLock();
+      async cancel() {
+        cancelled = true;
+        abortController.abort();
+        try {
+          await reader.cancel();
+        } finally {
+          reader.releaseLock();
+        }
       },
     });
 

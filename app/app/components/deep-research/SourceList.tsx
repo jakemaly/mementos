@@ -4,6 +4,8 @@ import { Source } from '@/app/lib/research-contracts';
 import styles from './deep-research.module.css';
 
 interface IngestResult {
+  success: boolean;
+  partial: boolean;
   totalChunks: number;
   ingestedUrls: string[];
   failedUrls: string[];
@@ -65,9 +67,10 @@ export function SourceList({
 
       {/* Source rows */}
       <div className={styles.sourceRows}>
-        {sources.map((source) => (
-          <label key={source.url} className={styles.sourceRow}>
+        {sources.map((source, index) => (
+          <div key={source.url} className={styles.sourceRow}>
             <input
+              id={`source-${index}`}
               type="checkbox"
               checked={selectedUrls.has(source.url)}
               onChange={() => onToggle(source.url)}
@@ -90,15 +93,19 @@ export function SourceList({
                 <p className={styles.sourceSnippet}>{source.snippet}</p>
               )}
             </div>
-          </label>
+          </div>
         ))}
       </div>
 
       {/* Ingestion result */}
       {ingestResult && (
         <div className={styles.ingestResult} role="status">
-          <span className={styles.ingestSuccess}>
-            Imported {ingestResult.ingestedUrls.length} sources ({ingestResult.totalChunks} chunks)
+          <span className={ingestResult.success ? styles.ingestSuccess : ingestResult.partial ? styles.ingestWarning : styles.ingestFailed}>
+            {ingestResult.success
+              ? `Imported ${ingestResult.ingestedUrls.length} sources (${ingestResult.totalChunks} chunks)`
+              : ingestResult.partial
+                ? `Partially imported ${ingestResult.ingestedUrls.length} sources (${ingestResult.totalChunks} chunks)`
+                : 'Import failed for all selected sources'}
           </span>
           {ingestResult.failedUrls.length > 0 && (
             <span className={styles.ingestFailed}>

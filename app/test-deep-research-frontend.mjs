@@ -59,6 +59,8 @@ ok('1024px remains two-column', css.includes('@media (max-width: 900px)'));
 ok('Mobile panes use graph/sketch/observability/sources order', css.includes('order: 1') && css.includes('order: 2') && css.includes('order: 3') && css.includes('order: 4'));
 ok('Visible focus styles exist', css.includes(':focus-visible'));
 ok('Cherry accent is scoped', css.includes('--accent: #9f1239') && css.includes('var(--accent)'));
+ok('Reduced motion is respected', css.includes('prefers-reduced-motion: reduce'));
+ok('Settings entry is present', workspace.includes('Settings'));
 
 console.log(`\n${PASS} ${passed} passed`);
 console.log(`${FAIL} ${failed} failed`);

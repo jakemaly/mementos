@@ -22,7 +22,7 @@ export function ObservabilityTimeline({ trace, brief, isResearching, focusedNode
 
     if (brief) {
       items.push({
-        id: 'brief',
+        id: trace.find((event) => event.type === 'brief_generated')?.id || 'brief',
         time: 0,
         label: 'Research brief generated',
         detail: brief.brief || 'Scope defined',
