@@ -16,6 +16,7 @@ const composer = fs.readFileSync('app/components/deep-research/ResearchComposer.
 const workspace = fs.readFileSync('app/components/deep-research/ResearchWorkspace.tsx', 'utf8');
 const css = fs.readFileSync('app/components/deep-research/deep-research.module.css', 'utf8');
 const state = fs.readFileSync('app/components/deep-research/research-state.ts', 'utf8');
+const graph = fs.readFileSync('app/components/deep-research/ExecutionGraph.tsx', 'utf8');
 
 console.log('\n=== Composer ===\n');
 ok('Composer renders one query textarea', composer.includes('aria-label="Research query"'));
@@ -34,6 +35,13 @@ ok('Source selection uses canonical URL keys', state.includes('canonicalSourceKe
 ok('Live sources are merged without duplicates', root.includes('mergeSources(prev, newSources)'));
 ok('Deselections survive final reconciliation', root.includes('reconcileFinalSources(finalSources'));
 ok('New sources default to selected', root.includes('selectDiscoveredSources(prev, newSources'));
+
+console.log('\\n=== Event-derived graph ===\\n');
+ok('Graph derives tool nodes from tool_started events', graph.includes("event.type === 'tool_started'"));
+ok('Graph folds completion into invocation status', graph.includes('completionByParent'));
+ok('Graph preserves completed nodes', graph.includes("status = completion?.type"));
+ok('Graph renders explicit loop edges', graph.includes("label: 'continue'"));
+ok('Graph exposes keyboard node selection', graph.includes('tabIndex={0}') && graph.includes('aria-pressed={selected}'));
 
 console.log('\n=== Workspace ===\n');
 ok('Workspace has graph pane', workspace.includes('aria-label="Execution graph"'));

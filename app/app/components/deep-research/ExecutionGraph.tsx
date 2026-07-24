@@ -1,12 +1,12 @@
 'use client';
 
 import { useMemo } from 'react';
-import { TraceEvent, ResearchBrief } from '@/app/lib/research-contracts';
+import { TraceEvent } from '@/app/lib/research-contracts';
 import styles from './deep-research.module.css';
 
 interface ExecutionGraphProps {
   trace: TraceEvent[];
-  brief: ResearchBrief | null;
+  brief: unknown;
   isResearching: boolean;
   selectedNodeId: string | null;
   onNodeSelect: (id: string | null) => void;
@@ -16,7 +16,7 @@ interface GraphNode {
   id: string;
   label: string;
   sublabel: string;
-  status: 'running' | 'completed' | 'failed' | 'pending';
+  status: 'running' | 'completed' | 'failed';
   row: number;
   col: number;
   event: TraceEvent;
@@ -28,85 +28,71 @@ interface GraphEdge {
   label?: string;
 }
 
-export function ExecutionGraph({ trace, isResearching, selectedNodeId, onNodeSelect }: ExecutionGraphProps) {
+export function ExecutionGraph({
+  trace,
+  isResearching,
+  selectedNodeId,
+  onNodeSelect,
+}: ExecutionGraphProps) {
   const { nodes, edges } = useMemo(() => buildGraph(trace), [trace]);
 
   if (nodes.length === 0) {
-    return (
-      <div className={styles.graphEmpty}>
-        Waiting for research to start...
-      </div>
-    );
+    return <div className={styles.graphEmpty}>Waiting for research to start...</div>;
   }
 
-  const ROW_H = 52;
-  const COL_W = 140;
-  const GAP_X = 30;
-  const GAP_Y = 24;
-  const PAD = 20;
-
+  const rowHeight = 52;
+  const columnWidth = 140;
+  const gapX = 30;
+  const gapY = 24;
+  const padding = 20;
   const width = Math.max(
-    Math.max(...nodes.map((n) => n.col)) * (COL_W + GAP_X) + COL_W + PAD * 2,
+    Math.max(...nodes.map((node) => node.col)) * (columnWidth + gapX) + columnWidth + padding * 2,
     400,
   );
-  const height = Math.max(...nodes.map((n) => n.row)) * (ROW_H + GAP_Y) + ROW_H + PAD * 2;
-
-  const nodePos = new Map<string, { x: number; y: number }>();
-  for (const n of nodes) {
-    nodePos.set(n.id, {
-      x: PAD + n.col * (COL_W + GAP_X),
-      y: PAD + n.row * (ROW_H + GAP_Y),
-    });
-  }
+  const height = Math.max(...nodes.map((node) => node.row)) * (rowHeight + gapY) + rowHeight + padding * 2;
+  const positions = new Map(
+    nodes.map((node) => [node.id, {
+      x: padding + node.col * (columnWidth + gapX),
+      y: padding + node.row * (rowHeight + gapY),
+    }]),
+  );
 
   return (
     <div className={styles.graphContainer}>
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className={styles.graphSvg}
-        role="img"
-        aria-label="Research execution graph"
-      >
+      <svg viewBox={`0 0 ${width} ${height}`} className={styles.graphSvg} role="img" aria-label="Research execution graph">
         <defs>
-          <marker id="arrowGray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" opacity="0.4" />
+          <marker id="execution-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" opacity="0.5" />
           </marker>
-          <marker id="arrowActive" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <marker id="execution-arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)" />
           </marker>
         </defs>
 
-        {edges.map((edge, i) => {
-          const from = nodePos.get(edge.from);
-          const to = nodePos.get(edge.to);
+        {edges.map((edge, index) => {
+          const from = positions.get(edge.from);
+          const to = positions.get(edge.to);
           if (!from || !to) return null;
-
-          const isActive = edge.label === 'continue' && isResearching;
-          const dy = to.y + ROW_H / 2 - (from.y + ROW_H / 2);
-          const isLoop = Math.abs(dy) < ROW_H;
-
-          let d: string;
-          if (isLoop && dy <= 0) {
-            d = `M ${from.x + COL_W / 2} ${from.y + ROW_H} Q ${from.x + COL_W + 20} ${(from.y + to.y) / 2 + 20} ${to.x + COL_W / 2} ${to.y + ROW_H}`;
-          } else {
-            d = `M ${from.x + COL_W / 2} ${from.y + ROW_H} L ${to.x + COL_W / 2} ${to.y}`;
-          }
-
+          const active = edge.label === 'continue' && isResearching;
+          const loop = to.y <= from.y;
+          const path = loop
+            ? `M ${from.x + columnWidth / 2} ${from.y + rowHeight} C ${from.x + columnWidth + 35} ${from.y + rowHeight + 24}, ${to.x + columnWidth + 35} ${to.y - 24}, ${to.x + columnWidth / 2} ${to.y}`
+            : `M ${from.x + columnWidth / 2} ${from.y + rowHeight} L ${to.x + columnWidth / 2} ${to.y}`;
           return (
-            <g key={`e-${i}`}>
+            <g key={`${edge.from}-${edge.to}-${index}`}>
               <path
-                d={d}
+                d={path}
                 fill="none"
-                stroke={isActive ? 'var(--accent)' : 'var(--text-muted)'}
-                strokeWidth={isActive ? 2 : 1}
-                strokeDasharray={isActive ? '4,4' : undefined}
-                markerEnd={isActive ? 'url(#arrowActive)' : 'url(#arrowGray)'}
-                opacity={isActive ? 1 : 0.5}
+                stroke={active ? 'var(--accent)' : 'var(--text-muted)'}
+                strokeWidth={active ? 2 : 1}
+                strokeDasharray={active ? '4,4' : undefined}
+                markerEnd={active ? 'url(#execution-arrow-active)' : 'url(#execution-arrow)'}
+                opacity={active ? 1 : 0.55}
               />
               {edge.label && (
                 <text
-                  x={(from.x + to.x + COL_W) / 2}
-                  y={(from.y + to.y + ROW_H) / 2 - 4}
+                  x={(from.x + to.x + columnWidth) / 2}
+                  y={(from.y + to.y + rowHeight) / 2 - 4}
                   fill="var(--text-muted)"
                   fontSize="9"
                   textAnchor="middle"
@@ -119,76 +105,40 @@ export function ExecutionGraph({ trace, isResearching, selectedNodeId, onNodeSel
         })}
 
         {nodes.map((node) => {
-          const pos = nodePos.get(node.id)!;
-          const isSelected = selectedNodeId === node.id;
-          const statusClass = node.status;
-
+          const position = positions.get(node.id)!;
+          const selected = selectedNodeId === node.id;
           return (
             <g
               key={node.id}
-              transform={`translate(${pos.x}, ${pos.y})`}
-              className={`${styles.graphNode} ${styles[`graphNode-${statusClass}`]}`}
-              onClick={() => onNodeSelect(isSelected ? null : node.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onNodeSelect(isSelected ? null : node.id);
+              transform={`translate(${position.x}, ${position.y})`}
+              className={`${styles.graphNode} ${styles[`graphNode-${node.status}`]}`}
+              onClick={() => onNodeSelect(selected ? null : node.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onNodeSelect(selected ? null : node.id);
                 }
               }}
               tabIndex={0}
               role="button"
               aria-label={`${node.label}: ${node.status}`}
-              aria-pressed={isSelected}
+              aria-pressed={selected}
             >
-              <rect
-                width={COL_W}
-                height={ROW_H}
-                rx="6"
-                className={styles.graphNodeRect}
-              />
-              <text
-                x={COL_W / 2}
-                y={ROW_H / 2 - 4}
-                textAnchor="middle"
-                fill="var(--text-primary)"
-                fontSize="10"
-                fontWeight="600"
-              >
-                {node.label.length > 18 ? node.label.slice(0, 17) + '\u2026' : node.label}
+              <rect width={columnWidth} height={rowHeight} rx="6" className={styles.graphNodeRect} />
+              <text x={columnWidth / 2} y={rowHeight / 2 - 4} textAnchor="middle" fill="var(--text-primary)" fontSize="10" fontWeight="600">
+                {node.label.length > 18 ? `${node.label.slice(0, 17)}\u2026` : node.label}
               </text>
-              <text
-                x={COL_W / 2}
-                y={ROW_H / 2 + 10}
-                textAnchor="middle"
-                fill="var(--text-muted)"
-                fontSize="9"
-              >
+              <text x={columnWidth / 2} y={rowHeight / 2 + 10} textAnchor="middle" fill="var(--text-muted)" fontSize="9">
                 {node.sublabel}
               </text>
-              {isSelected && (
-                <rect
-                  x="-2"
-                  y="-2"
-                  width={COL_W + 4}
-                  height={ROW_H + 4}
-                  rx="8"
-                  fill="none"
-                  stroke="var(--accent)"
-                  strokeWidth="2"
-                />
-              )}
+              {selected && <rect x="-2" y="-2" width={columnWidth + 4} height={rowHeight + 4} rx="8" fill="none" stroke="var(--accent)" strokeWidth="2" />}
             </g>
           );
         })}
       </svg>
 
-      {/* Textual representation */}
       <div className={styles.graphText} aria-live="polite">
-        {nodes.map((n) => (
-          <span key={n.id} className={styles.graphTextItem}>
-            {n.label} ({n.status})
-          </span>
-        ))}
+        {nodes.map((node) => <span key={node.id} className={styles.graphTextItem}>{node.label} ({node.status})</span>)}
       </div>
     </div>
   );
@@ -197,152 +147,84 @@ export function ExecutionGraph({ trace, isResearching, selectedNodeId, onNodeSel
 function buildGraph(trace: TraceEvent[]): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];
+  const byId = new Map<string, GraphNode>();
+  const completionByParent = new Map<string, TraceEvent>();
+  const supervisorIds: string[] = [];
+  const iterationIds: string[] = [];
+
+  for (const event of trace) {
+    if ((event.type === 'tool_completed' || event.type === 'tool_failed') && event.parent_id) {
+      completionByParent.set(event.parent_id, event);
+    }
+  }
 
   let row = 0;
   let col = 0;
-  let currentRowNodes: GraphNode[] = [];
+  let previousId: string | null = null;
+  let previousIterationId: string | null = null;
 
-  const addNode = (
-    id: string,
-    label: string,
-    sublabel: string,
-    status: GraphNode['status'],
-    event: TraceEvent,
-  ) => {
-    const node: GraphNode = { id, label, sublabel, status, row, col, event };
+  const add = (event: TraceEvent, label: string, sublabel: string, status: GraphNode['status']) => {
+    const node: GraphNode = { id: event.id, label, sublabel, status, row, col, event };
     nodes.push(node);
-    currentRowNodes.push(node);
-    col++;
+    byId.set(node.id, node);
+    if (previousId) edges.push({ from: previousId, to: node.id });
+    previousId = node.id;
+    col += 1;
+    return node;
   };
 
-  const endRow = () => {
-    row++;
+  const finishRow = () => {
+    row += 1;
     col = 0;
-    currentRowNodes = [];
   };
 
-  let prevNodeId: string | null = null;
+  for (const event of trace) {
+    const payload = event.payload || {};
+    const iteration = event.iteration ?? 0;
 
-  for (const ev of trace) {
-    const payload = ev.payload || {};
-    const iteration = ev.iteration ?? 0;
-
-    if (ev.type === 'brief_generated') {
-      addNode(
-        ev.id,
-        'Brief',
-        'Phase 1',
-        'completed',
-        ev,
-      );
-      if (prevNodeId) edges.push({ from: prevNodeId, to: ev.id });
-      prevNodeId = ev.id;
-      endRow();
-    } else if (ev.type === 'supervisor_started' || ev.type === 'supervisor_evaluation') {
-      const conf = (payload.confidence_score as number) ?? 0;
-      addNode(
-        ev.id,
-        `Supervisor`,
-        `Iter ${iteration + 1}${conf ? ` · ${conf}%` : ''}`,
-        'completed',
-        ev,
-      );
-      if (prevNodeId) edges.push({ from: prevNodeId, to: ev.id });
-      prevNodeId = ev.id;
-      endRow();
-    } else if (ev.type === 'supervisor_completed') {
-      const reason = (payload.reason as string) || 'Done';
-      addNode(
-        ev.id,
-        `Supervisor`,
-        `Iter ${iteration + 1} · ${reason}`,
-        'completed',
-        ev,
-      );
-      if (prevNodeId) edges.push({ from: prevNodeId, to: ev.id, label: 'done' });
-      prevNodeId = ev.id;
-      endRow();
-    } else if (ev.type === 'tool_started') {
+    if (event.type === 'brief_generated') {
+      add(event, 'Brief', 'Phase 1', 'completed');
+      finishRow();
+    } else if (event.type === 'supervisor_evaluation') {
+      const confidence = (payload.confidence_score as number) ?? 0;
+      const node = add(event, 'Supervisor', `Iter ${iteration + 1}${confidence ? ` · ${confidence}%` : ''}`, 'completed');
+      supervisorIds.push(node.id);
+      if (previousIterationId) edges.push({ from: previousIterationId, to: node.id, label: 'continue' });
+      finishRow();
+    } else if (event.type === 'tool_started') {
       const tool = (payload.tool as string) || 'tool';
-      const isRunning = !trace.some(
-        (t) => t.type === 'tool_completed' && t.parent_id === ev.id,
-      );
-      addNode(
-        ev.id,
-        tool.charAt(0).toUpperCase() + tool.slice(1),
-        `Iter ${iteration + 1}${isRunning ? ' · Running' : ''}`,
-        isRunning ? 'running' : 'completed',
-        ev,
-      );
-      if (prevNodeId) edges.push({ from: prevNodeId, to: ev.id, label: 'continue' });
-      prevNodeId = ev.id;
-    } else if (ev.type === 'tool_completed') {
-      const tool = (payload.tool as string) || 'tool';
-      const count = (payload.result_count as number) ?? 0;
-      const dur = (payload.duration as number) ?? 0;
-      addNode(
-        ev.id,
-        `${tool.charAt(0).toUpperCase() + tool.slice(1)} ✓`,
-        `${count} results · ${dur}s`,
-        'completed',
-        ev,
-      );
-      if (prevNodeId) edges.push({ from: prevNodeId, to: ev.id });
-      prevNodeId = ev.id;
-      endRow();
-    } else if (ev.type === 'tool_failed') {
-      const tool = (payload.tool as string) || 'tool';
-      addNode(
-        ev.id,
-        `${tool.charAt(0).toUpperCase() + tool.slice(1)} ✗`,
-        (payload.error as string)?.slice(0, 30) || 'Error',
-        'failed',
-        ev,
-      );
-      if (prevNodeId) edges.push({ from: prevNodeId, to: ev.id });
-      prevNodeId = ev.id;
-      endRow();
-    } else if (ev.type === 'iteration_complete') {
+      const completion = completionByParent.get(event.id);
+      const status = completion?.type === 'tool_failed' ? 'failed' : completion ? 'completed' : 'running';
+      const detail = completion
+        ? `${(completion.payload.result_count as number) ?? 0} results · ${(completion.payload.duration as number) ?? 0}s`
+        : `Iter ${iteration + 1} · Running`;
+      add(event, tool, detail, status);
+    } else if (event.type === 'iteration_complete') {
       const total = (payload.total_sources as number) ?? 0;
-      addNode(
-        ev.id,
-        `Iteration ${iteration + 1}`,
-        `${total} sources total`,
-        'completed',
-        ev,
-      );
-      if (prevNodeId) edges.push({ from: prevNodeId, to: ev.id });
-      prevNodeId = ev.id;
-      endRow();
-    } else if (ev.type === 'scoring_started') {
-      addNode(ev.id, 'Scoring', 'Phase 3', 'completed', ev);
-      if (prevNodeId) edges.push({ from: prevNodeId, to: ev.id });
-      prevNodeId = ev.id;
-      endRow();
-    } else if (ev.type === 'sources_ranked') {
-      const total = (payload.total_sources as number) ?? 0;
-      addNode(ev.id, 'Ranked', `${total} sources`, 'completed', ev);
-      if (prevNodeId) edges.push({ from: prevNodeId, to: ev.id });
-      prevNodeId = ev.id;
-      endRow();
-    } else if (ev.type === 'done') {
-      const count = (payload.source_count as number) ?? 0;
-      addNode(ev.id, 'Done', `${count} sources`, 'completed', ev);
-      if (prevNodeId) edges.push({ from: prevNodeId, to: ev.id });
-      prevNodeId = ev.id;
-      endRow();
-    } else if (ev.type === 'error') {
-      addNode(
-        ev.id,
-        'Error',
-        ((payload.message as string) || '').slice(0, 40),
-        'failed',
-        ev,
-      );
-      if (prevNodeId) edges.push({ from: prevNodeId, to: ev.id });
-      prevNodeId = ev.id;
-      endRow();
+      const node = add(event, `Iteration ${iteration + 1}`, `${total} sources total`, 'completed');
+      iterationIds.push(node.id);
+      previousIterationId = node.id;
+      finishRow();
+    } else if (event.type === 'scoring_started') {
+      add(event, 'Scoring', 'Phase 3', 'completed');
+      finishRow();
+    } else if (event.type === 'sources_ranked') {
+      add(event, 'Ranked', `${(payload.total_sources as number) ?? 0} sources`, 'completed');
+      finishRow();
+    } else if (event.type === 'done') {
+      add(event, 'Done', `${(payload.source_count as number) ?? 0} sources`, 'completed');
+      finishRow();
+    } else if (event.type === 'error') {
+      add(event, 'Error', ((payload.message as string) || 'Unknown error').slice(0, 36), 'failed');
+      finishRow();
     }
+  }
+
+  // The explicit loop edge makes repeated supervisor/tool iterations legible.
+  for (let index = 1; index < supervisorIds.length; index += 1) {
+    const priorIteration = iterationIds[index - 1];
+    const supervisor = byId.get(supervisorIds[index]);
+    if (priorIteration && supervisor) edges.push({ from: priorIteration, to: supervisor.id, label: 'continue' });
   }
 
   return { nodes, edges };
