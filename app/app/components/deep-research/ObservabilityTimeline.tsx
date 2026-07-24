@@ -126,6 +126,15 @@ export function ObservabilityTimeline({ trace, brief, isResearching, focusedNode
           detail: `${total} sources scored`,
           status: 'completed',
         });
+      } else if (ev.type === 'done') {
+        const count = (payload.source_count as number) ?? 0;
+        items.push({
+          id: ev.id,
+          time: ev.timestamp,
+          label: 'Research complete',
+          detail: `${count} ranked sources${payload.partial ? ' · partial result' : ''}`,
+          status: 'completed',
+        });
       } else if (ev.type === 'error') {
         items.push({
           id: ev.id,

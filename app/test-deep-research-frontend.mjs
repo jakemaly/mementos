@@ -17,6 +17,7 @@ const workspace = fs.readFileSync('app/components/deep-research/ResearchWorkspac
 const css = fs.readFileSync('app/components/deep-research/deep-research.module.css', 'utf8');
 const state = fs.readFileSync('app/components/deep-research/research-state.ts', 'utf8');
 const graph = fs.readFileSync('app/components/deep-research/ExecutionGraph.tsx', 'utf8');
+const timeline = fs.readFileSync('app/components/deep-research/ObservabilityTimeline.tsx', 'utf8');
 
 console.log('\n=== Composer ===\n');
 ok('Composer renders one query textarea', composer.includes('aria-label="Research query"'));
@@ -43,6 +44,7 @@ ok('Graph folds completion into invocation status', graph.includes('completionBy
 ok('Graph preserves completed nodes', graph.includes("status = completion?.type"));
 ok('Graph renders explicit loop edges', graph.includes("label: 'continue'"));
 ok('Graph exposes keyboard node selection', graph.includes('tabIndex={0}') && graph.includes('aria-pressed={selected}'));
+ok('Timeline renders terminal completion', timeline.includes('Research complete'));
 
 console.log('\n=== Workspace ===\n');
 ok('Workspace has graph pane', workspace.includes('aria-label="Execution graph"'));
