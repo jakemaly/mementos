@@ -6,7 +6,10 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
+from lightrag import LightRAG
 from lightrag.lightrag import QueryParam
+
+from knowledge_base import LightRAGRegistry
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("sidecar")
@@ -73,40 +76,54 @@ def _create_llm_func():
     return _llm
 
 
-def _create_rag():
-    """Create and return a LightRAG instance with Qdrant + NetworkX."""
-    from lightrag import LightRAG
+_embedding_func = None
+_llm_func = None
 
+
+def _shared_embedding_func():
+    global _embedding_func
+    if _embedding_func is None:
+        _embedding_func = _create_embedding_func()
+    return _embedding_func
+
+
+def _shared_llm_func():
+    global _llm_func
+    if _llm_func is None:
+        _llm_func = _create_llm_func()
+    return _llm_func
+
+
+def _create_rag(workspace: str = "") -> LightRAG:
+    """Create a workspace-specific LightRAG instance using shared models."""
     # ponytail: ensure QDRANT_URL has a default so LightRAG doesn't hard-fail
     os.environ.setdefault("QDRANT_URL", "http://localhost:6333")
 
-    working_dir = Path(__file__).parent / "data"
-
     rag = LightRAG(
-        working_dir=str(working_dir),
-        embedding_func=_create_embedding_func(),
-        llm_model_func=_create_llm_func(),
+        working_dir=str(Path(__file__).parent / "data"),
+        workspace=workspace,
+        embedding_func=_shared_embedding_func(),
+        llm_model_func=_shared_llm_func(),
         vector_storage="QdrantVectorDBStorage",
         graph_storage="NetworkXStorage",
         vector_db_storage_cls_kwargs={"cosine_better_than_threshold": 0.2},
     )
-    logger.info("LightRAG initialized (embedding=%s, vector=Qdrant, graph=NetworkX)", "all-MiniLM-L6-v2")
+    logger.info(
+        "LightRAG initialized (workspace=%r, embedding=%s, vector=Qdrant, graph=NetworkX)",
+        workspace,
+        "all-MiniLM-L6-v2",
+    )
     return rag
 
 
-# ponytail: lazy init — defer until first call so Qdrant blips on startup don't kill the server
-_rag: "LightRAG | None" = None
-_rag_lock = asyncio.Lock()
+# Lazy registry: defer model download and storage setup until a collection is used.
+_rags = LightRAGRegistry(_create_rag)
 
-async def get_rag():
-    global _rag
-    if _rag is None:
-        async with _rag_lock:
-            if _rag is None:  # double-check after lock
-                _rag = _create_rag()
-                await _rag.initialize_storages()
-                logger.info("LightRAG storages initialized")
-    return _rag
+
+async def get_rag(collection: str = "default") -> LightRAG:
+    rag = await _rags.get(collection)
+    logger.info("LightRAG storages initialized for collection=%r", collection)
+    return rag
 
 
 # ── FastAPI app ──────────────────────────────────────────────────────────

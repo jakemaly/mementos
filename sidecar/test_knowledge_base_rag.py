@@ -8,7 +8,12 @@ from lightrag import LightRAG
 from lightrag.base import QueryParam, QueryResult
 import lightrag.lightrag as lightrag_module
 
-from knowledge_base import insert_with_provenance, query_with_sources
+from knowledge_base import (
+    LightRAGRegistry,
+    collection_workspace,
+    insert_with_provenance,
+    query_with_sources,
+)
 
 
 async def _answer_chunks() -> AsyncIterator[str]:
@@ -143,3 +148,85 @@ def test_capabilities_are_present_in_the_installed_lightrag_public_signatures():
         "include_references",
         "stream",
     }.issubset(QueryParam.__dataclass_fields__)
+
+
+@pytest.mark.asyncio
+async def test_registry_reuses_one_initialized_instance_for_concurrent_requests():
+    created = []
+
+    class FakeRAG:
+        def __init__(self, workspace):
+            self.workspace = workspace
+            self.initializations = 0
+
+        async def initialize_storages(self):
+            self.initializations += 1
+            await __import__("asyncio").sleep(0)
+
+    def factory(workspace):
+        rag = FakeRAG(workspace)
+        created.append(rag)
+        return rag
+
+    registry = LightRAGRegistry(factory)
+    instances = await __import__("asyncio").gather(
+        *(registry.get("notes") for _ in range(10))
+    )
+
+    assert len(created) == 1
+    assert all(instance is created[0] for instance in instances)
+    assert created[0].initializations == 1
+
+
+@pytest.mark.asyncio
+async def test_registry_isolates_collection_workspaces_and_preserves_default():
+    class FakeRAG:
+        def __init__(self, workspace):
+            self.workspace = workspace
+
+        async def initialize_storages(self):
+            return None
+
+    registry = LightRAGRegistry(FakeRAG)
+
+    default_rag = await registry.get("default")
+    research_rag = await registry.get("research")
+
+    assert collection_workspace("default") == ""
+    assert default_rag.workspace == ""
+    assert research_rag.workspace == "research"
+    assert default_rag is not research_rag
+
+
+@pytest.mark.parametrize("name", ["", "with space", "../data", "x" * 65])
+def test_registry_rejects_invalid_collection_names(name):
+    with pytest.raises(ValueError, match="collection"):
+        collection_workspace(name)
+
+
+def test_registry_main_factory_shares_expensive_model_functions(monkeypatch):
+    import sys
+
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent))
+    import main as main_module
+
+    constructor_calls = []
+    embedding = object()
+    llm = object()
+
+    class FakeLightRAG:
+        def __init__(self, **kwargs):
+            constructor_calls.append(kwargs)
+
+    monkeypatch.setattr(main_module, "LightRAG", FakeLightRAG)
+    monkeypatch.setattr(main_module, "_embedding_func", None)
+    monkeypatch.setattr(main_module, "_llm_func", None)
+    monkeypatch.setattr(main_module, "_create_embedding_func", lambda: embedding)
+    monkeypatch.setattr(main_module, "_create_llm_func", lambda: llm)
+
+    main_module._create_rag("")
+    main_module._create_rag("research")
+
+    assert [call["workspace"] for call in constructor_calls] == ["", "research"]
+    assert all(call["embedding_func"] is embedding for call in constructor_calls)
+    assert all(call["llm_model_func"] is llm for call in constructor_calls)
