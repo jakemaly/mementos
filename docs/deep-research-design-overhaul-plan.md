@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation complete through Task 15. Automated, configured-service, and Chromium verification pass; Safari verification remains pending because no Safari/WebKit runtime is available in this environment.
+Implementation complete through Task 15. Automated, configured-service, and Chromium verification pass; Safari/WebKit verification, a real two-iteration browser run, and a successful browser-side subset import remain pending.
 
 ## Source of truth
 
