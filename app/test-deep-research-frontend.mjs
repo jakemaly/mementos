@@ -15,6 +15,7 @@ const root = fs.readFileSync('app/components/deep-research/DeepResearch.tsx', 'u
 const composer = fs.readFileSync('app/components/deep-research/ResearchComposer.tsx', 'utf8');
 const workspace = fs.readFileSync('app/components/deep-research/ResearchWorkspace.tsx', 'utf8');
 const css = fs.readFileSync('app/components/deep-research/deep-research.module.css', 'utf8');
+const state = fs.readFileSync('app/components/deep-research/research-state.ts', 'utf8');
 
 console.log('\n=== Composer ===\n');
 ok('Composer renders one query textarea', composer.includes('aria-label="Research query"'));
@@ -29,6 +30,10 @@ ok('Request sends query only', root.includes("JSON.stringify({ query: query.trim
 ok('AbortController is used', root.includes('new AbortController') && root.includes('signal: abortController.signal'));
 ok('Cancel returns to idle', root.includes('setRunState(\'idle\')') && root.includes('clearRun()'));
 ok('Stale runs are ignored', root.includes('isCurrentRun(runId)'));
+ok('Source selection uses canonical URL keys', state.includes('canonicalSourceKey'));
+ok('Live sources are merged without duplicates', root.includes('mergeSources(prev, newSources)'));
+ok('Deselections survive final reconciliation', root.includes('reconcileFinalSources(finalSources'));
+ok('New sources default to selected', root.includes('selectDiscoveredSources(prev, newSources'));
 
 console.log('\n=== Workspace ===\n');
 ok('Workspace has graph pane', workspace.includes('aria-label="Execution graph"'));

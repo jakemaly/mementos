@@ -5,6 +5,12 @@ import { ResearchComposer } from './ResearchComposer';
 import { ResearchWorkspace } from './ResearchWorkspace';
 import { Source, TraceEvent, ResearchBrief, Sketch } from '@/app/lib/research-contracts';
 import styles from './deep-research.module.css';
+import {
+  canonicalSourceKey,
+  mergeSources,
+  reconcileFinalSources,
+  selectDiscoveredSources,
+} from './research-state';
 
 type RunState = 'idle' | 'starting' | 'researching' | 'completed' | 'failed' | 'ingesting' | 'ingested';
 
@@ -174,28 +180,11 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
               } else if (eventType === 'sources_discovered') {
                 const payload = data.payload || data;
                 const newSources = (payload.sources as Source[]) || [];
-                setSources((prev) => {
-                  const seen = new Set(prev.map((s) => s.url.toLowerCase()));
-                  const merged = [...prev];
-                  for (const src of newSources) {
-                    if (!seen.has(src.url.toLowerCase())) {
-                      seen.add(src.url.toLowerCase());
-                      merged.push(src);
-                    }
-                  }
-                  return merged;
-                });
+                setSources((prev) => mergeSources(prev, newSources));
                 // Auto-select newly discovered sources unless explicitly deselected
-                setSelectedSourceUrls((prev) => {
-                  const next = new Set(prev);
-                  const newSourcesList = (data.payload?.sources as Source[]) || [];
-                  for (const src of newSourcesList) {
-                    if (!deselectedUrlsRef.current.has(src.url.toLowerCase())) {
-                      next.add(src.url);
-                    }
-                  }
-                  return next;
-                });
+                setSelectedSourceUrls((prev) =>
+                  selectDiscoveredSources(prev, newSources, deselectedUrlsRef.current),
+                );
               } else if (eventType === 'done') {
                 setTrace((prev) => [...prev, data]);
                 if (data.sources) {
@@ -208,18 +197,9 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
                   // Reconcile final ranked sources with existing selection
                   setSources(finalSources);
                   // Preserve deselections
-                  setSelectedSourceUrls((prev) => {
-                    const next = new Set<string>();
-                    for (const src of finalSources) {
-                      if (!deselectedUrlsRef.current.has(src.url.toLowerCase())) {
-                        next.add(src.url);
-                      } else if (prev.has(src.url)) {
-                        // Keep previously selected ones that weren't deselected
-                        next.add(src.url);
-                      }
-                    }
-                    return next;
-                  });
+                  setSelectedSourceUrls(
+                    reconcileFinalSources(finalSources, deselectedUrlsRef.current),
+                  );
                 }
                 const sk = data.sketch;
                 if (sk) {
@@ -275,11 +255,11 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
       if (next.has(url)) {
         next.delete(url);
         const nextDeselected = new Set(deselectedUrlsRef.current);
-        nextDeselected.add(url.toLowerCase());
+        nextDeselected.add(canonicalSourceKey(url));
         deselectedUrlsRef.current = nextDeselected;
       } else {
         const nextDeselected = new Set(deselectedUrlsRef.current);
-        nextDeselected.delete(url.toLowerCase());
+        nextDeselected.delete(canonicalSourceKey(url));
         deselectedUrlsRef.current = nextDeselected;
         next.add(url);
       }
@@ -290,7 +270,7 @@ export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
   const handleToggleAllSources = useCallback(() => {
     if (selectedSourceUrls.size === sources.length) {
       setSelectedSourceUrls(new Set());
-      deselectedUrlsRef.current = new Set(sources.map((s) => s.url.toLowerCase()));
+      deselectedUrlsRef.current = new Set(sources.map((s) => canonicalSourceKey(s.url)));
     } else {
       setSelectedSourceUrls(new Set(sources.map((s) => s.url)));
       deselectedUrlsRef.current = new Set();
