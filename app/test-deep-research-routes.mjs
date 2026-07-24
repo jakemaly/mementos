@@ -26,11 +26,6 @@ function ok(name, condition) {
   }
 }
 
-function warnMsg(name, message) {
-  console.log(`${WARN} ${name}: ${message}`);
-  warnings++;
-}
-
 // ── Read source files ──────────────────────────────────────────────
 
 const researchRoute = fs.readFileSync('app/api/research/route.ts', 'utf8');

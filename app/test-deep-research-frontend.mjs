@@ -8,7 +8,7 @@ let failed = 0;
 
 function ok(name, condition) {
   console.log(`${condition ? PASS : FAIL} ${name}`);
-  condition ? passed++ : failed++;
+  if (condition) passed++; else failed++;
 }
 
 const root = fs.readFileSync('app/components/deep-research/DeepResearch.tsx', 'utf8');

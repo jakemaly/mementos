@@ -28,13 +28,8 @@ function ok(name, condition) {
   }
 }
 
-function warnMsg(name, message) {
-  console.log(`${WARN} ${name}: ${message}`);
-  warnings++;
-}
-
 // Default fetch mock — returns success
-let fetchImpl = async (url, options) => {
+let fetchImpl = async () => {
   return {
     ok: true,
     status: 200,
