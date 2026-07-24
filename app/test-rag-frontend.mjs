@@ -39,6 +39,7 @@ const knowledgeBase = fs.readFileSync('app/components/knowledge-base/KnowledgeBa
 const vectorSearch = fs.readFileSync('app/components/knowledge-base/VectorSearch.tsx', 'utf8');
 const ragChat = fs.readFileSync('app/components/knowledge-base/RagChat.tsx', 'utf8');
 const chatComposer = fs.readFileSync('app/components/knowledge-base/ChatComposer.tsx', 'utf8');
+const citationList = fs.readFileSync('app/components/knowledge-base/CitationList.tsx', 'utf8');
 
 // ── 1. Structural checks ───────────────────────────────────────────
 
@@ -362,6 +363,17 @@ ok('Chat Stop aborts the active request', ragChat.includes('controllerRef.curren
 ok('Chat provides a New chat action', ragChat.includes('>New chat</button>'));
 ok('Chat confirms collection resets', knowledgeBase.includes("window.confirm('Changing collections starts a new chat. Continue?')"));
 ok('Composer supports Enter send and Shift+Enter newline', chatComposer.includes("event.key === 'Enter' && !event.shiftKey") && chatComposer.includes('event.preventDefault()'));
+
+// ── Grounded citations ─────────────────────────────────────────────
+
+console.log('\n=== 26. Grounded Citations ===\n');
+
+ok('Chat handles structured source events', ragChat.includes("event === 'sources'") && ragChat.includes('new Map((data.sources || [])'));
+ok('Answers show inline citation markers', ragChat.includes('href={`#source-${source.id}`}'));
+ok('Answers render compact source lists', ragChat.includes('<CitationList sources={message.sources || []} />'));
+ok('External citations open safely', citationList.includes('target="_blank"') && citationList.includes('rel="noreferrer"'));
+ok('Local-file citations render as text', citationList.includes('<span>[{index + 1}] {source.path}</span>'));
+ok('Insufficient evidence is distinct from complete answers', ragChat.includes("status: 'insufficient'") && ragChat.includes('I do not have enough evidence'));
 
 // ── Summary ────────────────────────────────────────────────────────
 

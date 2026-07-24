@@ -2,9 +2,10 @@
 
 import { useRef, useState } from 'react';
 import { ChatComposer } from './ChatComposer';
+import { CitationList, CitationSource } from './CitationList';
 import styles from './knowledge-base.module.css';
 
-type Message = { id: string; role: 'user' | 'assistant'; content: string; status?: 'retrieving' | 'streaming' | 'stopped' | 'failed' | 'complete' };
+type Message = { id: string; role: 'user' | 'assistant'; content: string; sources?: CitationSource[]; status?: 'retrieving' | 'streaming' | 'stopped' | 'failed' | 'complete' | 'insufficient' };
 interface RagChatProps { collection: string; unavailable: boolean; onNewChat: () => void; }
 
 export function RagChat({ collection, unavailable, onNewChat }: RagChatProps) {
@@ -36,10 +37,15 @@ export function RagChat({ collection, unavailable, onNewChat }: RagChatProps) {
           const event = block.match(/^event:\s*(.+)$/m)?.[1];
           const raw = block.match(/^data:\s*(.+)$/m)?.[1];
           if (!event || !raw || turnRef.current !== turnId) continue;
-          const data = JSON.parse(raw) as { text?: string };
+          const data = JSON.parse(raw) as { text?: string; sources?: CitationSource[] };
           if (event === 'delta') setMessages((current) => current.map((message) => message.id === assistantId ? { ...message, content: message.content + (data.text || ''), status: 'streaming' } : message));
-          if (event === 'done') setMessages((current) => current.map((message) => message.id === assistantId ? { ...message, status: 'complete' } : message));
-          if (event === 'insufficient_evidence') setMessages((current) => current.map((message) => message.id === assistantId ? { ...message, content: 'I do not have enough evidence in this collection to answer that.', status: 'complete' } : message));
+          if (event === 'sources') setMessages((current) => current.map((message) => {
+            if (message.id !== assistantId) return message;
+            const sources = Array.from(new Map((data.sources || []).map((source) => [source.id, source])).values());
+            return { ...message, sources };
+          }));
+          if (event === 'done') setMessages((current) => current.map((message) => message.id === assistantId ? { ...message, status: message.status === 'insufficient' ? 'insufficient' : 'complete' } : message));
+          if (event === 'insufficient_evidence') setMessages((current) => current.map((message) => message.id === assistantId ? { ...message, content: 'I do not have enough evidence in this collection to answer that.', status: 'insufficient' } : message));
           if (event === 'error') throw new Error('Answer generation failed');
         }
       }
@@ -53,7 +59,7 @@ export function RagChat({ collection, unavailable, onNewChat }: RagChatProps) {
   const reset = () => { controllerRef.current?.abort(); turnRef.current = ''; setMessages([]); onNewChat(); };
   return <section className={styles.chat} aria-label="RAG Chat">
     <header className={styles.chatHeader}><span>Collection: {collection || 'None'}</span><button type="button" onClick={reset}>New chat</button></header>
-    <div className={styles.transcript} aria-live="polite">{messages.length === 0 && <p className={styles.notice}>Ask a question to search this collection.</p>}{messages.map((message) => <article key={message.id} className={message.role === 'user' ? styles.userMessage : styles.assistantMessage}><strong>{message.role === 'user' ? 'You' : 'Mementos'}</strong><p>{message.content || (message.status === 'retrieving' ? 'Retrieving evidence…' : '')}</p>{message.status && message.status !== 'complete' && <small>{message.status}</small>}</article>)}</div>
+    <div className={styles.transcript} aria-live="polite">{messages.length === 0 && <p className={styles.notice}>Ask a question to search this collection.</p>}{messages.map((message) => <article key={message.id} className={message.role === 'user' ? styles.userMessage : styles.assistantMessage}><strong>{message.role === 'user' ? 'You' : 'Mementos'}</strong><p>{message.content || (message.status === 'retrieving' ? 'Retrieving evidence…' : '')}</p>{message.sources?.length ? <p className={styles.inlineCitations}>{message.sources.map((source, index) => <a href={`#source-${source.id}`} key={source.id}>[{index + 1}]</a>)}</p> : null}<CitationList sources={message.sources || []} />{message.status && message.status !== 'complete' && <small className={message.status === 'insufficient' ? styles.insufficient : ''}>{message.status}</small>}</article>)}</div>
     {running && <button type="button" className={styles.stopButton} onClick={stop}>Stop</button>}
     <ChatComposer value={draft} onChange={setDraft} onSubmit={start} disabled={running || unavailable || !collection} />
   </section>;
