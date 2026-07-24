@@ -14,6 +14,11 @@ interface ObservabilityTimelineProps {
 export function ObservabilityTimeline({ trace, brief, isResearching, focusedNodeId }: ObservabilityTimelineProps) {
   const entries = useMemo(() => {
     const items: Array<{ id: string; time: number; label: string; detail: string; status: string }> = [];
+    const completionByParent = new Map(
+      trace
+        .filter((event) => (event.type === 'tool_completed' || event.type === 'tool_failed') && event.parent_id)
+        .map((event) => [event.parent_id as string, event]),
+    );
 
     if (brief) {
       items.push({
@@ -57,12 +62,21 @@ export function ObservabilityTimeline({ trace, brief, isResearching, focusedNode
       } else if (ev.type === 'tool_started') {
         const tool = (payload.tool as string) || 'tool';
         const query = (payload.query as string | string[]) || '';
+        const completion = completionByParent.get(ev.id);
+        const completionPayload = completion?.payload || {};
+        const resultCount = (completionPayload.result_count as number) ?? 0;
+        const duration = (completionPayload.duration as number) ?? 0;
+        const outcome = completion?.type === 'tool_failed'
+          ? `failed: ${(completionPayload.error as string) || 'Unknown error'}`
+          : completion
+            ? `${resultCount} results in ${duration}s`
+            : 'running';
         items.push({
           id: ev.id,
           time: ev.timestamp,
-          label: `${tool} started`,
-          detail: typeof query === 'string' ? query : query.join(', '),
-          status: 'running',
+          label: `${tool} ${completion?.type === 'tool_failed' ? 'failed' : completion ? 'completed' : 'started'}`,
+          detail: `${typeof query === 'string' ? query : query.join(', ')}\n${outcome}`,
+          status: completion?.type === 'tool_failed' ? 'failed' : completion ? 'completed' : 'running',
         });
       } else if (ev.type === 'tool_completed') {
         const tool = (payload.tool as string) || 'tool';

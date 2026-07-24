@@ -97,6 +97,7 @@ export function ResearchWorkspace({
         {/* Top bar */}
         <div className={styles.topBar}>
           <div className={styles.queryStatus}>
+            <span className={styles.srOnly} aria-live="polite">Research status: {statusLabel}</span>
             <span className={styles.queryText} title={query}>&quot;{query}&quot;</span>
             <span className={`${styles.statusBadge} ${styles[`status-${runState}`]}`}>
               {statusLabel}

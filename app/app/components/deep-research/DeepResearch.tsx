@@ -27,8 +27,8 @@ interface DeepResearchProps {
 export function DeepResearch({ onOpenKnowledgeBase }: DeepResearchProps) {
   const [runState, setRunState] = useState<RunState>('idle');
   const [query, setQuery] = useState('');
-  const [selectedCollection, setSelectedCollection] = useState('');
-  const [collections, setCollections] = useState<string[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState('default');
+  const [collections, setCollections] = useState<string[]>(['default']);
   const [trace, setTrace] = useState<TraceEvent[]>([]);
   const [brief, setBrief] = useState<ResearchBrief | null>(null);
   const [sketch, setSketch] = useState<Sketch | null>(null);
