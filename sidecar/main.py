@@ -5,11 +5,16 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from lightrag import LightRAG
 from lightrag.lightrag import QueryParam
 
-from knowledge_base import LightRAGRegistry
+from knowledge_base import (
+    ChatRequestError,
+    LightRAGRegistry,
+    parse_chat_request,
+    stream_chat_events,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("sidecar")
@@ -179,6 +184,42 @@ async def insert(request: Request):
     except Exception as e:
         logger.exception("Insert failed")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/chat")
+async def chat(request: Request):
+    """Stream a collection-scoped, grounded LightRAG answer as SSE."""
+    try:
+        data = await request.json()
+        chat_request = parse_chat_request(data)
+    except (ChatRequestError, ValueError) as error:
+        return JSONResponse(status_code=400, content={"error": str(error)})
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON body"})
+
+    try:
+        rag = await get_rag(chat_request.collection)
+    except Exception:
+        logger.exception("Chat initialization failed")
+        return JSONResponse(status_code=503, content={"error": "Knowledge base is unavailable"})
+
+    async def event_stream():
+        try:
+            async for event in stream_chat_events(rag, chat_request, request.is_disconnected):
+                yield f"event: {event['event']}\ndata: {json.dumps(event['data'])}\n\n"
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Chat stream failed")
+            if not await request.is_disconnected():
+                yield f"event: error\ndata: {json.dumps({'turn_id': chat_request.turn_id, 'error': 'Answer generation failed'})}\n\n"
+                yield f"event: done\ndata: {json.dumps({'turn_id': chat_request.turn_id})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/query")
