@@ -12,6 +12,8 @@ from lightrag.lightrag import QueryParam
 from knowledge_base import (
     ChatRequestError,
     LightRAGRegistry,
+    collection_workspace,
+    insert_with_provenance,
     parse_chat_request,
     stream_chat_events,
 )
@@ -169,18 +171,28 @@ async def insert(request: Request):
     if not text or not isinstance(text, str) or not text.strip():
         return JSONResponse(status_code=400, content={"error": "text is required and must be non-empty"})
 
-    filename = data.get("filename")  # ponytail: stored for metadata; not yet used by LightRAG
+    collection = data.get("collection")
+    filename = data.get("filename", "Untitled document")
+    if not isinstance(filename, str) or not filename.strip():
+        return JSONResponse(status_code=400, content={"error": "filename must be a non-empty string when provided"})
+    try:
+        collection_workspace(collection)
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"error": str(error)})
 
     try:
-        rag = await get_rag()
-        track_id = await rag.ainsert(text)
-        snapshot = await refresh_graph_dump()
-        return JSONResponse({
+        rag = await get_rag(collection)
+        track_id = await insert_with_provenance(rag, text, filename.strip())
+        response = {
             "success": True,
+            "collection": collection,
             "message": f"Ingested {len(text)} characters",
             "track_id": track_id,
-            "graph_snapshot_id": snapshot["snapshot_id"],
-        })
+        }
+        if collection == "default":
+            snapshot = await refresh_graph_dump()
+            response["graph_snapshot_id"] = snapshot["snapshot_id"]
+        return JSONResponse(response)
     except Exception as e:
         logger.exception("Insert failed")
         return JSONResponse(status_code=500, content={"error": str(e)})

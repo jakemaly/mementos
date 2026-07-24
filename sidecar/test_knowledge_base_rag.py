@@ -154,6 +154,36 @@ def test_registry_main_factory_shares_expensive_model_functions(monkeypatch):
     assert all(call["llm_model_func"] is llm for call in calls)
 
 
+@pytest.mark.asyncio
+async def test_insert_endpoint_scopes_collection_and_preserves_filename(monkeypatch):
+    import sys
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent))
+    import main as main_module
+    from fastapi.testclient import TestClient
+
+    calls = []
+    class FakeRAG:
+        async def ainsert(self, text, *, file_paths):
+            calls.append((text, file_paths))
+            return "track-1"
+
+    async def get_collection_rag(collection):
+        assert collection == "research"
+        return FakeRAG()
+
+    monkeypatch.setattr(main_module, "get_rag", get_collection_rag)
+    response = TestClient(main_module.app).post("/insert", json={
+        "text": "Document text", "collection": "research", "filename": "notes.md",
+    })
+
+    assert response.status_code == 200
+    assert response.json()["collection"] == "research"
+    assert calls == [("Document text", "notes.md")]
+
+    invalid = TestClient(main_module.app).post("/insert", json={"text": "Document text", "collection": "bad name"})
+    assert invalid.status_code == 400
+
+
 def test_stream_rejects_invalid_requests_and_client_retrieval_overrides():
     for payload in (
         {},
