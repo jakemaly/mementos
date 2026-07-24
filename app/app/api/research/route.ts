@@ -20,11 +20,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Proxy to sidecar SSE stream
+    // Proxy to sidecar SSE stream — forward only validated query
     const sidecarResponse = await fetch(`${SIDECAR_URL}/research/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ query: body.query.trim() }),
       signal: abortController.signal,
     });
 

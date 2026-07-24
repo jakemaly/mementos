@@ -4,8 +4,6 @@
 
 export interface ResearchRequest {
   query: string;
-  domains?: string[];
-  filetypes?: string[];
 }
 
 // ── Phase 1: Brief + Sketch ─────────────────────────────────────────────
