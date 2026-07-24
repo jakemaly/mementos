@@ -72,6 +72,7 @@ ok('Ingest validates sources array', ingestRoute.includes('Array.isArray(body.so
 ok('Ingest validates collection', ingestRoute.includes('!collection'));
 ok('Ingest returns 400 on missing data', ingestRoute.includes('400'));
 ok('Ingest routes sources through unified indexing', ingestRoute.includes('indexCollectionDocument'));
+ok('Ingest preserves source URL as graph citation provenance', ingestRoute.includes('content, source.url'));
 ok('Ingest reports partial outcomes', ingestRoute.includes('const partial') && ingestRoute.includes('Partially imported'));
 ok('Ingest reports failed URLs', ingestRoute.includes('failedUrls'));
 ok('Ingest distinguishes complete, partial, and total failure', ingestRoute.includes('const complete') && ingestRoute.includes('const partial') && ingestRoute.includes('Could not import any'));

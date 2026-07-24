@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     try {
       const content = await fetchPageContent(source.url);
       if (!content.trim()) throw new Error('Source content is empty');
-      const result = await indexCollectionDocument(collection, content, source.title || source.url);
+      const result = await indexCollectionDocument(collection, content, source.url);
       if (result.vector.status === 'complete') totalChunks += result.vector.chunks ?? 0;
       outcomes.push({ url: source.url, result });
     } catch (error) {
