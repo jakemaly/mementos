@@ -3,6 +3,9 @@ Regression tests for Step 1: Python Sidecar Boilerplate - FastAPI + Health Check
 Run with: python3 test_main.py (server must be running on PORT)
 Or: PORT=8000 python3 test_main.py
 """
+
+# Standalone verification script; do not let pytest collect its helper function.
+__test__ = False
 import json
 import os
 import sys

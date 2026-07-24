@@ -3,6 +3,9 @@ Adversarial regression tests for Step 3: POST /insert — Bug Hunt.
 Tests for the missing initialize_storages() call and other production bugs.
 Run with: python3 test_step3_bugs.py  (no server needed — static + unit tests)
 """
+
+# Standalone verification script; do not let pytest collect its helper function.
+__test__ = False
 import ast
 import sys
 

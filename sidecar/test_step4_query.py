@@ -8,6 +8,9 @@ Run static:  python3 test_step4_query.py --static
 Run http:    PORT=8000 python3 test_step4_query.py --http
 Run all:     PORT=8000 python3 test_step4_query.py
 """
+
+# Standalone verification script; do not let pytest collect its helper function.
+__test__ = False
 import ast
 import json
 import os

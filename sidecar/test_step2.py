@@ -4,6 +4,9 @@ Tests embedding function contract, Qdrant connection, NetworkX graph,
 and production failure modes.
 Run with: PORT=8000 python3 test_step2.py (server must be running)
 """
+
+# Standalone verification script; do not let pytest collect its helper function.
+__test__ = False
 import json
 import os
 import sys

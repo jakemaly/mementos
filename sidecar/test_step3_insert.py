@@ -3,6 +3,9 @@ Regression tests for Step 3: Sidecar Ingestion Endpoint — POST /insert.
 Tests edge cases, null inputs, empty values, and the critical event-loop bug.
 Run with: PORT=8000 python3 test_step3_insert.py  (server must be running)
 """
+
+# Standalone verification script; do not let pytest collect its helper function.
+__test__ = False
 import json
 import os
 import sys
