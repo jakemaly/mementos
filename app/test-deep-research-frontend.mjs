@@ -32,7 +32,7 @@ ok('Composer uses the shared application shell', root.includes('<AppShell active
 ok('Shell has semantic main navigation', shell.includes('aria-label="Main navigation"'));
 ok('Shell exposes destination actions', shell.includes('Deep Research') && shell.includes('Knowledge Base') && shell.includes('Collections'));
 ok('Shell includes disabled future Settings', shell.includes('Settings (not available yet)'));
-ok('Shell uses compact mobile navigation', shellCss.includes('@media (max-width: 768px)') && shellCss.includes('overflow-x: auto'));
+ok('Shell uses compact non-clipping mobile navigation', shellCss.includes('@media (max-width: 768px)') && shellCss.includes('flex-wrap: wrap') && shellCss.includes('overflow-x: hidden'));
 ok('Page owns collection loading', page.includes("fetch('/api/collections')") && page.includes('setCollectionUnavailable'));
 ok('Deep Research receives shared collection state', root.includes('collectionUnavailable: boolean') && root.includes('onCollectionChange: (collection: string) => void'));
 ok('Deep Research does not refetch collections', !root.includes("fetch('/api/collections')"));

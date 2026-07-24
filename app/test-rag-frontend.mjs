@@ -42,7 +42,7 @@ ok('global surface is matte rather than gradient', !globals.includes('radial-gra
 ok('global visible focus treatment exists', globals.includes('button:focus-visible') && globals.includes('#9f1239'));
 ok('reduced motion is respected globally', globals.includes('prefers-reduced-motion: reduce'));
 ok('streamed tokens are not individually announced', ragChat.includes('aria-live="off"') && ragChat.includes('role="status"'));
-ok('shell prevents narrow-screen horizontal overflow', fs.readFileSync('app/components/app-shell/app-shell.module.css', 'utf8').includes('overflow-x: auto'));
+ok('shell prevents narrow-screen horizontal overflow', fs.readFileSync('app/components/app-shell/app-shell.module.css', 'utf8').includes('overflow-x: hidden'));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

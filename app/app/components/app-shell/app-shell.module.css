@@ -41,9 +41,9 @@
 
 @media (max-width: 768px) {
   .shell { display: block; }
-  .navigation { width: auto; min-height: 56px; padding: 0.5rem 0.75rem; border-right: 0; border-bottom: 1px solid #d6d1cc; flex-direction: row; align-items: center; overflow-x: auto; }
-  .wordmark { padding: 0 0.5rem 0 0; white-space: nowrap; }
-  .destinations { display: flex; gap: 0.15rem; }
-  .destination, .contextAction { min-height: 36px; padding: 0.4rem 0.5rem; white-space: nowrap; font-size: 0.8rem; }
+  .navigation { width: auto; min-height: 56px; padding: 0.5rem 0.75rem; border-right: 0; border-bottom: 1px solid #d6d1cc; flex-wrap: wrap; align-items: center; overflow-x: hidden; }
+  .wordmark { flex: 0 0 100%; padding: 0 0.5rem 0 0; white-space: nowrap; }
+  .destinations { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; gap: 0.15rem; }
+  .destination, .contextAction { flex: 0 0 auto; min-height: 36px; padding: 0.4rem 0.5rem; white-space: nowrap; font-size: 0.8rem; }
   .contextAction { margin: 0 0 0 auto; }
 }
