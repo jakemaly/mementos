@@ -37,7 +37,13 @@ async def test_tavily_search_success():
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=False)
     with patch("research.tools.tavily.httpx.AsyncClient", return_value=mock_client):
-        sources = await tavily_search(["example query"])
+        observed: list[tuple[str, list[dict]]] = []
+        sources = await tavily_search(
+            ["example query"],
+            on_query_results=lambda query, result: observed.append((query, result)),
+        )
         assert len(sources) == 1
         assert sources[0]["url"] == "https://example.com/doc1"
         assert sources[0]["source"] == "tavily"
+        assert observed[0][0] == "example query"
+        assert observed[0][1][0]["url"] == "https://example.com/doc1"

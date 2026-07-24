@@ -218,14 +218,18 @@ async def node_tools(state: ResearchState) -> dict:
         start = time.monotonic()
         try:
             if tool == "tavily":
-                results = await tavily_search(all_query_strings)
+                def emit_query_sources(query: str, query_sources: list[Source]) -> None:
+                    # Emit each query's sources as soon as that query completes.
+                    _emit(trace, "sources_discovered", {
+                        "tool": tool,
+                        "query": query,
+                        "sources": query_sources,
+                    }, iteration=iteration, parent_id=tool_id["id"], on_event=on_event)
 
-                # Emit live sources for the frontend before scoring
-                _emit(trace, "sources_discovered", {
-                    "tool": tool,
-                    "query": all_query_strings[0] if len(all_query_strings) == 1 else all_query_strings,
-                    "sources": results,
-                }, iteration=iteration, parent_id=tool_id["id"], on_event=on_event)
+                results = await tavily_search(
+                    all_query_strings,
+                    on_query_results=emit_query_sources,
+                )
             else:
                 logger.warning("Unknown tool: %s", tool)
                 results = []

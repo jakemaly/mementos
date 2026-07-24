@@ -118,6 +118,28 @@ async def test_tools_tavily_only():
 
 
 @pytest.mark.asyncio
+async def test_tools_emits_sources_per_query():
+    async def mocked_search(queries, on_query_results=None):
+        for query in queries:
+            result = [{"url": f"https://example.com/{query}", "title": query, "snippet": query, "score": 0}]
+            if on_query_results:
+                on_query_results(query, result)
+        return [
+            {"url": f"https://example.com/{query}", "title": query, "snippet": query, "score": 0}
+            for query in queries
+        ]
+
+    with patch("research.graph.tavily_search", side_effect=mocked_search):
+        state = _state({"query_plan": QueryPlan(overview=["overview"], specific=["specific"])})
+        result = await node_tools(state)
+        discovered = [e for e in result["trace"] if e["type"] == "sources_discovered"]
+        assert [e["payload"]["query"] for e in discovered] == ["overview", "specific"]
+        assert [e["payload"]["sources"][0]["url"] for e in discovered] == [
+            "https://example.com/overview", "https://example.com/specific"
+        ]
+
+
+@pytest.mark.asyncio
 async def test_tools_failure_isolation():
     """Tool failure emits tool_failed trace event cleanly."""
     with patch("research.graph.tavily_search", new_callable=AsyncMock) as mock_tav:

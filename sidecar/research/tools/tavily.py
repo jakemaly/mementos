@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import time
+from collections.abc import Callable
 
 import httpx
 
@@ -18,6 +19,7 @@ _MAX_CONCURRENCY = 10
 async def tavily_search(
     queries: list[str],
     _api_key: str | None = None,
+    on_query_results: Callable[[str, list[Source]], None] | None = None,
 ) -> list[Source]:
     """Execute Tavily searches with bounded concurrency and return normalized sources."""
     api_key = _api_key or os.getenv("TAVILY_API_KEY")
@@ -54,6 +56,9 @@ async def tavily_search(
                             score=0,
                             source="tavily",
                         ))
+                if on_query_results:
+                    on_query_results(query, sources)
+
                 elapsed = time.monotonic() - start
                 logger.info("Tavily '%s' → %d results in %.1fs", query, len(sources), elapsed)
                 return sources
