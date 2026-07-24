@@ -143,13 +143,15 @@ export async function POST(request: Request) {
     }
 
     const elapsed = Date.now() - startTime;
+    const failedUrls = sources.map((s: any) => s.url).filter((url: string) => !ingestedUrls.includes(url));
 
     return NextResponse.json({
-      success: true,
+      success: ingestedUrls.length > 0,
       totalChunks,
       ingestedUrls,
+      failedUrls,
       elapsedMs: elapsed,
-      message: `Ingested ${totalChunks} chunks from ${ingestedUrls.length} sources into '${collection}'`,
+      message: `Ingested ${totalChunks} chunks from ${ingestedUrls.length} of ${sources.length} sources into '${collection}'`,
     });
   } catch (error: any) {
     console.error('Research ingest error:', error);
