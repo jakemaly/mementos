@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation complete through Task 15. Automated, configured-service, and Chromium verification pass, including a real zero-source multi-iteration run and successful browser-side subset import. Safari/WebKit verification remains pending because no Safari runtime is available in this environment.
+Implementation complete through Task 15. Automated, configured-service, and Chromium verification pass, including a real zero-source multi-iteration run and successful browser-side subset import. Safari/WebKit verification remains pending: WebKit was downloaded, but its required host libraries cannot be installed without sudo access.
 
 ## Source of truth
 
