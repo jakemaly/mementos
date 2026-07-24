@@ -211,6 +211,7 @@ async def node_tools(state: ResearchState) -> dict:
     async def _run_tool(tool: str) -> list[Source]:
         tool_id = _emit(trace, "tool_started", {
             "tool": tool,
+            "query": all_query_strings[0] if len(all_query_strings) == 1 else all_query_strings,
             "query_count": len(all_query_strings),
         }, iteration=iteration, parent_id=parent_id, on_event=on_event)
 
@@ -232,6 +233,7 @@ async def node_tools(state: ResearchState) -> dict:
             elapsed = time.monotonic() - start
             _emit(trace, "tool_completed", {
                 "tool": tool,
+                "query": all_query_strings[0] if len(all_query_strings) == 1 else all_query_strings,
                 "result_count": len(results),
                 "duration": round(elapsed, 2),
             }, iteration=iteration, parent_id=tool_id["id"], on_event=on_event)
@@ -241,6 +243,7 @@ async def node_tools(state: ResearchState) -> dict:
             logger.error("Tool %s failed: %s", tool, e)
             _emit(trace, "tool_failed", {
                 "tool": tool,
+                "query": all_query_strings[0] if len(all_query_strings) == 1 else all_query_strings,
                 "error": str(e),
                 "duration": round(elapsed, 2),
             }, iteration=iteration, parent_id=tool_id.get("id"), on_event=on_event)
