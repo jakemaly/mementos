@@ -49,7 +49,7 @@ ok('ResearchRequest has no filetypes field', !contracts.includes('filetypes?: st
 
 console.log('\n=== 2. Proxy Forwarding ===\n');
 
-ok('Proxy validates query presence', researchRoute.includes('!body?.query'));
+ok('Proxy validates query presence', researchRoute.includes('hasQuery(body)') || researchRoute.includes('!body?.query'));
 ok('Proxy validates query is string', researchRoute.includes("typeof body.query !== 'string'"));
 ok('Proxy trims query', researchRoute.includes('body.query.trim()'));
 ok('Proxy forwards only query object', researchRoute.includes('JSON.stringify({ query:'));
