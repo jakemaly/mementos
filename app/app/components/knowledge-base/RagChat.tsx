@@ -6,9 +6,9 @@ import { CitationList, CitationSource } from './CitationList';
 import styles from './knowledge-base.module.css';
 
 type Message = { id: string; role: 'user' | 'assistant'; content: string; sources?: CitationSource[]; status?: 'retrieving' | 'streaming' | 'stopped' | 'failed' | 'complete' | 'insufficient' };
-interface RagChatProps { collection: string; unavailable: boolean; onNewChat: () => void; }
+interface RagChatProps { collection: string; collections: string[]; unavailable: boolean; onCollectionChange: (collection: string) => void; onNewChat: () => void; }
 
-export function RagChat({ collection, unavailable, onNewChat }: RagChatProps) {
+export function RagChat({ collection, collections, unavailable, onCollectionChange, onNewChat }: RagChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState('');
   const [running, setRunning] = useState(false);
@@ -59,8 +59,8 @@ export function RagChat({ collection, unavailable, onNewChat }: RagChatProps) {
   const reset = () => { controllerRef.current?.abort(); turnRef.current = ''; setMessages([]); onNewChat(); };
   return <section className={styles.chat} aria-label="RAG Chat">
     <p className={styles.srOnly} role="status">{running ? 'Retrieving answer' : ''}</p>
-    <header className={styles.chatHeader}><span>Collection: {collection || 'None'}</span><button type="button" onClick={reset}>New chat</button></header>
-    <div className={styles.transcript} aria-live="off">{messages.length === 0 && <p className={styles.notice}>Ask a question to search this collection.</p>}{messages.map((message) => <article key={message.id} className={message.role === 'user' ? styles.userMessage : styles.assistantMessage}><strong>{message.role === 'user' ? 'You' : 'Mementos'}</strong><p>{message.content || (message.status === 'retrieving' ? 'Retrieving evidence…' : '')}</p>{message.sources?.length ? <p className={styles.inlineCitations}>{message.sources.map((source, index) => <a href={`#source-${source.id}`} key={source.id}>[{index + 1}]</a>)}</p> : null}<CitationList sources={message.sources || []} />{message.status && message.status !== 'complete' && <small className={message.status === 'insufficient' ? styles.insufficient : ''}>{message.status}</small>}</article>)}</div>
+    <header className={styles.chatHeader}><label>Collection <select value={collection} onChange={(event) => onCollectionChange(event.target.value)} disabled={running || unavailable}>{collections.map((name) => <option value={name} key={name}>{name}</option>)}</select></label><button type="button" onClick={reset}>New chat</button></header>
+    <div className={styles.transcript} aria-live="off">{messages.length === 0 && <p className={styles.notice}>Ask a question to search this collection.</p>}{messages.map((message) => <article key={message.id} className={message.role === 'user' ? styles.userMessage : styles.assistantMessage}><strong>{message.role === 'user' ? 'You' : 'Mementos'}</strong><p>{message.content || (message.status === 'retrieving' ? 'Retrieving evidence…' : '')}</p>{message.sources?.length ? <p className={styles.inlineCitations}>{message.sources.map((source, index) => <a href={`#source-${source.id}`} key={source.id}>[{index + 1}]</a>)}</p> : null}<CitationList sources={message.sources || []} />{message.role === 'assistant' && message.status === 'complete' && message.content && <button type="button" className={styles.copyButton} onClick={() => void navigator.clipboard.writeText(message.content)}>Copy</button>}{message.status && message.status !== 'complete' && <small className={message.status === 'insufficient' ? styles.insufficient : ''}>{message.status}</small>}</article>)}</div>
     {running && <button type="button" className={styles.stopButton} onClick={stop}>Stop</button>}
     <ChatComposer value={draft} onChange={setDraft} onSubmit={start} disabled={running || unavailable || !collection} />
   </section>;

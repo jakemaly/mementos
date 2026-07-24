@@ -30,7 +30,7 @@ export function KnowledgeBase(props: KnowledgeBaseProps) {
         <button type="button" role="tab" aria-selected={view === 'chat'} onClick={() => setView('chat')}>Chat</button>
         <button type="button" role="tab" aria-selected={view === 'vector'} onClick={() => setView('vector')}>Vector Search</button>
       </div></header>
-      {view === 'chat' ? <RagChat key={chatKey} collection={props.selectedCollection} unavailable={props.unavailable} onNewChat={() => setChatKey((key) => key + 1)} /> : <VectorSearch collections={props.collections} selectedCollection={props.selectedCollection} unavailable={props.unavailable} onCollectionChange={changeCollection} />}
+      {view === 'chat' ? <RagChat key={chatKey} collection={props.selectedCollection} collections={props.collections} unavailable={props.unavailable} onCollectionChange={changeCollection} onNewChat={() => setChatKey((key) => key + 1)} /> : <VectorSearch collections={props.collections} selectedCollection={props.selectedCollection} unavailable={props.unavailable} onCollectionChange={changeCollection} />}
     </main>
   </AppShell>;
 }

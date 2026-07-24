@@ -28,13 +28,15 @@ ok('Vector Search supports 5, 10, and 20 results', vectorSearch.includes('[5, 10
 ok('Vector results show source, snippet, and score', vectorSearch.includes('result.filename') && vectorSearch.includes('result.score.toFixed(2)') && !vectorSearch.includes('charStart'));
 ok('snippet disclosure is keyboard-accessible', vectorSearch.includes('aria-expanded={expanded.has(result.id)}'));
 ok('Chat sends collection-bound SSE requests', ragChat.includes("fetch('/api/rag/query'") && ragChat.includes('collection, turn_id: turnId, history'));
-ok('Chat supports Stop and New chat', ragChat.includes('controllerRef.current?.abort()') && ragChat.includes('>New chat</button>'));
+ok('Chat supports Stop, New chat, and Copy', ragChat.includes('controllerRef.current?.abort()') && ragChat.includes('>New chat</button>') && ragChat.includes('navigator.clipboard.writeText(message.content)'));
 ok('Chat rejects late events and bounds history', ragChat.includes('turnRef.current !== turnId') && ragChat.includes('.slice(-20)'));
 ok('Composer supports Enter send and Shift+Enter newline', chatComposer.includes("event.key === 'Enter' && !event.shiftKey"));
+ok('Chat composer includes collection selection', ragChat.includes('onCollectionChange(event.target.value)'));
 ok('Chat renders deduplicated sources and inline markers', ragChat.includes("event === 'sources'") && ragChat.includes('href={`#source-${source.id}`}'));
 ok('external citations are safe and local sources stay text', citations.includes('rel="noreferrer"') && citations.includes('<span>[{index + 1}] {source.path}</span>'));
 ok('drawer is hidden by default and uses dialog semantics', drawer.includes('if (!open) return null') && drawer.includes('role="dialog"'));
 ok('drawer retains a partial-failure file and restores focus', drawer.includes("if (data.status === 'complete') setFile(null)") && drawer.includes("getElementById('collections-trigger')?.focus()"));
+ok('drawer traps Tab focus while open', drawer.includes("event.key === 'Tab'") && drawer.includes('drawerRef.current.querySelectorAll'));
 ok('drawer is full-width on narrow screens', drawerCss.includes('@media (max-width: 768px)') && drawerCss.includes('width: 100%'));
 
 console.log('\n=== Accessibility and Responsive Quality ===\n');

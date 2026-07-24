@@ -25,6 +25,7 @@ export function CollectionsDrawer({
   onRefresh,
 }: CollectionsDrawerProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
   const [name, setName] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
@@ -42,6 +43,14 @@ export function CollectionsDrawer({
     closeRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') requestClose();
+      if (event.key === 'Tab' && drawerRef.current) {
+        const focusable = Array.from(drawerRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href]'));
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -92,7 +101,7 @@ export function CollectionsDrawer({
 
   return (
     <div className={styles.backdrop} role="presentation">
-      <aside className={styles.drawer} role="dialog" aria-modal="true" aria-label="Collections manager">
+      <aside ref={drawerRef} className={styles.drawer} role="dialog" aria-modal="true" aria-label="Collections manager">
         <header className={styles.header}>
           <h2>Collections</h2>
           <button ref={closeRef} type="button" onClick={requestClose} disabled={ingesting} aria-label="Close collections">Close</button>
