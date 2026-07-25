@@ -32,6 +32,7 @@ ok('Chat supports Stop, New chat, and Copy', ragChat.includes('controllerRef.cur
 ok('Chat rejects late events and bounds history', ragChat.includes('turnRef.current !== turnId') && ragChat.includes('.slice(-20)'));
 ok('Composer supports Enter send and Shift+Enter newline', chatComposer.includes("event.key === 'Enter' && !event.shiftKey"));
 ok('Chat composer includes collection selection', ragChat.includes('onCollectionChange(event.target.value)'));
+ok('Chat shows Qdrant and LightRAG collection statistics', ragChat.includes('/stats`,') && ragChat.includes('Qdrant: {stats.qdrant.points} items') && ragChat.includes('Graph: {stats.lightrag.nodes} nodes'));
 ok('Chat renders deduplicated sources and inline markers', ragChat.includes("event === 'sources'") && ragChat.includes('href={`#source-${source.id}`}'));
 ok('external citations are safe and local sources stay text', citations.includes('rel="noreferrer"') && citations.includes('<span>[{index + 1}] {source.path}</span>'));
 ok('drawer is hidden by default and uses dialog semantics', drawer.includes('if (!open) return null') && drawer.includes('role="dialog"'));

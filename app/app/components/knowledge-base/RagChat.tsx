@@ -1,19 +1,33 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChatComposer } from './ChatComposer';
 import { CitationList, CitationSource } from './CitationList';
 import styles from './knowledge-base.module.css';
 
 type Message = { id: string; role: 'user' | 'assistant'; content: string; sources?: CitationSource[]; status?: 'retrieving' | 'streaming' | 'stopped' | 'failed' | 'complete' | 'insufficient' };
+type CollectionStats = { qdrant: { points: number }; lightrag: { documents: number; nodes: number; links: number } };
 interface RagChatProps { collection: string; collections: string[]; unavailable: boolean; onCollectionChange: (collection: string) => void; onNewChat: () => void; }
 
 export function RagChat({ collection, collections, unavailable, onCollectionChange, onNewChat }: RagChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState('');
   const [running, setRunning] = useState(false);
+  const [stats, setStats] = useState<CollectionStats | null>(null);
+  const [statsUnavailable, setStatsUnavailable] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
   const turnRef = useRef('');
+
+  useEffect(() => {
+    if (!collection || unavailable) { setStats(null); return; }
+    const controller = new AbortController();
+    setStats(null); setStatsUnavailable(false);
+    void fetch(`/api/collections/${encodeURIComponent(collection)}/stats`, { signal: controller.signal })
+      .then(async (response) => response.ok ? response.json() as Promise<CollectionStats> : Promise.reject())
+      .then((next) => setStats(next))
+      .catch(() => { if (!controller.signal.aborted) setStatsUnavailable(true); });
+    return () => controller.abort();
+  }, [collection, unavailable]);
 
   const start = async () => {
     const question = draft.trim();
@@ -59,7 +73,7 @@ export function RagChat({ collection, collections, unavailable, onCollectionChan
   const reset = () => { controllerRef.current?.abort(); turnRef.current = ''; setMessages([]); onNewChat(); };
   return <section className={styles.chat} aria-label="RAG Chat">
     <p className={styles.srOnly} role="status">{running ? 'Retrieving answer' : ''}</p>
-    <header className={styles.chatHeader}><label>Collection <select value={collection} onChange={(event) => onCollectionChange(event.target.value)} disabled={running || unavailable}>{collections.map((name) => <option value={name} key={name}>{name}</option>)}</select></label><button type="button" onClick={reset}>New chat</button></header>
+    <header className={styles.chatHeader}><div className={styles.collectionContext}><label>Collection <select value={collection} onChange={(event) => onCollectionChange(event.target.value)} disabled={running || unavailable}>{collections.map((name) => <option value={name} key={name}>{name}</option>)}</select></label>{stats ? <ul className={styles.stats} aria-label="Collection statistics"><li>Qdrant: {stats.qdrant.points} items</li><li>LightRAG: {stats.lightrag.documents} items</li><li>Graph: {stats.lightrag.nodes} nodes · {stats.lightrag.links} links</li></ul> : statsUnavailable ? <p className={styles.statsUnavailable}>Statistics unavailable</p> : collection ? <p className={styles.statsUnavailable}>Loading statistics…</p> : null}</div><button type="button" onClick={reset}>New chat</button></header>
     <div className={styles.transcript} aria-live="off">{messages.length === 0 && <p className={styles.notice}>Ask a question to search this collection.</p>}{messages.map((message) => <article key={message.id} className={message.role === 'user' ? styles.userMessage : styles.assistantMessage}><strong>{message.role === 'user' ? 'You' : 'Mementos'}</strong><p>{message.content || (message.status === 'retrieving' ? 'Retrieving evidence…' : '')}</p>{message.sources?.length ? <p className={styles.inlineCitations}>{message.sources.map((source, index) => <a href={`#source-${source.id}`} key={source.id}>[{index + 1}]</a>)}</p> : null}<CitationList sources={message.sources || []} />{message.role === 'assistant' && message.status === 'complete' && message.content && <button type="button" className={styles.copyButton} onClick={() => void navigator.clipboard.writeText(message.content)}>Copy</button>}{message.status && message.status !== 'complete' && <small className={message.status === 'insufficient' ? styles.insufficient : ''}>{message.status}</small>}</article>)}</div>
     {running && <button type="button" className={styles.stopButton} onClick={stop}>Stop</button>}
     <ChatComposer value={draft} onChange={setDraft} onSubmit={start} disabled={running || unavailable || !collection} />
