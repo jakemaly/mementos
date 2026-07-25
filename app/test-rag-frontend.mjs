@@ -34,7 +34,7 @@ ok('Chat rejects late events and bounds history', ragChat.includes('turnRef.curr
 ok('Composer supports Enter send and Shift+Enter newline', chatComposer.includes("event.key === 'Enter' && !event.shiftKey"));
 ok('Chat composer includes collection selection', ragChat.includes('onCollectionChange(event.target.value)'));
 ok('Chat shows Qdrant and LightRAG collection statistics', ragChat.includes('/stats`,') && ragChat.includes('Qdrant: {stats.qdrant.points} items') && ragChat.includes('Graph: {stats.lightrag.nodes} nodes'));
-ok('Chat can explicitly backfill LightRAG from Qdrant', ragChat.includes('Index Qdrant in LightRAG') && ragChat.includes('/lightrag-backfill`,') && ragChat.includes('setBackfilling(true)'));
+ok('Chat can explicitly backfill LightRAG from Qdrant', ragChat.includes('Index Qdrant in LightRAG') && ragChat.includes('lightrag-backfill') && ragChat.includes('setBackfilling(true)'));
 ok('Chat renders deduplicated sources and inline markers', ragChat.includes("event === 'sources'") && ragChat.includes('href={`#source-${source.id}`}'));
 ok('external citations are safe and local sources stay text', citations.includes('rel="noreferrer"') && citations.includes('<span>[{index + 1}] {source.path}</span>'));
 ok('drawer is hidden by default and uses dialog semantics', drawer.includes('if (!open) return null') && drawer.includes('role="dialog"'));

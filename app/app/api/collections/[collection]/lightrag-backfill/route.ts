@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { parseCollectionName } from '@/lib/collections';
 import { qdrant } from '@/lib/qdrant';
-import { groupQdrantPointsForLightRag, type LightRagDocument, type QdrantTextPoint } from '@/lib/qdrant-to-lightrag';
+import { groupQdrantPointsForLightRag, type QdrantTextPoint } from '@/lib/qdrant-to-lightrag';
 
-const SIDECAR_BATCH_INSERT_URL = 'http://localhost:8000/insert/batch';
+const SIDECAR_BACKFILL_URL = 'http://localhost:8000/backfill';
 const QDRANT_PAGE_SIZE = 256;
-const LIGHTRAG_BATCH_SIZE = 100;
+const JOB_ID = /^[a-f0-9]{32}$/;
 
-type BatchResponse = { documents?: unknown };
+type BackfillJob = { id: string; status: 'running' | 'complete' | 'partial' | 'failed'; documents: number; indexed_documents: number; error?: string };
 
 async function loadQdrantDocuments(collection: string): Promise<QdrantTextPoint[]> {
   const points: QdrantTextPoint[] = [];
@@ -23,15 +23,12 @@ async function loadQdrantDocuments(collection: string): Promise<QdrantTextPoint[
   return points;
 }
 
-async function insertBatch(collection: string, documents: LightRagDocument[]): Promise<number> {
-  const response = await fetch(SIDECAR_BATCH_INSERT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ collection, documents }),
-  });
-  const data: BatchResponse | null = await response.json().catch(() => null);
-  if (!response.ok || !data || typeof data.documents !== 'number') throw new Error('LightRAG indexing failed');
-  return data.documents;
+async function sidecarJob(response: Response): Promise<BackfillJob | null> {
+  const data: unknown = await response.json().catch(() => null);
+  if (!response.ok || typeof data !== 'object' || data === null || Array.isArray(data)) return null;
+  const job = data as Record<string, unknown>;
+  if (typeof job.id !== 'string' || !JOB_ID.test(job.id) || !['running', 'complete', 'partial', 'failed'].includes(String(job.status)) || typeof job.documents !== 'number' || typeof job.indexed_documents !== 'number') return null;
+  return job as BackfillJob;
 }
 
 export async function POST(_: Request, { params }: { params: Promise<{ collection: string }> }) {
@@ -48,14 +45,27 @@ export async function POST(_: Request, { params }: { params: Promise<{ collectio
   const documents = groupQdrantPointsForLightRag(points);
   if (!documents.length) return NextResponse.json({ status: 'complete', qdrantPoints: points.length, documents: 0, indexedDocuments: 0 });
 
-  let indexedDocuments = 0;
+  let job: BackfillJob | null;
   try {
-    for (let start = 0; start < documents.length; start += LIGHTRAG_BATCH_SIZE) {
-      indexedDocuments += await insertBatch(collection, documents.slice(start, start + LIGHTRAG_BATCH_SIZE));
-    }
+    job = await sidecarJob(await fetch(SIDECAR_BACKFILL_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ collection, documents }),
+    }));
   } catch {
-    const status = indexedDocuments ? 'partial' : 'failed';
-    return NextResponse.json({ status, qdrantPoints: points.length, documents: documents.length, indexedDocuments, error: 'LightRAG indexing stopped before completion' }, { status: indexedDocuments ? 200 : 502 });
+    job = null;
   }
-  return NextResponse.json({ status: 'complete', qdrantPoints: points.length, documents: documents.length, indexedDocuments });
+  if (!job) return NextResponse.json({ error: 'Could not start LightRAG indexing' }, { status: 502 });
+  return NextResponse.json({ id: job.id, status: job.status, qdrantPoints: points.length, documents: job.documents, indexedDocuments: job.indexed_documents }, { status: 202 });
+}
+
+export async function GET(request: Request) {
+  const jobId = new URL(request.url).searchParams.get('job');
+  if (!jobId || !JOB_ID.test(jobId)) return NextResponse.json({ error: 'Invalid backfill job' }, { status: 400 });
+  let job: BackfillJob | null;
+  try {
+    job = await sidecarJob(await fetch(`${SIDECAR_BACKFILL_URL}/${jobId}`));
+  } catch {
+    job = null;
+  }
+  if (!job) return NextResponse.json({ error: 'Could not read LightRAG indexing status' }, { status: 502 });
+  return NextResponse.json({ id: job.id, status: job.status, documents: job.documents, indexedDocuments: job.indexed_documents, error: job.error });
 }

@@ -7,7 +7,7 @@ import styles from './knowledge-base.module.css';
 
 type Message = { id: string; role: 'user' | 'assistant'; content: string; sources?: CitationSource[]; status?: 'retrieving' | 'streaming' | 'stopped' | 'failed' | 'complete' | 'insufficient' };
 type CollectionStats = { qdrant: { points: number }; lightrag: { documents: number; nodes: number; links: number } };
-type BackfillResult = { status: 'complete' | 'partial' | 'failed'; documents: number; indexedDocuments: number; error?: string };
+type BackfillResult = { id?: string; status: 'running' | 'complete' | 'partial' | 'failed'; documents: number; indexedDocuments: number; error?: string };
 interface RagChatProps { collection: string; collections: string[]; unavailable: boolean; onCollectionChange: (collection: string) => void; onNewChat: () => void; }
 
 export function RagChat({ collection, collections, unavailable, onCollectionChange, onNewChat }: RagChatProps) {
@@ -36,15 +36,32 @@ export function RagChat({ collection, collections, unavailable, onCollectionChan
     if (!collection || backfilling) return;
     setBackfilling(true); setBackfillMessage('');
     try {
-      const response = await fetch(`/api/collections/${encodeURIComponent(collection)}/lightrag-backfill`, { method: 'POST' });
-      const result = await response.json() as BackfillResult;
-      if (!response.ok || !result.status) throw new Error(result.error || 'Indexing failed');
-      setBackfillMessage(`${result.status === 'complete' ? 'Indexed' : 'Partially indexed'} ${result.indexedDocuments} of ${result.documents} Qdrant sources.`);
-      const statsResponse = await fetch(`/api/collections/${encodeURIComponent(collection)}/stats`);
-      if (statsResponse.ok) setStats(await statsResponse.json() as CollectionStats);
+      const endpoint = `/api/collections/${encodeURIComponent(collection)}/lightrag-backfill`;
+      const response = await fetch(endpoint, { method: 'POST' });
+      const started = await response.json() as BackfillResult;
+      if (!response.ok || !started.status) throw new Error(started.error || 'Indexing failed');
+      if (started.status === 'complete') { setBackfillMessage('No Qdrant sources need indexing.'); setBackfilling(false); return; }
+      if (!started.id) throw new Error('Could not start indexing');
+      const poll = async (): Promise<void> => {
+        try {
+          const statusResponse = await fetch(`${endpoint}?job=${started.id}`);
+          const result = await statusResponse.json() as BackfillResult;
+          if (!statusResponse.ok) throw new Error(result.error || 'Could not read indexing status');
+          if (result.status === 'running') { setBackfillMessage(`Indexing ${result.indexedDocuments} of ${result.documents} Qdrant sources…`); window.setTimeout(() => void poll(), 2_000); return; }
+          setBackfillMessage(`${result.status === 'complete' ? 'Indexed' : 'Partially indexed'} ${result.indexedDocuments} of ${result.documents} Qdrant sources.`);
+          const statsResponse = await fetch(`/api/collections/${encodeURIComponent(collection)}/stats`);
+          if (statsResponse.ok) setStats(await statsResponse.json() as CollectionStats);
+          setBackfilling(false);
+        } catch (error) {
+          setBackfillMessage(error instanceof Error ? error.message : 'Indexing failed');
+          setBackfilling(false);
+        }
+      };
+      await poll();
     } catch (error) {
       setBackfillMessage(error instanceof Error ? error.message : 'Indexing failed');
-    } finally { setBackfilling(false); }
+      setBackfilling(false);
+    }
   };
 
   const start = async () => {
@@ -91,7 +108,7 @@ export function RagChat({ collection, collections, unavailable, onCollectionChan
   const reset = () => { controllerRef.current?.abort(); turnRef.current = ''; setMessages([]); onNewChat(); };
   return <section className={styles.chat} aria-label="RAG Chat">
     <p className={styles.srOnly} role="status">{running ? 'Retrieving answer' : ''}</p>
-    <header className={styles.chatHeader}><div className={styles.collectionContext}><label>Collection <select value={collection} onChange={(event) => onCollectionChange(event.target.value)} disabled={running || unavailable}>{collections.map((name) => <option value={name} key={name}>{name}</option>)}</select></label>{stats ? <ul className={styles.stats} aria-label="Collection statistics"><li>Qdrant: {stats.qdrant.points} items</li><li>LightRAG: {stats.lightrag.documents} items</li><li>Graph: {stats.lightrag.nodes} nodes · {stats.lightrag.links} links</li></ul> : statsUnavailable ? <p className={styles.statsUnavailable}>Statistics unavailable</p> : collection ? <p className={styles.statsUnavailable}>Loading statistics…</p> : null}{collection && <button type="button" className={styles.backfillButton} onClick={indexQdrantInLightRag} disabled={backfilling || unavailable}>{backfilling ? 'Indexing Qdrant…' : 'Index Qdrant in LightRAG'}</button>}{backfillMessage && <p className={styles.backfillMessage} role="status">{backfillMessage}</p>}</div><button type="button" onClick={reset}>New chat</button></header>
+    <header className={styles.chatHeader}><div className={styles.collectionContext}><label>Collection <select value={collection} onChange={(event) => onCollectionChange(event.target.value)} disabled={running || backfilling || unavailable}>{collections.map((name) => <option value={name} key={name}>{name}</option>)}</select></label>{stats ? <ul className={styles.stats} aria-label="Collection statistics"><li>Qdrant: {stats.qdrant.points} items</li><li>LightRAG: {stats.lightrag.documents} items</li><li>Graph: {stats.lightrag.nodes} nodes · {stats.lightrag.links} links</li></ul> : statsUnavailable ? <p className={styles.statsUnavailable}>Statistics unavailable</p> : collection ? <p className={styles.statsUnavailable}>Loading statistics…</p> : null}{collection && <button type="button" className={styles.backfillButton} onClick={indexQdrantInLightRag} disabled={backfilling || unavailable}>{backfilling ? 'Indexing Qdrant…' : 'Index Qdrant in LightRAG'}</button>}{backfillMessage && <p className={styles.backfillMessage} role="status">{backfillMessage}</p>}</div><button type="button" onClick={reset}>New chat</button></header>
     <div className={styles.transcript} aria-live="off">{messages.length === 0 && <p className={styles.notice}>Ask a question to search this collection.</p>}{messages.map((message) => <article key={message.id} className={message.role === 'user' ? styles.userMessage : styles.assistantMessage}><strong>{message.role === 'user' ? 'You' : 'Mementos'}</strong><p>{message.content || (message.status === 'retrieving' ? 'Retrieving evidence…' : '')}</p>{message.sources?.length ? <p className={styles.inlineCitations}>{message.sources.map((source, index) => <a href={`#source-${source.id}`} key={source.id}>[{index + 1}]</a>)}</p> : null}<CitationList sources={message.sources || []} />{message.role === 'assistant' && message.status === 'complete' && message.content && <button type="button" className={styles.copyButton} onClick={() => void navigator.clipboard.writeText(message.content)}>Copy</button>}{message.status && message.status !== 'complete' && <small className={message.status === 'insufficient' ? styles.insufficient : ''}>{message.status}</small>}</article>)}</div>
     {running && <button type="button" className={styles.stopButton} onClick={stop}>Stop</button>}
     <ChatComposer value={draft} onChange={setDraft} onSubmit={start} disabled={running || unavailable || !collection} />

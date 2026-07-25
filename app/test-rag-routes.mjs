@@ -54,7 +54,7 @@ ok('collections use the shared name validator', collectionsSrc.includes('parseCo
 ok('chat contract uses the shared name validator', fs.readFileSync('app/lib/knowledge-base-contracts.ts', 'utf8').includes('parseCollectionName'));
 ok('collection validator accepts the LightRAG name alphabet', collectionValidatorSrc.includes('A-Za-z0-9_-'));
 ok('stats route validates collections and reads both stores', statsSrc.includes('parseCollectionName') && statsSrc.includes('qdrant.getCollection') && statsSrc.includes('SIDECAR_STATS_URL'));
-ok('backfill route pages Qdrant and batch-inserts into LightRAG', backfillSrc.includes('qdrant.scroll') && backfillSrc.includes('groupQdrantPointsForLightRag') && backfillSrc.includes('/insert/batch') && backfillSrc.includes("status = indexedDocuments ? 'partial' : 'failed'"));
+ok('backfill route pages Qdrant and polls a LightRAG job', backfillSrc.includes('qdrant.scroll') && backfillSrc.includes('groupQdrantPointsForLightRag') && backfillSrc.includes("SIDECAR_BACKFILL_URL = 'http://localhost:8000/backfill'") && backfillSrc.includes('export async function GET'));
 
 // ── 2. Input validation ───────────────────────────────────────────
 
