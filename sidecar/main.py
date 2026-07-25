@@ -3,6 +3,8 @@ import json
 import logging
 import os
 from pathlib import Path
+from typing import Any
+from uuid import uuid4
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -208,37 +210,84 @@ async def insert(request: Request):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-@app.post("/insert/batch")
-async def insert_batch(request: Request):
-    try:
-        data = await request.json()
-    except Exception:
-        return JSONResponse(status_code=400, content={"error": "Invalid JSON body"})
+def _parse_batch_insert(data: object) -> tuple[str, list[str], list[str]]:
     if not isinstance(data, dict) or set(data) != {"collection", "documents"}:
-        return JSONResponse(status_code=400, content={"error": "Collection and documents are required"})
-    try:
-        collection_workspace(data["collection"])
-    except ValueError as error:
-        return JSONResponse(status_code=400, content={"error": str(error)})
+        raise ValueError("Collection and documents are required")
+    collection = data["collection"]
+    collection_workspace(collection)
     documents = data["documents"]
     if not isinstance(documents, list) or not documents or len(documents) > 500:
-        return JSONResponse(status_code=400, content={"error": "documents must contain 1-500 documents"})
+        raise ValueError("documents must contain 1-500 documents")
     texts: list[str] = []
     sources: list[str] = []
     for document in documents:
         if not isinstance(document, dict) or set(document) != {"text", "source"}:
-            return JSONResponse(status_code=400, content={"error": "Each document requires text and source"})
+            raise ValueError("Each document requires text and source")
         text, source = document["text"], document["source"]
         if not isinstance(text, str) or not text.strip() or len(text) > 2_000_000 or not isinstance(source, str) or not source.strip() or len(source) > 2_000:
-            return JSONResponse(status_code=400, content={"error": "Each document needs safe non-empty text and source"})
+            raise ValueError("Each document needs safe non-empty text and source")
         texts.append(text.strip())
         sources.append(source.strip())
+    return collection, texts, sources
+
+
+@app.post("/insert/batch")
+async def insert_batch(request: Request):
     try:
-        track_id = await (await get_rag(data["collection"])).ainsert(texts, file_paths=sources)
-        return JSONResponse({"success": True, "collection": data["collection"], "documents": len(texts), "track_id": track_id})
+        collection, texts, sources = _parse_batch_insert(await request.json())
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"error": str(error)})
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON body"})
+    try:
+        track_id = await (await get_rag(collection)).ainsert(texts, file_paths=sources)
+        return JSONResponse({"success": True, "collection": collection, "documents": len(texts), "track_id": track_id})
     except Exception:
         logger.exception("Batch insert failed")
         return JSONResponse(status_code=500, content={"error": "LightRAG indexing failed"})
+
+
+_backfill_jobs: dict[str, dict[str, Any]] = {}
+_BACKFILL_BATCH_SIZE = 5
+
+
+async def _run_backfill(job_id: str, collection: str, texts: list[str], sources: list[str]) -> None:
+    job = _backfill_jobs[job_id]
+    try:
+        rag = await get_rag(collection)
+        for start in range(0, len(texts), _BACKFILL_BATCH_SIZE):
+            end = start + _BACKFILL_BATCH_SIZE
+            await rag.ainsert(texts[start:end], file_paths=sources[start:end])
+            job["indexed_documents"] += end - start
+        job["status"] = "complete"
+    except Exception:
+        logger.exception("Backfill job failed")
+        job["status"] = "partial" if job["indexed_documents"] else "failed"
+        job["error"] = "LightRAG indexing stopped before completion"
+
+
+@app.post("/backfill")
+async def start_backfill(request: Request):
+    try:
+        collection, texts, sources = _parse_batch_insert(await request.json())
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"error": str(error)})
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON body"})
+    if any(job["collection"] == collection and job["status"] == "running" for job in _backfill_jobs.values()):
+        return JSONResponse(status_code=409, content={"error": "A backfill is already running for this collection"})
+    job_id = uuid4().hex
+    _backfill_jobs[job_id] = {"id": job_id, "collection": collection, "status": "running", "documents": len(texts), "indexed_documents": 0}
+    asyncio.create_task(_run_backfill(job_id, collection, texts, sources))
+    return JSONResponse(_backfill_jobs[job_id], status_code=202)
+
+
+@app.get("/backfill/{job_id}")
+async def backfill_status(job_id: str):
+    job = _backfill_jobs.get(job_id)
+    if not job:
+        return JSONResponse(status_code=404, content={"error": "Backfill job not found"})
+    return JSONResponse(job)
 
 
 @app.post("/chat")

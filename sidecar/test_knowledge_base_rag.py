@@ -229,6 +229,30 @@ def test_batch_insert_endpoint_preserves_collection_and_each_source(monkeypatch)
     assert TestClient(main_module.app).post("/insert/batch", json={"collection": "bad name", "documents": []}).status_code == 400
 
 
+def test_backfill_starts_a_background_job_and_exposes_its_status(monkeypatch):
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent))
+    import main as main_module
+    from fastapi.testclient import TestClient
+
+    class FakeRAG:
+        async def ainsert(self, texts, *, file_paths):
+            return "backfill-1"
+
+    async def get_collection_rag(collection):
+        return FakeRAG()
+
+    monkeypatch.setattr(main_module, "get_rag", get_collection_rag)
+    main_module._backfill_jobs.clear()
+    with TestClient(main_module.app) as client:
+        started = client.post("/backfill", json={"collection": "research", "documents": [{"text": "One", "source": "one.md"}]})
+        assert started.status_code == 202
+        job = client.get(f"/backfill/{started.json()['id']}")
+    assert job.status_code == 200
+    assert job.json()["documents"] == 1
+    assert job.json()["status"] in {"running", "complete"}
+
+
 def test_stats_endpoint_returns_validated_collection_counts_without_rag_initialization(monkeypatch, tmp_path):
     import sys
     sys.path.insert(0, str(Path(__file__).parent))
