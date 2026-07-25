@@ -22,6 +22,7 @@ console.log('\n=== Knowledge Base redesign ===\n');
 ok('page composes Deep Research and Knowledge Base views', page.includes('<DeepResearch') && page.includes('<KnowledgeBase'));
 ok('legacy dashboard state is removed', !page.includes('ragMode') && !page.includes('ragIngestText') && !page.includes('sessionCounts'));
 ok('Chat is the default local view', knowledgeBase.includes("useState<'chat' | 'vector'>('chat')"));
+ok('Collection changes reset chat without a confirmation popup', knowledgeBase.includes('setChatKey((key) => key + 1)') && !knowledgeBase.includes('window.confirm'));
 ok('text-labelled local view switch exists', knowledgeBase.includes('>Chat</button>') && knowledgeBase.includes('>Vector Search</button>'));
 ok('Vector Search clears state on collection changes', vectorSearch.includes('}, [selectedCollection])'));
 ok('Vector Search supports 5, 10, and 20 results', vectorSearch.includes('[5, 10, 20]'));

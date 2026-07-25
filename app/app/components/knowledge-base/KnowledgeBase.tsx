@@ -20,8 +20,7 @@ export function KnowledgeBase(props: KnowledgeBaseProps) {
   const [chatKey, setChatKey] = useState(0);
   const changeCollection = (collection: string) => {
     if (collection === props.selectedCollection) return;
-    if (window.confirm('Changing collections starts a new chat. Continue?')) setChatKey((key) => key + 1);
-    else return;
+    setChatKey((key) => key + 1);
     props.onCollectionChange(collection);
   };
   return <AppShell activeDestination="knowledge-base" onOpenResearch={props.onOpenResearch} onOpenCollections={props.onOpenCollections}>
