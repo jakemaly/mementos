@@ -208,6 +208,39 @@ async def insert(request: Request):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.post("/insert/batch")
+async def insert_batch(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON body"})
+    if not isinstance(data, dict) or set(data) != {"collection", "documents"}:
+        return JSONResponse(status_code=400, content={"error": "Collection and documents are required"})
+    try:
+        collection_workspace(data["collection"])
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"error": str(error)})
+    documents = data["documents"]
+    if not isinstance(documents, list) or not documents or len(documents) > 500:
+        return JSONResponse(status_code=400, content={"error": "documents must contain 1-500 documents"})
+    texts: list[str] = []
+    sources: list[str] = []
+    for document in documents:
+        if not isinstance(document, dict) or set(document) != {"text", "source"}:
+            return JSONResponse(status_code=400, content={"error": "Each document requires text and source"})
+        text, source = document["text"], document["source"]
+        if not isinstance(text, str) or not text.strip() or len(text) > 2_000_000 or not isinstance(source, str) or not source.strip() or len(source) > 2_000:
+            return JSONResponse(status_code=400, content={"error": "Each document needs safe non-empty text and source"})
+        texts.append(text.strip())
+        sources.append(source.strip())
+    try:
+        track_id = await (await get_rag(data["collection"])).ainsert(texts, file_paths=sources)
+        return JSONResponse({"success": True, "collection": data["collection"], "documents": len(texts), "track_id": track_id})
+    except Exception:
+        logger.exception("Batch insert failed")
+        return JSONResponse(status_code=500, content={"error": "LightRAG indexing failed"})
+
+
 @app.post("/chat")
 async def chat(request: Request):
     """Stream a collection-scoped, grounded LightRAG answer as SSE."""

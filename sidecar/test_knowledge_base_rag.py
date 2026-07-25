@@ -201,6 +201,34 @@ async def test_insert_endpoint_scopes_collection_and_preserves_filename(monkeypa
     assert invalid.status_code == 400
 
 
+def test_batch_insert_endpoint_preserves_collection_and_each_source(monkeypatch):
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent))
+    import main as main_module
+    from fastapi.testclient import TestClient
+
+    calls = []
+    class FakeRAG:
+        async def ainsert(self, texts, *, file_paths):
+            calls.append((texts, file_paths))
+            return "backfill-1"
+
+    async def get_collection_rag(collection):
+        assert collection == "research"
+        return FakeRAG()
+
+    monkeypatch.setattr(main_module, "get_rag", get_collection_rag)
+    response = TestClient(main_module.app).post("/insert/batch", json={
+        "collection": "research",
+        "documents": [{"text": "First document", "source": "one.md"}, {"text": "Second document", "source": "https://example.com"}],
+    })
+
+    assert response.status_code == 200
+    assert response.json()["documents"] == 2
+    assert calls == [(["First document", "Second document"], ["one.md", "https://example.com"])]
+    assert TestClient(main_module.app).post("/insert/batch", json={"collection": "bad name", "documents": []}).status_code == 400
+
+
 def test_stats_endpoint_returns_validated_collection_counts_without_rag_initialization(monkeypatch, tmp_path):
     import sys
     sys.path.insert(0, str(Path(__file__).parent))
