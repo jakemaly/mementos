@@ -201,6 +201,21 @@ async def test_insert_endpoint_scopes_collection_and_preserves_filename(monkeypa
     assert invalid.status_code == 400
 
 
+def test_stats_endpoint_returns_validated_collection_counts_without_rag_initialization(monkeypatch, tmp_path):
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent))
+    import main as main_module
+    from fastapi.testclient import TestClient
+
+    (tmp_path / "kv_store_full_docs.json").write_text('{"document": {}}')
+    monkeypatch.setattr(main_module, "LIGHTRAG_DATA_DIR", tmp_path)
+    response = TestClient(main_module.app).get("/stats", params={"collection": "default"})
+
+    assert response.status_code == 200
+    assert response.json() == {"documents": 1, "nodes": 0, "links": 0}
+    assert TestClient(main_module.app).get("/stats", params={"collection": "bad name"}).status_code == 400
+
+
 def test_stream_rejects_invalid_requests_and_client_retrieval_overrides():
     for payload in (
         {},

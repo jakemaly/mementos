@@ -15,6 +15,7 @@ from knowledge_base import (
     collection_workspace,
     insert_with_provenance,
     parse_chat_request,
+    read_collection_stats,
     stream_chat_events,
 )
 
@@ -83,6 +84,7 @@ def _create_llm_func():
     return _llm
 
 
+LIGHTRAG_DATA_DIR = Path(__file__).parent / "data"
 _embedding_func = None
 _llm_func = None
 
@@ -107,7 +109,7 @@ def _create_rag(workspace: str = "") -> LightRAG:
     os.environ.setdefault("QDRANT_URL", "http://localhost:6333")
 
     rag = LightRAG(
-        working_dir=str(Path(__file__).parent / "data"),
+        working_dir=str(LIGHTRAG_DATA_DIR),
         workspace=workspace,
         embedding_func=_shared_embedding_func(),
         llm_model_func=_shared_llm_func(),
@@ -152,6 +154,14 @@ async def handle_exception(request, exc):
 @app.get("/health")
 async def health():
     return JSONResponse({"status": "ok"})
+
+
+@app.get("/stats")
+async def stats(collection: str):
+    try:
+        return JSONResponse(read_collection_stats(LIGHTRAG_DATA_DIR, collection))
+    except ValueError as error:
+        return JSONResponse(status_code=400, content={"error": str(error)})
 
 
 _VALID_MODES = {"naive", "local", "global", "hybrid"}
