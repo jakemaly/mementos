@@ -5,7 +5,10 @@ from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
 import inspect
+import json
+from pathlib import Path
 import re
+from xml.etree import ElementTree
 from typing import Any
 
 from lightrag import LightRAG
@@ -41,6 +44,27 @@ def collection_workspace(name: str) -> str:
     if not isinstance(name, str) or not _COLLECTION_NAME.fullmatch(name):
         raise ValueError("collection must use 1-64 letters, numbers, hyphens, or underscores")
     return "" if name == "default" else name
+
+
+def read_collection_stats(data_dir: Path, collection: str) -> dict[str, int]:
+    """Count persisted LightRAG records without initializing models or storage."""
+    workspace = collection_workspace(collection)
+    directory = data_dir / workspace
+    documents = 0
+    try:
+        records = json.loads((directory / "kv_store_full_docs.json").read_text())
+        documents = len(records) if isinstance(records, dict) else 0
+    except (OSError, json.JSONDecodeError):
+        pass
+
+    nodes = links = 0
+    try:
+        root = ElementTree.parse(directory / "graph_chunk_entity_relation.graphml").getroot()
+        nodes = sum(element.tag.endswith("node") for element in root.iter())
+        links = sum(element.tag.endswith("edge") for element in root.iter())
+    except (OSError, ElementTree.ParseError):
+        pass
+    return {"documents": documents, "nodes": nodes, "links": links}
 
 
 def parse_chat_request(data: Any) -> ChatRequest:

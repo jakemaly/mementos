@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 import inspect
+from pathlib import Path
 
 import pytest
 from lightrag import LightRAG
@@ -16,6 +17,7 @@ from knowledge_base import (
     insert_with_provenance,
     parse_chat_request,
     query_with_sources,
+    read_collection_stats,
     stream_chat_events,
 )
 
@@ -23,6 +25,21 @@ from knowledge_base import (
 async def _answer_chunks() -> AsyncIterator[str]:
     yield "Grounded "
     yield "answer"
+
+
+def test_collection_stats_reads_workspace_files_without_initializing_rag(tmp_path):
+    (tmp_path / "kv_store_full_docs.json").write_text('{"a": {}, "b": {}}')
+    (tmp_path / "graph_chunk_entity_relation.graphml").write_text(
+        '<graphml xmlns="http://graphml.graphdrawing.org/xmlns"><graph>'
+        '<node id="one"/><node id="two"/><edge source="one" target="two"/>'
+        '</graph></graphml>'
+    )
+    research = tmp_path / "research"
+    research.mkdir()
+    (research / "kv_store_full_docs.json").write_text('{"a": {}}')
+
+    assert read_collection_stats(tmp_path, "default") == {"documents": 2, "nodes": 2, "links": 1}
+    assert read_collection_stats(tmp_path, "research") == {"documents": 1, "nodes": 0, "links": 0}
 
 
 @pytest.mark.asyncio
