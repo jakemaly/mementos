@@ -9,6 +9,7 @@
 import { POST as ingestPOST } from './app/api/rag/ingest/route.ts';
 import { POST as queryPOST } from './app/api/rag/query/route.ts';
 import { createCollectionIndexer } from './lib/index-collection-document.ts';
+import { groupQdrantPointsForLightRag } from './lib/qdrant-to-lightrag.ts';
 
 const PASS = '\x1b[32m✓\x1b[0m';
 const FAIL = '\x1b[31m✗\x1b[0m';
@@ -48,6 +49,16 @@ global.AbortController = class {
 };
 
 // ── Unified Collection Indexing Tests ──────────────────────────────
+
+console.log('\n=== Qdrant to LightRAG backfill ===\n');
+
+const grouped = groupQdrantPointsForLightRag([
+  { id: 'one', payload: { text: 'Hello world', filename: 'note.md', chunk_index: 0, char_start: 0, char_end: 11 } },
+  { id: 'two', payload: { text: 'world again', filename: 'note.md', chunk_index: 1, char_start: 6, char_end: 17 } },
+  { id: 'three', payload: { text: 'A web source', filename: 'Page title', url: 'https://example.com' } },
+  { id: 'four', payload: { irrelevant: 'skip me' } },
+]);
+ok('backfill groups chunks, removes overlap, and preserves URLs', grouped.length === 2 && grouped[0].source === 'note.md' && grouped[0].text === 'Hello world again' && grouped[1].source === 'https://example.com');
 
 console.log('\n=== Unified Collection Indexing — Runtime Tests ===\n');
 
