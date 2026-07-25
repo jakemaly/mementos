@@ -37,6 +37,7 @@ ok('external citations are safe and local sources stay text', citations.includes
 ok('drawer is hidden by default and uses dialog semantics', drawer.includes('if (!open) return null') && drawer.includes('role="dialog"'));
 ok('drawer retains a partial-failure file and restores focus', drawer.includes("if (data.status === 'complete') setFile(null)") && drawer.includes("getElementById('collections-trigger')?.focus()"));
 ok('drawer traps Tab focus while open', drawer.includes("event.key === 'Tab'") && drawer.includes('drawerRef.current.querySelectorAll'));
+ok('drawer closes when its backdrop is clicked', drawer.includes('event.target === event.currentTarget') && drawer.includes('requestClose()'));
 ok('drawer is full-width on narrow screens', drawerCss.includes('@media (max-width: 768px)') && drawerCss.includes('width: 100%'));
 
 console.log('\n=== Accessibility and Responsive Quality ===\n');

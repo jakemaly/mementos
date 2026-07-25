@@ -100,7 +100,7 @@ export function CollectionsDrawer({
   };
 
   return (
-    <div className={styles.backdrop} role="presentation">
+    <div className={styles.backdrop} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) requestClose(); }}>
       <aside ref={drawerRef} className={styles.drawer} role="dialog" aria-modal="true" aria-label="Collections manager">
         <header className={styles.header}>
           <h2>Collections</h2>
