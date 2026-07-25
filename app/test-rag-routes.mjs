@@ -36,6 +36,7 @@ function warnMsg(name, message) {
 const ingestSrc = fs.readFileSync('app/api/rag/ingest/route.ts', 'utf8');
 const querySrc = fs.readFileSync('app/api/rag/query/route.ts', 'utf8');
 const collectionsSrc = fs.readFileSync('app/api/collections/route.ts', 'utf8');
+const statsSrc = fs.readFileSync('app/api/collections/[collection]/stats/route.ts', 'utf8');
 const collectionValidatorSrc = fs.readFileSync('lib/collections.ts', 'utf8');
 
 // ── 1. Structural checks ──────────────────────────────────────────
@@ -51,6 +52,7 @@ ok('query forwards to /chat', querySrc.includes('/chat'));
 ok('collections use the shared name validator', collectionsSrc.includes('parseCollectionName'));
 ok('chat contract uses the shared name validator', fs.readFileSync('app/lib/knowledge-base-contracts.ts', 'utf8').includes('parseCollectionName'));
 ok('collection validator accepts the LightRAG name alphabet', collectionValidatorSrc.includes('A-Za-z0-9_-'));
+ok('stats route validates collections and reads both stores', statsSrc.includes('parseCollectionName') && statsSrc.includes('qdrant.getCollection') && statsSrc.includes('SIDECAR_STATS_URL'));
 
 // ── 2. Input validation ───────────────────────────────────────────
 
