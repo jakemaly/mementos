@@ -34,3 +34,13 @@ The following passed at current HEAD:
 ## Remaining external blocker
 
 Safari/WebKit interactive verification is not available on this Linux host. The cached Playwright WebKit MiniBrowser was attempted in headless mode but exited during EGL/device initialization. This must be rerun on a Safari-capable host before claiming the supported-browser matrix is fully complete.
+
+## Manual Safari validation procedure
+
+1. Start the documented stack with `./start.sh`, then open the app in current Safari at viewport widths 1440px, 1024px, 768px, and 390px.
+2. At each width, navigate between Deep Research and Knowledge Base. Confirm desktop sidebar / narrow top navigation, visible focus, no console errors, no clipped controls, no horizontal overflow, and no nested scrolling trap.
+3. In Knowledge Base, confirm RAG Chat is the default; switch to Vector Search and back; verify each session remains intact.
+4. Open Collections, confirm focus enters the labelled drawer, Tab stays contained, Escape closes it, and focus returns to the Collections trigger. At 390px confirm it is a usable full-width sheet.
+5. Select a collection, send a supported chat question, then confirm streaming completion, numbered citations, safe external citation links, Copy, and New chat. Start another request and select Stop; confirm no late output appears.
+6. In Vector Search, submit a query at limits 5, 10, and 20; verify source/snippet/score, keyboard-accessible long-snippet disclosure, and that changing collection clears results.
+7. On mobile Safari, focus the chat composer with the on-screen keyboard visible and confirm the sticky composer remains reachable.
