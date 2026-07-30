@@ -85,7 +85,7 @@ If `sidecar/graph_dump.json` is absent, use the repository's existing graph-dump
    - `interaction`
    - `output`
    - `debug`
-4. Add a sixth Base COMP named `graph_root` *inside* `graph_scene`. It is the single parent that will move and scale every graph object.
+4. Add a **Null COMP** (the 3D object type, not a Base COMP) named `graph_root` *inside* `graph_scene`. It is the single 3D transform parent that will move and scale every graph object.
 5. Save (`Ctrl/Cmd+S`). Reopen the `.toe` once. This proves paths are relative to the project, before the project matters.
 
 **Checkpoint:** You have six plainly named containers and no red error flags.
@@ -98,7 +98,7 @@ Inside `graph_scene`:
 2. Back at `graph_scene` level, add a **Camera COMP** named `camera1`, a **Light COMP** named `light1`, and a **Render TOP** named `render_graph`.
 3. In `render_graph` parameters, set **Camera** to `camera1` and include the geometry/light as required by your TD build. Put the camera back on Z until the sphere is visible (for example, `tz = 5`; alter only as needed).
 4. View `render_graph` by clicking its viewer flag. Use the camera/geometry viewer to inspect the sphere with mouse navigation; do not touch MediaPipe yet.
-5. Parent `test_node_geo` under `graph_root` (drag its node onto `graph_root`, or set its parent). The test sphere should still render.
+5. Select `test_node_geo` → **Xform** page. Set **Parent Transform Source** to **Specify Parent Object**, then set **Parent Object** to `../graph_root` (you can drag `graph_root` onto that field). The test sphere should still render. Do not drag the Geometry COMP onto `graph_root`: that offers unrelated parameter-drop choices, not 3D parenting.
 
 **Checkpoint:** You can see one lit sphere in `render_graph`, save, close, and reopen without an error.
 
@@ -198,7 +198,7 @@ Do nodes first, then edges. Do not add hands until you can inspect every edge wi
 
 A Geometry COMP can use DAT rows or CHOP channels to drive instance attributes. It makes GPU copies of the one sphere instead of creating one Geometry COMP per entity.[^geometry]
 
-5. Parent `nodes_geo` under `graph_root`.
+5. On `nodes_geo` → **Xform**, set **Parent Transform Source** to **Specify Parent Object** and **Parent Object** to `../graph_root`.
 6. For deterministic node colour, derive RGB from a stable hash of the entity **ID** during the parse step, add `r/g/b` columns, and map them to the Geometry COMP's instance colour attributes. Do **not** add clustering/Louvain in TD: the current bridge does not return clusters.
 
 ### 4.2 Edges: join each validated source/target pair
@@ -215,7 +215,7 @@ for each edge: look up source position by source ID
 
 Never look up by displayed name: two entities may share a name. Never emit a line if either ID is absent—those were counted and discarded at refresh time.
 
-Put the line SOP in a Geometry COMP named `edges_geo`, give it a simple faint Constant/Phong MAT, and parent it under `graph_root` too. Add `nodes_geo` and `edges_geo` to `render_graph`'s geometry list if your TD version needs explicit lists.
+Put the line SOP in a Geometry COMP named `edges_geo`, give it a simple faint Constant/Phong MAT, then set `edges_geo` → **Xform** → **Parent Transform Source** to **Specify Parent Object** and **Parent Object** to `../graph_root`. Add `nodes_geo` and `edges_geo` to `render_graph`'s geometry list if your TD version needs explicit lists.
 
 **Checkpoint:** Every edge endpoint touches its intended node. Move `graph_root` once and both nodes and edges move together. Mouse-inspect the scene before proceeding.
 
