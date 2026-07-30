@@ -112,16 +112,24 @@ Inside `graph_source`:
 
 1. Add a **Web Client DAT** called `get_graph`.
 2. Set **Request Method** to `GET`, **URL** to `http://localhost:8000/td/graph`, and set a sensible timeout (for example 5000 ms). The Web Client DAT's `Request` parameter is a pulse: it sends one request; it is not a per-frame poll.[^web-client]
-3. Add a **Button COMP** named `refresh_graph`. In its button callback (or a small connected DAT), pulse `op('get_graph').par.request`.
-4. Add two **Table DATs** named `nodes_table` and `edges_table`; give them only headers for now:
+3. Add a **Button COMP** named `refresh_graph`. Set its **Button Type** to **Momentary** and its label to `Refresh graph`. Add a **Parameter Execute DAT** named `refresh_on_click`: on its Parameter Execute page, set **OP** to `refresh_graph`, add the button's **Value** parameter (`value0`) to **Parameters**, and enable **Value Change**. In the DAT, replace the template with:
 
-```text
-# nodes_table
-id	x	y	z	name	description
+   ```python
+   def onValueChange(par, prev):
+       if par.eval():
+           parent().op('get_graph').par.request.pulse()
+       return
+   ```
 
-# edges_table
-source	target	relation_id
-```
+   Clicking the button now sends one explicit request—never a per-frame poll.
+4. Add two **Table DATs** named `nodes_table` and `edges_table`. For each one, turn on its **Viewer Active** flag (the small `A` at the lower-right of the node), then click a cell in the small spreadsheet inside the node to type. Fill only row 0:
+
+   | Table DAT | Type into row 0, one cell at a time (use **Tab** to move right) |
+   |---|---|
+   | `nodes_table` | `id`, `x`, `y`, `z`, `name`, `description` |
+   | `edges_table` | `source`, `target`, `relation_id` |
+
+   Do not type the table names or `#` symbols into a cell. Leave all remaining cells blank: the refresh script fills them.
 
 5. Add a **Text DAT** called `status_text`. It is your plain-English status note, not a data source.
 
