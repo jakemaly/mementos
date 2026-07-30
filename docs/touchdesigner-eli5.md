@@ -112,7 +112,7 @@ Inside `graph_source`:
 
 1. Add a **Web Client DAT** called `get_graph`.
 2. Set **Request Method** to `GET`, **URL** to `http://localhost:8000/td/graph`, and set a sensible timeout (for example 5000 ms). The Web Client DAT's `Request` parameter is a pulse: it sends one request; it is not a per-frame poll.[^web-client]
-3. Add a **Button COMP** named `refresh_graph`. Set its **Button Type** to **Momentary** and its label to `Refresh graph`. Add a **Parameter Execute DAT** named `refresh_on_click`: on its Parameter Execute page, set **OP** to `refresh_graph`, add the button's **Value** parameter (`value0`) to **Parameters**, and enable **Value Change**. In the DAT, replace the template with:
+3. Add a **Button COMP** named `refresh_graph`. Set its **Button Type** to **Momentary** and its label to `Refresh graph`. Add a **Parameter Execute DAT** named `refresh_on_click`: on its Parameter Execute page, set **OP** to `refresh_graph`; in the `pars`/Parameters field, the value must be the parameter's internal name **`value0`** (not its visible label `Value`); then enable **Value Change**. In the DAT, replace the template with:
 
    ```python
    def onValueChange(par, prev):
