@@ -135,10 +135,24 @@ Inside `graph_source`:
 
 ### 3.2 Validate first, then replace both tables together
 
-Add a **DAT Execute DAT** that watches `get_graph`, or call a helper function from the Web Client callback. Put the following minimal Python in a Text DAT named `graph_refresh` and invoke `applyGraphResponse(op('get_graph').text)` only when the request completes. (The exact callback function name differs by TD version; leave the parsing function unchanged.)
+Use **one Text DAT**, not a DAT Execute DAT. A Text DAT is a place to keep Python. A **Web Client callback** is TouchDesigner's “the reply arrived” notification, so it is the right trigger: it runs once per completed HTTP response instead of trying to guess when the Web Client DAT's visible text has changed.
+
+1. Inside `graph_source`, add a **Text DAT** named `get_graph_callbacks`.
+2. Select `get_graph`. In its **Output** parameter page, find **Callbacks DAT** and drag `get_graph_callbacks` onto that field. This is a parameter reference, not a wire.
+3. Open `get_graph_callbacks`, delete its template text, and paste all of the code below.
+4. There are **no wires** in this step. The flow is: click `refresh_graph` → its Parameter Execute DAT pulses `get_graph` → the Web Client DAT gets an HTTP response → TD runs `get_graph_callbacks.onResponse()` → that script updates `nodes_table`, `edges_table`, and `status_text`.
 
 ```python
 import json
+
+# TouchDesigner calls this exact function after the HTTP reply arrives.
+def onResponse(webClientDAT, statusCode, headerDict, data):
+    if statusCode['code'] != 200:
+        parent().op('status_text').text = 'Refresh failed (HTTP {}): keeping last graph'.format(
+            statusCode['code'])
+        return
+    applyGraphResponse(data)
+    return
 
 def applyGraphResponse(text):
     try:
@@ -181,7 +195,7 @@ def applyGraphResponse(text):
         parent().op('status_text').text = 'Refresh failed; keeping last graph: {}'.format(exc)
 ```
 
-Create a custom float parameter called `Graphscale` on `graph_source` (start at `1`), or replace that one reference with a fixed `1.0` temporarily. The important part is that **all three xyz axes receive the same project-level scale**—never rewrite the source coordinates.
+Before clicking Refresh, make the `Graphscale` setting the script expects: select `graph_source`, click its **Edit Parameter Dialog** / **Customize Component** button, add a **Float** custom parameter, name it `Graphscale`, and set its default value to `1`. Close the dialog. Do not replace the `Graphscale` script reference with a one-off number: this one setting deliberately scales X, Y, and Z together without rewriting source coordinates.
 
 > ELI5: the function builds new lists on the workbench first. Only after every piece is good does it replace the two public spreadsheets. If something breaks, it throws away the unfinished workbench copy and leaves the old picture alone.
 
