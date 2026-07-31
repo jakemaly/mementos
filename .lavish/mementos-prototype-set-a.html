@@ -1,0 +1,1440 @@
+<!doctype html>
+<!--
+  THROWAWAY / PROTOTYPE — Mementos visual set A.
+  Question: can one restrained editorial route language unify entering research,
+  following a live route, and reviewing evidence? Three screen states are
+  switchable with ?screen=navigator, ?screen=route, or ?screen=dossier.
+  No persistence. No production data, navigation, or application code.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mementos — Prototype Set A</title>
+  <style>
+    :root {
+      --paper: #f5f1e9;
+      --paper-light: #fffdf8;
+      --paper-deep: #e9e3d9;
+      --ink: #1d1b19;
+      --muted: #706a62;
+      --quiet: #938c82;
+      --line: #d4cdc2;
+      --line-dark: #3d3a36;
+      --red: #b7193b;
+      --red-bright: #e12f49;
+      --black: #171615;
+      --success: #356047;
+      --focus: #8f1632;
+      --display: Georgia, "Times New Roman", serif;
+      --body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--paper); }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(183, 25, 59, .025) 0 1px, transparent 1px 100%),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: var(--body);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button, select { cursor: pointer; }
+    button { color: inherit; }
+    a { color: inherit; }
+    p, h1, h2, h3, h4, ul, ol, dl, dd, figure { margin: 0; }
+    ul, ol { padding: 0; }
+    [hidden] { display: none !important; }
+
+    :focus-visible {
+      outline: 3px solid var(--red-bright);
+      outline-offset: 3px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 224px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .rail {
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 34px 24px 30px;
+      border-right: 1px solid var(--line);
+      background: rgba(245, 241, 233, .9);
+    }
+
+    .identity {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding-bottom: 34px;
+    }
+
+    .wordmark {
+      position: relative;
+      width: fit-content;
+      font-size: 24px;
+      font-weight: 820;
+      letter-spacing: -.07em;
+      line-height: 1;
+    }
+
+    .wordmark::after {
+      position: absolute;
+      right: -9px;
+      bottom: -2px;
+      width: 5px;
+      height: 5px;
+      background: var(--red);
+      content: "";
+    }
+
+    .identity-note,
+    .eyebrow,
+    .section-label,
+    .field-label,
+    .screen-index,
+    .route-tag,
+    .trace-kind,
+    .source-number,
+    .utility-label {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .identity-note { color: var(--muted); }
+
+    .rail-nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav-item {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      min-height: 42px;
+      padding: 8px 0 8px 10px;
+      border: 0;
+      border-left: 2px solid transparent;
+      background: transparent;
+      text-align: left;
+      transition: border-color .18s ease, color .18s ease;
+    }
+
+    .nav-item:hover { color: var(--red); }
+    .nav-item[aria-current="page"] {
+      border-left-color: var(--red);
+      font-weight: 750;
+    }
+    .nav-number { color: var(--quiet); font-size: 10px; }
+    .nav-item[aria-current="page"] .nav-number { color: var(--red); }
+    .nav-copy { font-size: 13px; }
+    .nav-copy small { display: block; color: var(--muted); font-size: 10px; font-weight: 450; }
+
+    .rail-foot {
+      margin-top: auto;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .prototype-stamp {
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 5px 7px;
+      background: var(--black);
+      color: var(--paper-light);
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: .11em;
+    }
+
+    .prototype-stamp::before {
+      width: 6px;
+      height: 6px;
+      background: var(--red-bright);
+      content: "";
+    }
+
+    .rail-foot p + p { margin-top: 8px; }
+    .rail-foot strong { color: var(--ink); font-weight: 700; }
+
+    .main {
+      min-width: 0;
+      padding: 25px clamp(22px, 4vw, 64px) 142px;
+    }
+
+    .utility-bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: center;
+      min-height: 24px;
+      margin-bottom: 42px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .utility-bar .utility-label { color: var(--red); }
+    .utility-state { text-align: right; }
+
+    .screen { width: min(1180px, 100%); margin: 0 auto; }
+    .screen-topline,
+    .screen-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .screen-topline { margin-bottom: 28px; }
+    .screen-head { margin-bottom: 26px; }
+    .eyebrow, .section-label { color: var(--red); }
+    .screen-title {
+      margin-top: 7px;
+      font-family: var(--display);
+      font-size: clamp(37px, 5.4vw, 72px);
+      letter-spacing: -.065em;
+      line-height: .92;
+    }
+
+    .screen-lede {
+      max-width: 520px;
+      margin-top: 15px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .quiet-status {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .status-mark {
+      width: 8px;
+      height: 8px;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+    }
+
+    .status-mark.active { border-color: var(--red); background: var(--red); }
+    .status-mark.done { border-color: var(--success); background: var(--success); }
+
+    .screen-switcher {
+      position: fixed;
+      z-index: 20;
+      right: 50%;
+      bottom: 20px;
+      display: grid;
+      grid-template-columns: 42px minmax(180px, 250px) 42px;
+      align-items: stretch;
+      width: min(calc(100% - 32px), 420px);
+      transform: translateX(50%);
+      border: 1px solid var(--black);
+      background: var(--black);
+      color: var(--paper-light);
+      box-shadow: 6px 6px 0 var(--red);
+    }
+
+    .switch-arrow {
+      border: 0;
+      background: transparent;
+      color: var(--paper-light);
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .switch-arrow:hover { background: var(--red); }
+    .switch-current {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+      padding: 9px 13px 10px;
+      border-right: 1px solid var(--line-dark);
+      border-left: 1px solid var(--line-dark);
+    }
+
+    .switch-current .screen-index { color: var(--red-bright); }
+    .switch-current strong {
+      overflow: hidden;
+      margin-top: 2px;
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Navigator */
+    .navigator-screen { min-height: calc(100vh - 205px); }
+    .entry-layout {
+      display: grid;
+      grid-template-columns: minmax(250px, .72fr) minmax(420px, 1.28fr);
+      gap: clamp(38px, 7vw, 110px);
+      align-items: center;
+      min-height: 610px;
+    }
+
+    .entry-copy { padding-bottom: 18px; }
+    .slanted-label {
+      display: inline-block;
+      padding: 7px 11px 6px;
+      background: var(--black);
+      color: var(--paper-light);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .13em;
+      transform: skew(-10deg) rotate(-2deg);
+    }
+
+    .entry-copy h1 {
+      max-width: 560px;
+      margin-top: 23px;
+      font-family: var(--display);
+      font-size: clamp(47px, 7vw, 94px);
+      letter-spacing: -.078em;
+      line-height: .86;
+    }
+
+    .entry-copy h1 em { color: var(--red); font-style: normal; }
+    .entry-copy .screen-lede { max-width: 355px; font-size: 17px; }
+
+    .entry-note {
+      max-width: 310px;
+      margin-top: 55px;
+      padding-top: 15px;
+      border-top: 1px solid var(--ink);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .entry-note strong { display: block; margin-bottom: 3px; color: var(--ink); }
+
+    .entry-work { min-width: 0; }
+    .route-signal {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 530px);
+      margin: 0 0 -18px auto;
+      padding: 18px 22px 20px;
+      border-left: 9px solid var(--red-bright);
+      background: var(--black);
+      color: var(--paper-light);
+      transform: rotate(-1deg);
+    }
+
+    .route-signal::after {
+      position: absolute;
+      right: 17px;
+      bottom: 13px;
+      width: 33px;
+      height: 1px;
+      background: var(--red-bright);
+      content: "";
+    }
+
+    .route-signal .eyebrow { color: var(--red-bright); }
+    .route-signal strong {
+      display: block;
+      margin-top: 5px;
+      font-family: var(--display);
+      font-size: 25px;
+      letter-spacing: -.045em;
+      line-height: 1;
+    }
+
+    .route-signal p { margin-top: 6px; color: #c9c3bb; font-size: 12px; }
+
+    .composer-form {
+      position: relative;
+      padding: 38px 34px 28px;
+      border: 1px solid var(--ink);
+      background: var(--paper-light);
+      box-shadow: 10px 10px 0 var(--red);
+    }
+
+    .composer-form::before {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 40%;
+      height: 4px;
+      background: var(--black);
+      content: "";
+    }
+
+    .form-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      align-items: baseline;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .form-label span { color: var(--quiet); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+    .composer-textarea {
+      display: block;
+      width: 100%;
+      min-height: 144px;
+      margin-top: 14px;
+      padding: 0;
+      border: 0;
+      outline: 0;
+      resize: vertical;
+      background: transparent;
+      color: var(--ink);
+      font-family: var(--display);
+      font-size: clamp(22px, 3vw, 31px);
+      letter-spacing: -.04em;
+      line-height: 1.08;
+    }
+
+    .composer-textarea::placeholder { color: #a39c92; }
+    .composer-rule { height: 1px; margin: 20px 0 18px; background: var(--line); }
+    .composer-footer { display: flex; justify-content: space-between; gap: 20px; align-items: end; }
+    .select-wrap { min-width: 0; }
+    .select-wrap label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .collection-select {
+      max-width: 240px;
+      padding: 5px 25px 5px 0;
+      border: 0;
+      border-bottom: 1px solid var(--ink);
+      border-radius: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .primary-action,
+    .quiet-action,
+    .outline-action {
+      min-height: 42px;
+      border: 1px solid var(--black);
+      border-radius: 0;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .primary-action {
+      display: inline-flex;
+      gap: 17px;
+      align-items: center;
+      background: var(--black);
+      color: var(--paper-light);
+    }
+
+    .primary-action:hover { background: var(--red); }
+    .action-arrow { color: var(--red-bright); font-size: 18px; line-height: .5; }
+    .primary-action:hover .action-arrow { color: var(--paper-light); }
+    .form-feedback { min-height: 20px; margin-top: 20px; color: var(--muted); font-size: 11px; }
+    .form-feedback.is-error { color: var(--red); }
+
+    /* Shared research workspace */
+    .route-screen .screen-title { font-size: clamp(40px, 5vw, 66px); }
+    .run-status {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      min-width: 176px;
+      padding-left: 12px;
+      border-left: 3px solid var(--red);
+    }
+
+    .run-status .status-mark { margin-top: 5px; }
+    .run-status strong { display: block; font-size: 13px; }
+    .run-status small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+
+    .run-status.is-claimed { border-left-color: var(--success); }
+    .route-context {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: end;
+      padding: 16px 0 18px;
+      border-top: 1px solid var(--ink);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .route-context p { max-width: 760px; margin-top: 6px; font-family: var(--display); font-size: 19px; letter-spacing: -.025em; line-height: 1.15; }
+    .route-context .field-label { color: var(--muted); }
+    .quiet-action, .outline-action { background: transparent; }
+    .quiet-action:hover, .outline-action:hover { border-color: var(--red); color: var(--red); }
+    .research-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(280px, .75fr);
+      gap: clamp(27px, 4vw, 52px);
+      align-items: start;
+      margin-top: 25px;
+    }
+
+    .route-primary, .right-inspector { min-width: 0; }
+    .route-canvas {
+      min-height: 472px;
+      padding: 21px 24px 19px;
+      background: var(--black);
+      color: var(--paper-light);
+    }
+
+    .canvas-head, .trace-head, .inspector-head, .evidence-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      align-items: baseline;
+    }
+
+    .canvas-head { padding-bottom: 13px; border-bottom: 1px solid var(--line-dark); }
+    .canvas-head .section-label { color: var(--red-bright); }
+    .canvas-head small { color: #aaa49d; font-size: 10px; }
+    .route-list {
+      position: relative;
+      padding: 21px 0 3px;
+      list-style: none;
+    }
+
+    .route-list::before {
+      position: absolute;
+      top: 30px;
+      bottom: 27px;
+      left: 16px;
+      width: 2px;
+      background: var(--red-bright);
+      content: "";
+    }
+
+    .route-node {
+      position: relative;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      gap: 13px;
+      align-items: start;
+      width: 100%;
+      min-height: 58px;
+      padding: 8px 9px 8px 0;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--paper-light);
+      text-align: left;
+    }
+
+    button.route-node { cursor: pointer; }
+    button.route-node:hover { color: #fff; }
+    .route-node.node-tool { margin-left: 38px; width: calc(100% - 38px); }
+    .route-node.node-tool::before {
+      position: absolute;
+      top: -1px;
+      left: -23px;
+      width: 22px;
+      height: 28px;
+      border-bottom: 1px solid var(--line-dark);
+      border-left: 1px solid var(--line-dark);
+      content: "";
+    }
+
+    .node-mark {
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      width: 16px;
+      height: 16px;
+      margin: 6px 0 0 8px;
+      border: 2px solid #a8a29a;
+      border-radius: 50%;
+      background: var(--black);
+      color: var(--black);
+      font-size: 9px;
+    }
+
+    .node-tool .node-mark { border-radius: 2px; transform: rotate(45deg); }
+    .node-tool .node-mark span { transform: rotate(-45deg); }
+    .node-done .node-mark { border-color: #9b958c; background: #9b958c; }
+    .node-current {
+      border-color: var(--red-bright) !important;
+      background: rgba(225, 47, 73, .13) !important;
+    }
+
+    .node-current .node-mark { border-color: var(--red-bright); background: var(--red-bright); animation: routePulse 2.3s ease-in-out infinite; }
+    .node-current .node-mark span { color: var(--paper-light); }
+    .node-queued { opacity: .43; }
+    .node-copy strong { display: block; font-size: 13px; font-weight: 760; }
+    .node-copy small { display: block; margin-top: 2px; color: #aaa49d; font-size: 10px; }
+    .node-status { padding-top: 2px; color: #aaa49d; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .node-current .node-status { color: var(--red-bright); }
+
+    .loop-note {
+      display: block;
+      margin: 1px 0 3px 87px;
+      color: #aaa49d;
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .node-detail {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      margin-top: 10px;
+      padding-top: 15px;
+      border-top: 1px solid var(--line-dark);
+    }
+
+    .node-detail strong { display: block; font-size: 13px; }
+    .node-detail p { margin-top: 3px; color: #b8b1a8; font-size: 11px; }
+    .node-detail dl { display: grid; grid-template-columns: auto auto; gap: 4px 10px; align-content: start; font-size: 10px; }
+    .node-detail dt { color: #8f8981; }
+    .node-detail dd { color: var(--paper-light); text-align: right; }
+
+    .trace { margin-top: 34px; }
+    .trace-head { padding-bottom: 12px; border-bottom: 1px solid var(--ink); }
+    .trace-head .section-label { color: var(--ink); }
+    .trace-head small { color: var(--muted); font-size: 10px; }
+    .trace-list { list-style: none; }
+    .trace-row {
+      display: grid;
+      grid-template-columns: 83px minmax(0, 1fr) auto;
+      gap: 15px;
+      align-items: start;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .trace-time { color: var(--quiet); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; }
+    .trace-copy strong { display: block; font-size: 12px; }
+    .trace-copy p { margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .trace-kind { padding-top: 2px; color: var(--muted); font-size: 9px; text-align: right; }
+    .trace-kind.current { color: var(--red); }
+
+    .right-inspector { display: grid; gap: 35px; }
+    .inspector-section { padding-top: 14px; border-top: 1px solid var(--ink); }
+    .inspector-section .section-label { color: var(--ink); }
+    .inspector-head small, .evidence-head small { color: var(--muted); font-size: 10px; }
+    .sketch-intro { margin-top: 15px; color: var(--muted); font-size: 11px; }
+    .sketch-group { padding: 13px 0 0; }
+    .sketch-group dt { color: var(--red); font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+    .sketch-group dd { margin-top: 4px; font-size: 12px; line-height: 1.45; }
+    .sketch-group dd + dt { margin-top: 14px; }
+    .domain-list { display: flex; flex-wrap: wrap; gap: 4px 12px; list-style: none; color: var(--muted); font-size: 11px; }
+    .domain-list li::before { margin-right: 5px; color: var(--red); content: "↗"; }
+
+    .evidence-section { padding-top: 14px; border-top: 1px solid var(--ink); }
+    .evidence-head { align-items: end; }
+    .evidence-count { color: var(--muted); font-size: 11px; }
+    .source-list { margin-top: 13px; list-style: none; }
+    .source-row {
+      display: grid;
+      grid-template-columns: 23px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      padding: 11px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .source-row:last-child { border-bottom: 1px solid var(--line); }
+    .source-row input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .source-check {
+      display: grid;
+      place-items: center;
+      width: 17px;
+      height: 17px;
+      margin-top: 1px;
+      border: 1px solid var(--ink);
+      color: var(--paper-light);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .source-row input:checked + .source-check { border-color: var(--red); background: var(--red); }
+    .source-row input:checked + .source-check::after { content: "✓"; }
+    .source-row label:focus-within .source-check { outline: 3px solid var(--red-bright); outline-offset: 2px; }
+    .source-body { min-width: 0; }
+    .source-title {
+      display: block;
+      overflow: hidden;
+      font-size: 12px;
+      font-weight: 750;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .source-title:hover { color: var(--red); }
+    .source-meta { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .source-snippet { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.35; }
+    .evidence-actions { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-top: 15px; }
+    .select-all { border: 0; padding: 4px 0; background: transparent; color: var(--muted); font-size: 10px; text-decoration: underline; text-underline-offset: 3px; }
+    .select-all:hover { color: var(--red); }
+    .claim-action { min-height: 38px; padding: 8px 10px; border: 1px solid var(--black); background: var(--black); color: var(--paper-light); font-size: 11px; font-weight: 800; }
+    .claim-action:hover:not(:disabled) { background: var(--red); }
+    .claim-action:disabled { cursor: not-allowed; opacity: .45; }
+    .evidence-feedback { min-height: 19px; margin-top: 9px; color: var(--muted); font-size: 10px; }
+    .evidence-feedback.is-success { color: var(--success); }
+
+    /* Knowledge base dossier */
+    .dossier-head { align-items: end; }
+    .archive-label {
+      min-width: 205px;
+      padding: 15px 17px 14px;
+      border-right: 8px solid var(--red-bright);
+      background: var(--black);
+      color: var(--paper-light);
+      transform: rotate(1deg);
+    }
+
+    .archive-label .eyebrow { color: var(--red-bright); }
+    .archive-label strong { display: block; margin-top: 6px; font-family: var(--display); font-size: 23px; letter-spacing: -.04em; line-height: 1; }
+    .archive-label small { display: block; margin-top: 7px; color: #beb7ae; font-size: 10px; }
+    .kb-tabs {
+      display: flex;
+      gap: 24px;
+      margin-top: 38px;
+      border-bottom: 1px solid var(--ink);
+    }
+
+    .kb-tab {
+      position: relative;
+      min-height: 42px;
+      padding: 0 0 11px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      text-align: left;
+    }
+
+    .kb-tab strong { display: block; font-size: 13px; }
+    .kb-tab small { display: block; margin-top: 2px; font-size: 10px; }
+    .kb-tab[aria-selected="true"] { color: var(--ink); }
+    .kb-tab[aria-selected="true"]::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 3px; background: var(--red); content: ""; }
+    .dossier-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(240px, 310px); gap: clamp(30px, 6vw, 92px); align-items: start; margin-top: 32px; }
+    .dossier-sheet {
+      position: relative;
+      min-width: 0;
+      padding: 24px 0 0;
+      border-top: 10px solid var(--black);
+      background: var(--paper-light);
+    }
+
+    .dossier-sheet::before { position: absolute; top: -10px; left: 26px; width: 96px; height: 4px; background: var(--red-bright); content: ""; }
+    .dossier-sheet-inner { padding: 0 28px 26px; }
+    .dossier-sheet-head { display: flex; justify-content: space-between; gap: 15px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+    .dossier-sheet-head strong { font-size: 12px; }
+    .sheet-head-actions { display: flex; gap: 14px; align-items: baseline; }
+    .dossier-sheet-head small { color: var(--muted); font-size: 10px; }
+    .sheet-link { border: 0; border-bottom: 1px solid var(--ink); padding: 0 0 2px; background: transparent; color: var(--ink); font-size: 10px; font-weight: 750; }
+    .sheet-link:hover { border-color: var(--red); color: var(--red); }
+    .turn { padding: 23px 0; border-bottom: 1px solid var(--line); }
+    .turn-label { display: block; margin-bottom: 7px; color: var(--red); font-size: 10px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    .turn.user { padding-left: 18px; border-left: 2px solid var(--line); }
+    .turn.user p { font-family: var(--display); font-size: 22px; letter-spacing: -.03em; line-height: 1.12; }
+    .answer-copy { max-width: 650px; font-size: 15px; line-height: 1.65; }
+    .citation-mark {
+      display: inline;
+      border: 0;
+      border-bottom: 2px solid var(--red);
+      padding: 0 2px;
+      background: transparent;
+      color: var(--ink);
+      font-size: .75em;
+      font-weight: 850;
+      vertical-align: super;
+    }
+
+    .citation-mark:hover { color: var(--red); }
+    .answer-note { margin-top: 15px; color: var(--muted); font-size: 11px; }
+    .sheet-composer { padding-top: 22px; }
+    .sheet-composer label { display: block; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .chat-composer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: end; margin-top: 10px; }
+    .chat-input {
+      display: block;
+      width: 100%;
+      min-height: 53px;
+      padding: 0 0 8px;
+      border: 0;
+      border-bottom: 1px solid var(--ink);
+      border-radius: 0;
+      outline: 0;
+      resize: vertical;
+      background: transparent;
+      color: var(--ink);
+      font-family: var(--display);
+      font-size: 19px;
+      line-height: 1.15;
+    }
+
+    .chat-input::placeholder { color: #a39c92; }
+    .composer-status { min-height: 18px; margin-top: 10px; color: var(--muted); font-size: 10px; }
+    .empty-dossier { padding: 48px 0 52px; border-bottom: 1px solid var(--line); }
+    .empty-dossier h2 { font-family: var(--display); font-size: 32px; letter-spacing: -.05em; }
+    .empty-dossier p { max-width: 380px; margin-top: 8px; color: var(--muted); font-size: 13px; }
+
+    .dossier-index { padding-top: 14px; border-top: 1px solid var(--ink); }
+    .dossier-index .section-label { color: var(--ink); }
+    .index-intro { margin-top: 12px; color: var(--muted); font-size: 11px; }
+    .index-list { margin-top: 17px; list-style: none; }
+    .index-row {
+      display: grid;
+      grid-template-columns: 31px minmax(0, 1fr);
+      gap: 9px;
+      align-items: start;
+      width: 100%;
+      padding: 12px 0;
+      border: 0;
+      border-top: 1px solid var(--line);
+      background: transparent;
+      text-align: left;
+    }
+
+    .index-row:last-child { border-bottom: 1px solid var(--line); }
+    .index-row:hover { color: var(--red); }
+    .index-row[aria-current="true"] { padding-left: 9px; border-left: 3px solid var(--red); }
+    .index-number { color: var(--red); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+    .index-copy strong { display: block; font-size: 12px; }
+    .index-copy small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .index-copy p { margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.35; }
+    .index-foot { margin-top: 15px; color: var(--muted); font-size: 10px; }
+
+    .vector-form { display: grid; grid-template-columns: minmax(0, 1fr) 92px auto; gap: 15px; align-items: end; padding: 22px 0 23px; border-bottom: 1px solid var(--line); }
+    .vector-form label { display: block; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .vector-input, .limit-select { display: block; width: 100%; margin-top: 8px; padding: 9px 0; border: 0; border-bottom: 1px solid var(--ink); border-radius: 0; outline: 0; background: transparent; color: var(--ink); }
+    .limit-select { padding-right: 4px; }
+    .vector-summary { min-height: 35px; padding-top: 15px; color: var(--muted); font-size: 11px; }
+    .vector-results { list-style: none; }
+    .vector-result { padding: 16px 0; border-top: 1px solid var(--line); }
+    .vector-result:last-child { border-bottom: 1px solid var(--line); }
+    .vector-result-head { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+    .vector-result strong { font-size: 13px; }
+    .vector-result .score { color: var(--red); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; }
+    .vector-result small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .vector-result p { max-width: 700px; margin-top: 7px; color: var(--muted); font-size: 12px; }
+
+    @keyframes routePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(225, 47, 73, .35); }
+      50% { box-shadow: 0 0 0 5px rgba(225, 47, 73, .1); }
+    }
+
+    @media (max-width: 1000px) {
+      .app-shell { grid-template-columns: 190px minmax(0, 1fr); }
+      .rail { padding-right: 18px; padding-left: 18px; }
+      .entry-layout { grid-template-columns: minmax(210px, .6fr) minmax(350px, 1fr); gap: 40px; }
+      .research-layout, .dossier-layout { grid-template-columns: minmax(0, 1fr) minmax(260px, .75fr); gap: 28px; }
+      .route-canvas { padding-right: 18px; padding-left: 18px; }
+      .dossier-sheet-inner { padding-right: 20px; padding-left: 20px; }
+    }
+
+    @media (max-width: 820px) {
+      .app-shell { display: block; }
+      .rail {
+        position: static;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        gap: 15px 20px;
+        width: 100%;
+        height: auto;
+        padding: 18px 18px 0;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .identity { padding-bottom: 0; }
+      .rail-nav { grid-column: 1 / -1; display: flex; gap: 4px; overflow-x: auto; margin: 0 -18px; padding: 0 18px; }
+      .nav-item { grid-template-columns: auto auto; min-height: 38px; padding: 7px 10px 9px; border-right: 0; border-bottom: 2px solid transparent; border-left: 0; white-space: nowrap; }
+      .nav-item[aria-current="page"] { border-bottom-color: var(--red); }
+      .nav-copy small, .nav-number { display: none; }
+      .rail-foot { display: none; }
+      .main { padding: 21px 18px 143px; }
+      .utility-bar { margin-bottom: 28px; }
+      .entry-layout { grid-template-columns: 1fr; min-height: auto; gap: 45px; }
+      .entry-copy { padding-top: 12px; }
+      .entry-note { margin-top: 30px; }
+      .entry-work { max-width: 670px; }
+      .research-layout, .dossier-layout { grid-template-columns: 1fr; }
+      .right-inspector { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+      .route-canvas { min-height: 0; }
+      .dossier-head { align-items: start; }
+      .archive-label { min-width: 175px; }
+      .dossier-layout { gap: 39px; }
+      .dossier-index { max-width: 620px; }
+    }
+
+    @media (max-width: 560px) {
+      .main { padding-right: 15px; padding-left: 15px; }
+      .utility-bar { align-items: flex-start; font-size: 10px; }
+      .utility-state { max-width: 150px; }
+      .screen-head, .screen-topline, .dossier-head { display: block; }
+      .quiet-status, .run-status { margin-top: 19px; }
+      .screen-title { font-size: clamp(42px, 15vw, 63px); }
+      .screen-lede { font-size: 13px; }
+      .entry-copy h1 { font-size: clamp(48px, 15vw, 76px); }
+      .route-signal { width: calc(100% - 8px); margin-right: 0; }
+      .composer-form { padding: 31px 19px 22px; box-shadow: 6px 6px 0 var(--red); }
+      .composer-footer, .route-context { display: block; }
+      .primary-action { width: 100%; justify-content: space-between; margin-top: 19px; }
+      .collection-select { max-width: 100%; }
+      .route-context .quiet-action { margin-top: 16px; }
+      .route-canvas { padding: 17px 13px 16px; }
+      .route-list::before { left: 14px; }
+      .route-node { grid-template-columns: 29px minmax(0, 1fr); gap: 10px; padding-right: 0; }
+      .node-status { grid-column: 2; padding-top: 0; }
+      .route-node.node-tool { margin-left: 25px; width: calc(100% - 25px); }
+      .route-node.node-tool::before { left: -17px; width: 16px; }
+      .loop-note { margin-left: 64px; }
+      .node-detail { display: block; }
+      .node-detail dl { margin-top: 13px; }
+      .node-detail dd { text-align: left; }
+      .trace-row { grid-template-columns: 62px minmax(0, 1fr); gap: 10px; }
+      .trace-kind { grid-column: 2; text-align: left; }
+      .right-inspector { display: block; }
+      .inspector-section + .evidence-section { margin-top: 35px; }
+      .kb-tabs { gap: 18px; margin-top: 28px; }
+      .archive-label { width: 100%; }
+      .dossier-sheet-inner { padding-right: 16px; padding-left: 16px; }
+      .chat-composer-row, .vector-form { grid-template-columns: 1fr; gap: 14px; }
+      .chat-composer-row .primary-action, .vector-form .primary-action { margin-top: 0; }
+      .vector-form { padding-top: 17px; }
+      .screen-switcher { bottom: 13px; grid-template-columns: 39px minmax(140px, 1fr) 39px; width: calc(100% - 24px); box-shadow: 4px 4px 0 var(--red); }
+      .switch-current { padding-right: 9px; padding-left: 9px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="rail" aria-label="Mementos prototype navigation">
+      <div class="identity">
+        <span class="wordmark">Mementos</span>
+        <span class="identity-note">Research archive / set A</span>
+      </div>
+      <nav class="rail-nav" aria-label="Prototype screens">
+        <button class="nav-item" type="button" data-go-screen="navigator" aria-current="page">
+          <span class="nav-number">01</span><span class="nav-copy">Navigator<small>Research landing</small></span>
+        </button>
+        <button class="nav-item" type="button" data-go-screen="route">
+          <span class="nav-number">02</span><span class="nav-copy">Route map<small>Deep Research</small></span>
+        </button>
+        <button class="nav-item" type="button" data-go-screen="dossier">
+          <span class="nav-number">03</span><span class="nav-copy">Evidence dossier<small>Knowledge Base</small></span>
+        </button>
+      </nav>
+      <div class="rail-foot">
+        <div class="prototype-stamp">Throwaway / prototype</div>
+        <p><strong>Set A</strong> · restrained editorial route language.</p>
+        <p>State is in memory only. Nothing here touches the app.</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="utility-bar">
+        <span class="utility-label">Visual pass / 01</span>
+        <span class="utility-state" id="utility-state">Read-only study · no persistence</span>
+      </div>
+      <div id="screen-root"></div>
+      <p class="sr-only" id="prototype-live" aria-live="polite"></p>
+    </main>
+  </div>
+
+  <nav class="screen-switcher" aria-label="Prototype screen switcher">
+    <button class="switch-arrow" type="button" data-cycle="previous" aria-label="Previous prototype screen">←</button>
+    <div class="switch-current" aria-live="polite">
+      <span class="screen-index" id="switch-index">SCREEN 1 / 3</span>
+      <strong id="switch-label">Navigator · research landing</strong>
+    </div>
+    <button class="switch-arrow" type="button" data-cycle="next" aria-label="Next prototype screen">→</button>
+  </nav>
+
+  <script>
+    (() => {
+      const screens = [
+        { id: 'navigator', label: 'Navigator · research landing' },
+        { id: 'route', label: 'Route map · Deep Research' },
+        { id: 'dossier', label: 'Evidence dossier · Knowledge Base' }
+      ];
+      const sampleQuery = 'How are small teams using local-first tools to build a personal knowledge base?';
+      const sourceData = [
+        { id: 's1', number: '01', title: 'Local-first software: You own your data', domain: 'martin.kleppmann.com', snippet: 'A local-first approach keeps the user in control while allowing collaboration when a connection returns.', href: 'https://martin.kleppmann.com/' },
+        { id: 's2', number: '02', title: 'The shape of a durable personal archive', domain: 'notes.andymatuschak.org', snippet: 'Small, linked notes become useful when they remain addressable, revisitable, and close to the work.', href: 'https://notes.andymatuschak.org/' },
+        { id: 's3', number: '03', title: 'Designing for graceful offline work', domain: 'alistapart.com', snippet: 'Offline is a product condition: make the local state legible before trying to hide the network boundary.', href: 'https://alistapart.com/' },
+        { id: 's4', number: '04', title: 'Knowledge work in small teams', domain: 'every.to', snippet: 'A shared archive works best when capture is cheap and retrieval preserves the original context.', href: 'https://every.to/' }
+      ];
+      const vectorResults = [
+        { title: 'Local-first software: You own your data', domain: 'martin.kleppmann.com · source 01', score: '0.92', snippet: 'Local-first applications treat the local copy as the primary interface, with synchronization as a later concern.' },
+        { title: 'The shape of a durable personal archive', domain: 'notes.andymatuschak.org · source 02', score: '0.87', snippet: 'The best note is one you can find again: stable links and small units keep the archive alive as the project changes.' },
+        { title: 'Designing for graceful offline work', domain: 'alistapart.com · source 03', score: '0.81', snippet: 'When the network disappears, a calm product names what is local, what is pending, and what will reconcile later.' }
+      ];
+      const graphNodes = [
+        { id: 'brief', type: 'brief', label: 'Brief generated', sub: 'Question scoped into a research sketch', status: 'done', duration: '1.8s', count: '4 concepts' },
+        { id: 'supervisor-1', type: 'supervisor', label: 'Supervisor / pass 01', sub: 'Opened two sub-questions', status: 'done', duration: '2.4s', count: 'confidence 0.71' },
+        { id: 'tool-1', type: 'tool', label: 'Search / local-first patterns', sub: '12 results returned', status: 'done', duration: '4.6s', count: '12 results' },
+        { id: 'supervisor-2', type: 'supervisor', label: 'Supervisor / pass 02', sub: 'Gap found: team practice', status: 'done', duration: '2.1s', count: 'confidence 0.84' },
+        { id: 'tool-2', type: 'tool', label: 'Search / team knowledge flows', sub: '6 results returned', status: 'current', duration: '3.2s', count: '6 results' },
+        { id: 'score', type: 'score', label: 'Score & reconcile', sub: 'Deduplicated 18 useful sources', status: 'done', duration: '1.1s', count: '18 sources' },
+        { id: 'complete', type: 'complete', label: 'Research complete', sub: 'Waiting for your claim', status: 'done', duration: '—', count: 'ready' }
+      ];
+      const state = {
+        screen: new URLSearchParams(location.search).get('screen'),
+        query: sampleQuery,
+        collection: 'Field notes / 2024',
+        researchStatus: 'mapped',
+        selectedNode: 'complete',
+        selectedSources: new Set(sourceData.map((source) => source.id)),
+        claimedCount: 0,
+        routeMessage: '',
+        kbView: 'chat',
+        chatQuestion: 'What did we learn about keeping a personal knowledge base durable offline?',
+        chatCleared: false,
+        selectedCitation: 's2',
+        chatMessage: '',
+        vectorQuery: 'local-first storage tradeoffs',
+        vectorLimit: '5',
+        vectorMessage: ''
+      };
+
+      if (!screens.some((screen) => screen.id === state.screen)) state.screen = 'navigator';
+      const root = document.getElementById('screen-root');
+      const live = document.getElementById('prototype-live');
+      const switchIndex = document.getElementById('switch-index');
+      const switchLabel = document.getElementById('switch-label');
+      const utilityState = document.getElementById('utility-state');
+
+      function escapeHTML(value) {
+        return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+      }
+
+      function currentScreen() {
+        return screens.find((screen) => screen.id === state.screen) || screens[0];
+      }
+
+      function setURL(screen) {
+        const url = new URL(location.href);
+        url.searchParams.set('screen', screen);
+        history.replaceState({ screen }, '', url);
+      }
+
+      function setScreen(screen, announce = true) {
+        if (!screens.some((item) => item.id === screen)) return;
+        state.screen = screen;
+        setURL(screen);
+        render();
+        if (announce) live.textContent = `Showing ${currentScreen().label}.`;
+      }
+
+      function cycle(direction) {
+        const index = screens.findIndex((screen) => screen.id === state.screen);
+        const next = (index + direction + screens.length) % screens.length;
+        setScreen(screens[next].id);
+      }
+
+      function collectionsMarkup(selected) {
+        return ['Field notes / 2024', 'Personal archive', 'Team practice'].map((collection) => `<option ${collection === selected ? 'selected' : ''}>${collection}</option>`).join('');
+      }
+
+      function navigatorTemplate() {
+        return `
+          <section class="screen navigator-screen" aria-labelledby="navigator-title">
+            <div class="screen-topline">
+              <span class="section-label">01 / Navigator</span>
+              <span class="quiet-status"><span class="status-mark"></span>Idle · ready for a brief</span>
+            </div>
+            <div class="entry-layout">
+              <div class="entry-copy">
+                <span class="slanted-label">Enter the route</span>
+                <h1 id="navigator-title">Ask a question.<br><em>Follow the evidence.</em></h1>
+                <p class="screen-lede">One clear brief in. A mapped route out. Mementos keeps the path visible while it works.</p>
+                <p class="entry-note"><strong>Plain contract</strong>Choose a collection, write one question, and review the sources before you claim them.</p>
+              </div>
+              <div class="entry-work">
+                <div class="route-signal">
+                  <span class="eyebrow">Route 01 / research entry</span>
+                  <strong>Trace the useful signal.</strong>
+                  <p>The flourish is optional. The question, collection, and action are not.</p>
+                </div>
+                <form class="composer-form" id="research-form">
+                  <label class="form-label" for="research-prompt">Research question <span>Required</span></label>
+                  <textarea class="composer-textarea" id="research-prompt" name="query" placeholder="What should Mementos research?" required>${escapeHTML(state.query)}</textarea>
+                  <div class="composer-rule"></div>
+                  <div class="composer-footer">
+                    <div class="select-wrap">
+                      <label for="research-collection">Collection</label>
+                      <select class="collection-select" id="research-collection" name="collection">${collectionsMarkup(state.collection)}</select>
+                    </div>
+                    <button class="primary-action" type="submit"><span>Begin route</span><span class="action-arrow" aria-hidden="true">↗</span></button>
+                  </div>
+                  <p class="form-feedback" id="research-feedback" aria-live="polite">Enter a question to map its evidence.</p>
+                </form>
+              </div>
+            </div>
+          </section>`;
+      }
+
+      function nodeStatus(node) {
+        if (state.researchStatus === 'running') {
+          const order = graphNodes.findIndex((item) => item.id === node.id);
+          const activeOrder = graphNodes.findIndex((item) => item.id === 'tool-2');
+          if (order < activeOrder) return 'done';
+          if (order === activeOrder) return 'current';
+          return 'queued';
+        }
+        return 'done';
+      }
+
+      function graphMarkup() {
+        return graphNodes.map((node, index) => {
+          const status = nodeStatus(node);
+          const isSelected = state.selectedNode === node.id;
+          const classes = `route-node node-${node.type} node-${status}${isSelected ? ' node-selected' : ''}`;
+          const mark = status === 'done' ? '<span>✓</span>' : status === 'current' ? '<span>•</span>' : '<span></span>';
+          const loop = node.id === 'tool-1' || node.id === 'tool-2' ? `<span class="loop-note">↩ return to supervisor · iteration ${node.id === 'tool-1' ? '01' : '02'}</span>` : '';
+          return `${index === 4 ? '<li class="loop-note">↻ supervisor loop · unresolved gap reopened search</li>' : ''}<li><button class="${classes}" type="button" data-node="${node.id}" aria-pressed="${isSelected}"><span class="node-mark" aria-hidden="true">${mark}</span><span class="node-copy"><strong>${node.label}</strong><small>${node.sub}</small></span><span class="node-status">${status === 'current' ? 'Current' : status === 'queued' ? 'Queued' : 'Complete'}</span></button>${loop}</li>`;
+        }).join('');
+      }
+
+      function selectedNodeMarkup() {
+        const node = graphNodes.find((item) => item.id === state.selectedNode) || graphNodes[graphNodes.length - 1];
+        const status = nodeStatus(node);
+        return `<div class="node-detail" aria-live="polite"><div><strong>${node.label}</strong><p>${node.sub}</p></div><dl><dt>Status</dt><dd>${status === 'current' ? 'Researching' : status === 'queued' ? 'Waiting' : 'Complete'}</dd><dt>Duration</dt><dd>${node.duration}</dd><dt>Result</dt><dd>${node.count}</dd></dl></div>`;
+      }
+
+      function traceMarkup() {
+        const active = state.researchStatus === 'running';
+        const rows = [
+          ['00:02', 'Brief generated', 'Concepts: local ownership · sync · team memory', 'BRIEF'],
+          ['00:05', 'Supervisor opened pass 01', 'Two sub-questions · confidence 0.71', 'DECISION'],
+          ['00:10', 'Search returned 12 results', 'Query: “local-first knowledge base patterns”', 'TOOL'],
+          ['00:14', 'Gap analysis found a missing angle', 'Unresolved: how small teams maintain shared context', 'TRACE'],
+          ['00:18', active ? 'Search pass 02 is running' : 'Search returned 6 results', active ? 'Query: “team knowledge flows”' : 'Supervisor confidence 0.84 · 18 sources reconciled', active ? 'LIVE' : 'TOOL'],
+          ['00:22', active ? 'Scoring is next' : 'Route complete', active ? 'The route will reconcile and rank the evidence.' : 'Ready for an explicit source claim.', active ? 'WAIT' : 'DONE']
+        ];
+        return rows.map(([time, title, detail, kind]) => `<li class="trace-row"><span class="trace-time">${time}</span><span class="trace-copy"><strong>${title}</strong><p>${detail}</p></span><span class="trace-kind ${kind === 'LIVE' ? 'current' : ''}">${kind}</span></li>`).join('');
+      }
+
+      function sourceMarkup() {
+        return sourceData.map((source) => `
+          <li class="source-row">
+            <label>
+              <input type="checkbox" data-source-check="${source.id}" ${state.selectedSources.has(source.id) ? 'checked' : ''}>
+              <span class="source-check" aria-hidden="true"></span>
+              <span class="sr-only">Select ${escapeHTML(source.title)}</span>
+            </label>
+            <div class="source-body">
+              <a class="source-title" href="${source.href}" target="_blank" rel="noreferrer">${source.number} · ${escapeHTML(source.title)}</a>
+              <span class="source-meta">${source.domain}</span>
+              <span class="source-snippet">${escapeHTML(source.snippet)}</span>
+            </div>
+          </li>`).join('');
+      }
+
+      function routeTemplate() {
+        const selectedCount = state.selectedSources.size;
+        const status = state.researchStatus;
+        const statusHeadline = status === 'running' ? 'Following the trail' : status === 'claimed' ? 'Sources claimed' : 'Route mapped';
+        const statusLabel = status === 'running' ? 'Researching · pass 02' : status === 'claimed' ? `${state.claimedCount} sources imported` : '18 sources ready to review';
+        const feedback = state.routeMessage || (status === 'claimed' ? 'The route is complete. The selected evidence is now in this collection.' : 'Select the useful evidence, then claim it for the collection.');
+        return `
+          <section class="screen route-screen" aria-labelledby="route-title">
+            <header class="screen-head">
+              <div>
+                <span class="section-label">02 / Deep Research</span>
+                <h1 class="screen-title" id="route-title">Route map.</h1>
+                <p class="screen-lede">A research run should read as one journey: where it is, what happened, and what is ready to claim.</p>
+              </div>
+              <div class="run-status ${status === 'claimed' ? 'is-claimed' : ''}" aria-live="polite">
+                <span class="status-mark ${status === 'running' ? 'active' : status === 'claimed' ? 'done' : ''}"></span>
+                <span><strong>${statusHeadline}</strong><small>${statusLabel}</small></span>
+              </div>
+            </header>
+            <div class="route-context">
+              <div><span class="field-label">Question / ${escapeHTML(state.collection)}</span><p>${escapeHTML(state.query)}</p></div>
+              <button class="quiet-action" type="button" id="new-research">New research</button>
+            </div>
+            <div class="research-layout">
+              <div class="route-primary">
+                <section class="route-canvas" aria-labelledby="trace-title">
+                  <div class="canvas-head"><span class="section-label" id="trace-title">Trace / execution route</span><small>7 nodes · 2 loops · selectable</small></div>
+                  <ol class="route-list">${graphMarkup()}</ol>
+                  ${selectedNodeMarkup()}
+                </section>
+                <section class="trace" aria-labelledby="observability-title">
+                  <div class="trace-head"><span class="section-label" id="observability-title">Trace / observability</span><small>Chronological · plain language</small></div>
+                  <ol class="trace-list">${traceMarkup()}</ol>
+                </section>
+              </div>
+              <aside class="right-inspector" aria-label="Research evidence inspector">
+                <section class="inspector-section" aria-labelledby="sketch-title">
+                  <div class="inspector-head"><span class="section-label" id="sketch-title">Brief / research sketch</span><small>Read only</small></div>
+                  <p class="sketch-intro">The route is looking for durable patterns, not a single prescribed stack.</p>
+                  <dl class="sketch-group">
+                    <dt>Expected concepts</dt><dd>local ownership · sync boundaries · shared context · retrieval</dd>
+                    <dt>Discriminative terms</dt><dd>offline-first · small teams · durable notes</dd>
+                    <dt>Search queries</dt><dd>“local-first knowledge base patterns”<br>“team knowledge flows”</dd>
+                    <dt>Expected patterns</dt><dd>cheap capture, explicit sync, source-preserving retrieval</dd>
+                    <dt>Preferred domains</dt><dd><ul class="domain-list"><li>research essays</li><li>practitioner notes</li><li>open source docs</li></ul></dd>
+                  </dl>
+                </section>
+                <section class="evidence-section" aria-labelledby="evidence-title">
+                  <div class="evidence-head"><div><span class="section-label" id="evidence-title">Evidence / claimable sources</span><p class="evidence-count"><span data-selected-count>${selectedCount}</span> of ${sourceData.length} selected</p></div><small>Arrived live</small></div>
+                  <ul class="source-list">${sourceMarkup()}</ul>
+                  <div class="evidence-actions"><button class="select-all" type="button" id="select-all">${selectedCount === sourceData.length ? 'Deselect all' : 'Select all'}</button><button class="claim-action" type="button" id="claim-sources" ${selectedCount === 0 || status === 'claimed' ? 'disabled' : ''}>Claim selected</button></div>
+                  <p class="evidence-feedback ${status === 'claimed' ? 'is-success' : ''}" id="evidence-feedback" aria-live="polite">${feedback}</p>
+                </section>
+              </aside>
+            </div>
+          </section>`;
+      }
+
+      function citationMarkup(source) {
+        return `<button class="citation-mark" type="button" data-citation="${source.id}" aria-label="Show source ${source.number}">[${source.number}]</button>`;
+      }
+
+      function indexMarkup() {
+        return sourceData.slice(0, 3).map((source) => `<li><button class="index-row" type="button" data-citation="${source.id}" aria-current="${state.selectedCitation === source.id}"><span class="index-number">${source.number}</span><span class="index-copy"><strong>${escapeHTML(source.title)}</strong><small>${source.domain}</small><p>${escapeHTML(source.snippet)}</p></span></button></li>`).join('');
+      }
+
+      function chatTemplate() {
+        const empty = state.chatCleared;
+        return `
+          <div class="dossier-layout">
+            <section class="dossier-sheet" aria-labelledby="chat-sheet-title">
+              <div class="dossier-sheet-inner">
+                <div class="dossier-sheet-head"><strong id="chat-sheet-title">CHAT / FIELD NOTES</strong><span class="sheet-head-actions"><small>${empty ? 'New page' : 'Session only · 1 answer'}</small><button class="sheet-link" id="new-chat" type="button">New chat</button></span></div>
+                ${empty ? '<div class="empty-dossier"><h2>Search the archive.</h2><p>Ask about this collection. The answer will return with the evidence that supports it.</p></div>' : `<div class="turn user"><span class="turn-label">You asked</span><p>${escapeHTML(state.chatQuestion)}</p></div><div class="turn"><span class="turn-label">Mementos / grounded answer</span><p class="answer-copy">The strongest pattern is a small, durable core: keep the working copy close to the person doing the work, make synchronization visible, and preserve the source context when a note becomes shared knowledge.${citationMarkup(sourceData[0])} ${citationMarkup(sourceData[1])} The archive is most useful when retrieval returns the path back to the original material, not just a polished summary.${citationMarkup(sourceData[2])}</p><p class="answer-note">3 sources support this answer · retrieved from ${escapeHTML(state.collection)}</p></div>`}
+                <form class="sheet-composer" id="chat-form"><label for="chat-input">Ask the archive</label><div class="chat-composer-row"><textarea class="chat-input" id="chat-input" name="chat" rows="2" placeholder="What should we look for next?">${empty ? '' : ''}</textarea><button class="primary-action" type="submit"><span>Ask</span><span class="action-arrow" aria-hidden="true">↗</span></button></div><p class="composer-status" aria-live="polite">${escapeHTML(state.chatMessage || 'Answers remain attached to their source index.')}</p></form>
+              </div>
+            </section>
+            <aside class="dossier-index" aria-labelledby="index-title"><span class="section-label" id="index-title">Evidence / source index</span><p class="index-intro">Select a citation to keep the source in view. No hidden inspector required.</p><ol class="index-list">${indexMarkup()}</ol><p class="index-foot">Sources are numbered for reading, not decoration.</p></aside>
+          </div>`;
+      }
+
+      function vectorTemplate() {
+        const summary = state.vectorMessage || `${vectorResults.length} matches · sorted by semantic similarity · collection: ${state.collection}`;
+        return `
+          <div class="dossier-layout">
+            <section class="dossier-sheet" aria-labelledby="vector-title">
+              <div class="dossier-sheet-inner">
+                <div class="dossier-sheet-head"><strong id="vector-title">VECTOR SEARCH / DIRECT MATCHES</strong><small>One-shot retrieval</small></div>
+                <form class="vector-form" id="vector-form"><label for="vector-input">Search the archive<input class="vector-input" id="vector-input" value="${escapeHTML(state.vectorQuery)}"></label><label for="vector-limit">Results<select class="limit-select" id="vector-limit"><option ${state.vectorLimit === '5' ? 'selected' : ''}>5</option><option ${state.vectorLimit === '10' ? 'selected' : ''}>10</option><option ${state.vectorLimit === '20' ? 'selected' : ''}>20</option></select></label><button class="primary-action" type="submit"><span>Run search</span><span class="action-arrow" aria-hidden="true">↗</span></button></form>
+                <p class="vector-summary" aria-live="polite">${escapeHTML(summary)}</p>
+                <ol class="vector-results">${vectorResults.map((result) => `<li class="vector-result"><div class="vector-result-head"><strong>${escapeHTML(result.title)}</strong><span class="score">${result.score}</span></div><small>${result.domain}</small><p>${escapeHTML(result.snippet)}</p></li>`).join('')}</ol>
+              </div>
+            </section>
+            <aside class="dossier-index" aria-labelledby="vector-note-title"><span class="section-label" id="vector-note-title">Archive / retrieval note</span><p class="index-intro">Vector Search is the quick index: raw matches, source context, and a score. Switch back to Chat when the question needs synthesis.</p><div class="entry-note"><strong>Same collection</strong><span>${escapeHTML(state.collection)}</span></div></aside>
+          </div>`;
+      }
+
+      function dossierTemplate() {
+        return `
+          <section class="screen dossier-screen" aria-labelledby="dossier-title">
+            <header class="screen-head dossier-head">
+              <div><span class="section-label">03 / Knowledge Base</span><h1 class="screen-title" id="dossier-title">Open the archive.</h1><p class="screen-lede">A calm reading surface for questions, answers, and the sources that make them trustworthy.</p></div>
+              <div class="archive-label"><span class="eyebrow">Collection / active file</span><strong>${escapeHTML(state.collection)}</strong><small>Session-only archive · indexed</small></div>
+            </header>
+            <div class="kb-tabs" role="tablist" aria-label="Knowledge Base view">
+              <button class="kb-tab" type="button" role="tab" data-kb-view="chat" aria-selected="${state.kbView === 'chat'}"><strong>Chat</strong><small>Ask with context</small></button>
+              <button class="kb-tab" type="button" role="tab" data-kb-view="vector" aria-selected="${state.kbView === 'vector'}"><strong>Vector Search</strong><small>Inspect direct matches</small></button>
+            </div>
+            ${state.kbView === 'chat' ? chatTemplate() : vectorTemplate()}
+          </section>`;
+      }
+
+      function render() {
+        root.innerHTML = state.screen === 'navigator' ? navigatorTemplate() : state.screen === 'route' ? routeTemplate() : dossierTemplate();
+        const screen = currentScreen();
+        const index = screens.findIndex((item) => item.id === screen.id) + 1;
+        switchIndex.textContent = `SCREEN ${index} / ${screens.length}`;
+        switchLabel.textContent = screen.label;
+        utilityState.textContent = state.screen === 'navigator' ? 'Read-only study · no persistence' : state.screen === 'route' ? 'In-memory run · source selection is simulated' : 'In-memory archive · citations are simulated';
+        document.querySelectorAll('[data-go-screen]').forEach((button) => button.setAttribute('aria-current', button.dataset.goScreen === state.screen ? 'page' : 'false'));
+        bindInteractions();
+      }
+
+      function updateEvidenceControls() {
+        const count = state.selectedSources.size;
+        document.querySelectorAll('[data-selected-count]').forEach((element) => { element.textContent = count; });
+        const selectAll = document.getElementById('select-all');
+        const claim = document.getElementById('claim-sources');
+        if (selectAll) selectAll.textContent = count === sourceData.length ? 'Deselect all' : 'Select all';
+        if (claim) claim.disabled = count === 0 || state.researchStatus === 'claimed';
+      }
+
+      function bindInteractions() {
+        const researchForm = document.getElementById('research-form');
+        if (researchForm) {
+          const prompt = document.getElementById('research-prompt');
+          prompt.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); researchForm.requestSubmit(); }
+          });
+          researchForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const value = prompt.value.trim();
+            const feedback = document.getElementById('research-feedback');
+            if (!value) {
+              feedback.textContent = 'Write a question before beginning the route.';
+              feedback.classList.add('is-error');
+              prompt.focus();
+              return;
+            }
+            state.query = value;
+            state.collection = document.getElementById('research-collection').value;
+            state.researchStatus = 'running';
+            state.selectedNode = 'tool-2';
+            state.selectedSources = new Set(sourceData.map((source) => source.id));
+            state.routeMessage = 'Live state preview: the second search pass is gathering evidence.';
+            setScreen('route');
+          });
+        }
+
+        document.querySelectorAll('[data-node]').forEach((button) => button.addEventListener('click', () => {
+          state.selectedNode = button.dataset.node;
+          const focusSelector = `[data-node="${button.dataset.node}"]`;
+          render();
+          document.querySelector(focusSelector)?.focus();
+        }));
+
+        document.querySelectorAll('[data-source-check]').forEach((input) => input.addEventListener('change', () => {
+          if (input.checked) state.selectedSources.add(input.dataset.sourceCheck);
+          else state.selectedSources.delete(input.dataset.sourceCheck);
+          updateEvidenceControls();
+          const feedback = document.getElementById('evidence-feedback');
+          if (feedback) feedback.textContent = `${state.selectedSources.size} source${state.selectedSources.size === 1 ? '' : 's'} selected. Selection stays in memory for this pass.`;
+        }));
+
+        document.getElementById('select-all')?.addEventListener('click', () => {
+          if (state.selectedSources.size === sourceData.length) state.selectedSources.clear();
+          else sourceData.forEach((source) => state.selectedSources.add(source.id));
+          render();
+          document.getElementById('select-all')?.focus();
+        });
+
+        document.getElementById('claim-sources')?.addEventListener('click', () => {
+          state.claimedCount = state.selectedSources.size;
+          state.researchStatus = 'claimed';
+          state.routeMessage = `${state.claimedCount} source${state.claimedCount === 1 ? '' : 's'} claimed for ${state.collection}. No data was saved.`;
+          render();
+          document.getElementById('claim-sources')?.focus();
+        });
+
+        document.getElementById('new-research')?.addEventListener('click', () => {
+          state.researchStatus = 'mapped';
+          state.query = '';
+          state.routeMessage = '';
+          setScreen('navigator');
+          document.getElementById('research-prompt')?.focus();
+        });
+
+        document.querySelectorAll('[data-kb-view]').forEach((button) => button.addEventListener('click', () => {
+          state.kbView = button.dataset.kbView;
+          render();
+          document.querySelector(`[data-kb-view="${state.kbView}"]`)?.focus();
+        }));
+
+        document.querySelectorAll('[data-citation]').forEach((button) => button.addEventListener('click', () => {
+          state.selectedCitation = button.dataset.citation;
+          render();
+          document.querySelector(`[data-citation="${state.selectedCitation}"]`)?.focus();
+          live.textContent = `Source ${sourceData.find((source) => source.id === state.selectedCitation)?.number || ''} selected.`;
+        }));
+
+        document.getElementById('new-chat')?.addEventListener('click', () => {
+          state.chatCleared = true;
+          state.chatMessage = 'New chat started. The collection remains selected.';
+          render();
+        });
+
+        const chatForm = document.getElementById('chat-form');
+        if (chatForm) {
+          const chatInput = document.getElementById('chat-input');
+          chatInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); chatForm.requestSubmit(); }
+          });
+          chatForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const value = chatInput.value.trim();
+            if (!value) {
+              state.chatMessage = 'Write a question before asking the archive.';
+              render();
+              document.getElementById('chat-input')?.focus();
+              return;
+            }
+            state.chatQuestion = value;
+            state.chatCleared = false;
+            state.chatMessage = 'Answer preview refreshed in memory. Evidence index unchanged.';
+            render();
+            document.getElementById('chat-input')?.focus();
+          });
+        }
+
+        const vectorForm = document.getElementById('vector-form');
+        if (vectorForm) vectorForm.addEventListener('submit', (event) => {
+          event.preventDefault();
+          state.vectorQuery = document.getElementById('vector-input').value.trim() || state.vectorQuery;
+          state.vectorLimit = document.getElementById('vector-limit').value;
+          state.vectorMessage = `Search refreshed for “${state.vectorQuery}” · ${vectorResults.length} visible matches · no persistence.`;
+          render();
+          document.getElementById('vector-input')?.focus();
+        });
+      }
+
+      document.addEventListener('click', (event) => {
+        const go = event.target.closest('[data-go-screen]');
+        if (go) setScreen(go.dataset.goScreen);
+        const cycleButton = event.target.closest('[data-cycle]');
+        if (cycleButton) cycle(cycleButton.dataset.cycle === 'next' ? 1 : -1);
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        const target = event.target;
+        if (target.matches('input, textarea, select, [contenteditable="true"]')) return;
+        cycle(event.key === 'ArrowRight' ? 1 : -1);
+      });
+
+      window.addEventListener('popstate', () => {
+        const screen = new URLSearchParams(location.search).get('screen');
+        if (screens.some((item) => item.id === screen)) { state.screen = screen; render(); }
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>
