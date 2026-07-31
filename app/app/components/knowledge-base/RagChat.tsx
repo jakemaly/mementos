@@ -5,10 +5,29 @@ import { ChatComposer } from './ChatComposer';
 import { CitationList, CitationSource } from './CitationList';
 import styles from './knowledge-base.module.css';
 
-type Message = { id: string; role: 'user' | 'assistant'; content: string; sources?: CitationSource[]; status?: 'retrieving' | 'streaming' | 'stopped' | 'failed' | 'complete' | 'insufficient' };
+type MessageStatus = 'retrieving' | 'streaming' | 'stopped' | 'failed' | 'complete' | 'insufficient';
+type Message = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  sources?: CitationSource[];
+  status?: MessageStatus;
+};
 type CollectionStats = { qdrant: { points: number }; lightrag: { documents: number; nodes: number; links: number } };
 type BackfillResult = { id?: string; status: 'running' | 'complete' | 'partial' | 'failed'; documents: number; indexedDocuments: number; error?: string };
 interface RagChatProps { collection: string; collections: string[]; unavailable: boolean; onCollectionChange: (collection: string) => void; onNewChat: () => void; }
+
+function statusLabel(status: MessageStatus): string {
+  switch (status) {
+    case 'retrieving': return 'Retrieving evidence';
+    case 'streaming': return 'Streaming answer';
+    case 'stopped': return 'Stopped';
+    case 'failed': return 'Answer failed';
+    case 'insufficient': return 'Insufficient evidence';
+    case 'complete': return 'Answer ready';
+    default: return 'Question sent';
+  }
+}
 
 export function RagChat({ collection, collections, unavailable, onCollectionChange, onNewChat }: RagChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -106,11 +125,59 @@ export function RagChat({ collection, collections, unavailable, onCollectionChan
 
   const stop = () => controllerRef.current?.abort();
   const reset = () => { controllerRef.current?.abort(); turnRef.current = ''; setMessages([]); onNewChat(); };
+  const latestMessage = messages[messages.length - 1];
+  const liveMessage = running ? 'Retrieving evidence…' : latestMessage?.status ? statusLabel(latestMessage.status) : '';
+
   return <section className={styles.chat} aria-label="RAG Chat">
-    <p className={styles.srOnly} role="status">{running ? 'Retrieving answer' : ''}</p>
-    <header className={styles.chatHeader}><div className={styles.collectionContext}><label>Collection <select value={collection} onChange={(event) => onCollectionChange(event.target.value)} disabled={running || backfilling || unavailable}>{collections.map((name) => <option value={name} key={name}>{name}</option>)}</select></label>{stats ? <ul className={styles.stats} aria-label="Collection statistics"><li>Qdrant: {stats.qdrant.points} items</li><li>LightRAG: {stats.lightrag.documents} items</li><li>Graph: {stats.lightrag.nodes} nodes · {stats.lightrag.links} links</li></ul> : statsUnavailable ? <p className={styles.statsUnavailable}>Statistics unavailable</p> : collection ? <p className={styles.statsUnavailable}>Loading statistics…</p> : null}{collection && <button type="button" className={styles.backfillButton} onClick={indexQdrantInLightRag} disabled={backfilling || unavailable}>{backfilling ? 'Indexing Qdrant…' : 'Index Qdrant in LightRAG'}</button>}{backfillMessage && <p className={styles.backfillMessage} role="status">{backfillMessage}</p>}</div><button type="button" onClick={reset}>New chat</button></header>
-    <div className={styles.transcript} aria-live="off">{messages.length === 0 && <p className={styles.notice}>Ask a question to search this collection.</p>}{messages.map((message) => <article key={message.id} className={message.role === 'user' ? styles.userMessage : styles.assistantMessage}><strong>{message.role === 'user' ? 'You' : 'Mementos'}</strong><p>{message.content || (message.status === 'retrieving' ? 'Retrieving evidence…' : '')}</p>{message.sources?.length ? <p className={styles.inlineCitations}>{message.sources.map((source, index) => <a href={`#source-${source.id}`} key={source.id}>[{index + 1}]</a>)}</p> : null}<CitationList sources={message.sources || []} />{message.role === 'assistant' && message.status === 'complete' && message.content && <button type="button" className={styles.copyButton} onClick={() => void navigator.clipboard.writeText(message.content)}>Copy</button>}{message.status && message.status !== 'complete' && <small className={message.status === 'insufficient' ? styles.insufficient : ''}>{message.status}</small>}</article>)}</div>
-    {running && <button type="button" className={styles.stopButton} onClick={stop}>Stop</button>}
+    <p className={styles.liveStatus} role="status" aria-live="polite">{liveMessage}</p>
+    <header className={styles.chatHeader}>
+      <div className={styles.chatHeaderCopy}>
+        <p className={styles.chatKicker}>Chat / collection record</p>
+        <div className={styles.collectionField}>
+          <label htmlFor="chat-collection">Collection</label>
+          <select id="chat-collection" value={collection} onChange={(event) => onCollectionChange(event.target.value)} disabled={running || backfilling || unavailable}>
+            {collections.map((name) => <option value={name} key={name}>{name}</option>)}
+          </select>
+        </div>
+        {stats ? <ul className={styles.stats} aria-label="Collection statistics">
+          <li><span>Qdrant</span>{stats.qdrant.points} items</li>
+          <li><span>LightRAG</span>{stats.lightrag.documents} documents</li>
+          <li><span>Graph</span>{stats.lightrag.nodes} nodes · {stats.lightrag.links} links</li>
+        </ul> : statsUnavailable ? <p className={styles.metaNotice}>Statistics unavailable.</p> : collection ? <p className={styles.metaNotice}>Loading collection statistics…</p> : null}
+        {collection && <div className={styles.backfillContext}>
+          <span className={styles.contextLabel}>Indexing context</span>
+          <button type="button" className={styles.backfillButton} onClick={indexQdrantInLightRag} disabled={backfilling || unavailable}>
+            {backfilling ? 'Indexing Qdrant…' : 'Index Qdrant in LightRAG'}
+          </button>
+          {backfillMessage && <p className={styles.backfillMessage} role="status">{backfillMessage}</p>}
+        </div>}
+      </div>
+      <div className={styles.chatActions}>
+        {running && <button type="button" className={styles.stopButton} onClick={stop} aria-label="Stop answer generation">Stop</button>}
+        <button type="button" className={styles.newChatButton} onClick={reset}>New chat</button>
+      </div>
+    </header>
+
+    <div className={styles.transcript} aria-live="off">
+      {messages.length === 0 && <p className={styles.emptyNotice}>No questions in this session. Ask the archive below.</p>}
+      {messages.map((message) => {
+        const assistant = message.role === 'assistant';
+        return <article key={message.id} className={assistant ? styles.assistantMessage : styles.userMessage} aria-label={assistant ? 'Archive answer' : 'Your question'}>
+          <div className={styles.messageMeta}>
+            <span className={styles.messageLabel}>{assistant ? 'Archive' : 'You'}</span>
+            {message.status && <span className={styles.messageState}>{assistant ? statusLabel(message.status) : 'Question sent'}</span>}
+          </div>
+          <p className={styles.messageCopy}>{message.content || (message.status === 'retrieving' ? 'Retrieving evidence…' : '')}</p>
+          {assistant && message.sources?.length ? <div className={styles.inlineCitations} aria-label="Inline citations">
+            <span>Evidence</span>
+            {message.sources.map((source, index) => <a href={`#source-${message.id}-${source.id}`} key={source.id}>[{index + 1}]</a>)}
+          </div> : null}
+          {assistant && <CitationList sources={message.sources || []} anchorPrefix={message.id} />}
+          {assistant && message.status === 'complete' && message.content && <button type="button" className={styles.copyButton} onClick={() => void navigator.clipboard.writeText(message.content)}>Copy</button>}
+        </article>;
+      })}
+    </div>
+
     <ChatComposer value={draft} onChange={setDraft} onSubmit={start} disabled={running || unavailable || !collection} />
   </section>;
 }
