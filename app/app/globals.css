@@ -1,133 +1,77 @@
 :root {
-  /* Apple Liquid Glass Design System (Premium Light Edition) */
-  --background: var(--md-sys-color-surface);
-  --foreground: var(--md-sys-color-on-surface);
+  --paper: #f5f1e9;
+  --paper-light: #fffdf8;
+  --paper-deep: #e9e3d9;
+  --ink: #1d1b19;
+  --muted: #706a62;
+  --quiet: #938c82;
+  --line: #d4cdc2;
+  --line-dark: #3d3a36;
+  --red: #b7193b;
+  --red-bright: #e12f49;
+  --black: #171615;
+  --success: #356047;
+  --warning: #8a5a12;
+  --error: #a52626;
+  --focus-ring: #8f1632;
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-body: var(--font-sans, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
-  --glass-bg: rgba(255, 255, 255, 0.45);
-  --glass-border: var(--md-sys-color-outline-variant);
-  --glass-border-refraction: rgba(255, 255, 255, 0.7);
-
-  --primary: var(--md-sys-color-primary);
-  --primary-hover: var(--md-sys-color-primary-hover);
-  --primary-glow: var(--md-sys-color-shadow);
-
-  --accent: var(--md-sys-color-secondary);
-  --accent-hover: var(--md-sys-color-secondary-hover);
-
-  --border-muted: var(--md-sys-color-outline-variant);
-  --border-focus: var(--md-sys-color-primary);
-
-  --text-primary: var(--md-sys-color-on-surface);
-  --text-secondary: var(--md-sys-color-on-surface-variant);
-  --text-muted: var(--md-sys-color-outline);
-
-  --success: var(--md-sys-color-secondary);
-  --warning: var(--md-sys-color-tertiary);
-  --error: var(--md-sys-color-error);
-
-  --font-sans: system-ui, -apple-system, sans-serif;
-  --font-mono: monospace;
-
-  /* Material Design 3 — Dynamic Color (Vibrant Digital, Light theme) */
-  --md-sys-color-primary: #6750A4;
-  --md-sys-color-on-primary: #FFFFFF;
-  --md-sys-color-primary-container: #EADDFF;
-  --md-sys-color-on-primary-container: #21005D;
-
-  --md-sys-color-secondary: #038E8A;
-  --md-sys-color-on-secondary: #FFFFFF;
-  --md-sys-color-secondary-container: #A8F1ED;
-  --md-sys-color-on-secondary-container: #012120;
-
-  --md-sys-color-tertiary: #F9A825;
-  --md-sys-color-on-tertiary: #000000;
-  --md-sys-color-tertiary-container: #FFE88E;
-  --md-sys-color-on-tertiary-container: #1D1A00;
-
-  --md-sys-color-error: #B91C1C;
-  --md-sys-color-on-error: #FFFFFF;
-  --md-sys-color-error-container: #FFDAD6;
-  --md-sys-color-on-error-container: #410002;
-
-  --md-sys-color-surface: #F8FAF8;
-  --md-sys-color-surface-dim: #DEE1DD;
-  --md-sys-color-surface-bright: #F8FAF8;
-  --md-sys-color-surface-container-lowest: #FFFFFF;
-  --md-sys-color-surface-container-low: #F4F4F0;
-  --md-sys-color-surface-container: #EEF0EC;
-  --md-sys-color-surface-container-high: #E8EAE6;
-  --md-sys-color-surface-container-highest: #E3E5E1;
-  --md-sys-color-on-surface: #1C1B19;
-  --md-sys-color-on-surface-variant: #49454F;
-  --md-sys-color-outline: #79747E;
-  --md-sys-color-outline-variant: #CAC4D0;
-  --md-sys-color-inverse-surface: #31302D;
-  --md-sys-color-inverse-on-surface: #F2EFF5;
-  --md-sys-color-inverse-primary: #D0BCFF;
-  --md-sys-color-shadow: rgba(103, 80, 164, 0.08);
-  --md-sys-color-primary-hover: #533F8A;
-  --md-sys-color-secondary-hover: #027370;
-  --md-sys-color-surface-variant: #F1F3F1;
-
-  /* Material Design 3 — Elevation (0–5) */
-  --md-elevation-0: none;
-  --md-elevation-1: 0 1px 3px 1px var(--md-sys-color-shadow), 0 1px 2px 0 var(--md-sys-color-shadow);
-  --md-elevation-2: 0 2px 6px 2px var(--md-sys-color-shadow), 0 1px 2px 0 var(--md-sys-color-shadow);
-  --md-elevation-3: 0 4px 8px 3px var(--md-sys-color-shadow), 0 1px 3px 0 var(--md-sys-color-shadow);
-  --md-elevation-4: 0 6px 10px 4px var(--md-sys-color-shadow), 0 2px 3px 0 var(--md-sys-color-shadow);
-  --md-elevation-5: 0 8px 12px 6px var(--md-sys-color-shadow), 0 4px 4px 0 var(--md-sys-color-shadow);
+  /* Shared names retained for the existing research SVG and status styles. */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --accent: var(--red);
+  --accent-hover: #971632;
+  --primary: var(--red);
+  --primary-hover: #971632;
+  --text-primary: var(--ink);
+  --text-secondary: var(--muted);
+  --text-muted: var(--quiet);
+  --border-muted: var(--line);
+  --border-focus: var(--red);
+  --md-sys-color-surface-container-lowest: var(--paper-light);
+  --md-sys-color-surface: var(--paper);
+  --md-sys-color-on-surface: var(--ink);
+  --md-sys-color-on-surface-variant: var(--muted);
+  --md-sys-color-outline: var(--quiet);
+  --md-sys-color-outline-variant: var(--line);
 }
 
 * {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
 }
 
 html,
 body {
+  min-width: 320px;
   max-width: 100vw;
-  height: 100%;
-  color: var(--text-primary);
+  min-height: 100%;
+  color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  
-  background-color: #f8f7f3;
 }
 
 body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
+  min-height: 100dvh;
 }
 
-/* Light Glassmorphism Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.01);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-/* Base interactive elements reset */
-input, select, textarea, button {
-  font-family: inherit;
-  font-size: inherit;
+button:not(:disabled),
+select {
+  cursor: pointer;
 }
 
 button:focus-visible,
@@ -135,12 +79,38 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #9f1239;
-  outline-offset: 2px;
+  outline: 3px solid var(--red-bright);
+  outline-offset: 3px;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  color: var(--paper-light);
+  background: var(--red);
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--paper-deep);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--quiet);
+  border: 2px solid var(--paper-deep);
+  border-radius: 999px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
@@ -148,7 +118,6 @@ textarea:focus-visible {
   }
 }
 
-/* Micro-animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -161,16 +130,11 @@ textarea:focus-visible {
 }
 
 @keyframes pulse {
-  0% {
-    opacity: 0.6;
-    filter: brightness(1);
+  0%,
+  100% {
+    opacity: 0.65;
   }
   50% {
     opacity: 1;
-    filter: brightness(1.25);
-  }
-  100% {
-    opacity: 0.6;
-    filter: brightness(1);
   }
 }

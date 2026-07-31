@@ -45,7 +45,7 @@ ok('drawer is full-width on narrow screens', drawerCss.includes('@media (max-wid
 
 console.log('\n=== Accessibility and Responsive Quality ===\n');
 ok('global surface is matte rather than gradient', !globals.includes('radial-gradient'));
-ok('global visible focus treatment exists', globals.includes('button:focus-visible') && globals.includes('#9f1239'));
+ok('global visible focus treatment exists', globals.includes(':focus-visible') && globals.includes('--red-bright'));
 ok('reduced motion is respected globally', globals.includes('prefers-reduced-motion: reduce'));
 ok('streamed tokens are not individually announced', ragChat.includes('aria-live="off"') && ragChat.includes('role="status"'));
 ok('shell prevents narrow-screen horizontal overflow', fs.readFileSync('app/components/app-shell/app-shell.module.css', 'utf8').includes('overflow-x: hidden'));

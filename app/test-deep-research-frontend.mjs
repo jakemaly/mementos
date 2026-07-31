@@ -18,6 +18,7 @@ const shellCss = fs.readFileSync('app/components/app-shell/app-shell.module.css'
 const composer = fs.readFileSync('app/components/deep-research/ResearchComposer.tsx', 'utf8');
 const workspace = fs.readFileSync('app/components/deep-research/ResearchWorkspace.tsx', 'utf8');
 const css = fs.readFileSync('app/components/deep-research/deep-research.module.css', 'utf8');
+const globals = fs.readFileSync('app/globals.css', 'utf8');
 const state = fs.readFileSync('app/components/deep-research/research-state.ts', 'utf8');
 const graph = fs.readFileSync('app/components/deep-research/ExecutionGraph.tsx', 'utf8');
 const timeline = fs.readFileSync('app/components/deep-research/ObservabilityTimeline.tsx', 'utf8');
@@ -28,11 +29,18 @@ ok('Composer renders collection selector', composer.includes('aria-label="Target
 ok('Composer supports Shift+Enter newline behavior', composer.includes('e.shiftKey'));
 ok('Composer prevents default Enter submission', composer.includes('e.preventDefault()'));
 ok('Composer has accessible submit action', composer.includes('aria-label="Start research"'));
+ok('Composer uses a visible start label', composer.includes('>Start research'));
+ok('Composer labels the target collection visibly', composer.includes('Save evidence to'));
+ok('Composer fields have stable form names', composer.includes('name="query"') && composer.includes('name="collection"'));
+ok('Navigator uses a question-first heading', root.includes('Begin with the question.'));
 ok('Composer uses the shared application shell', root.includes('<AppShell activeDestination="research"'));
 ok('Shell has semantic main navigation', shell.includes('aria-label="Main navigation"'));
 ok('Shell exposes destination actions', shell.includes('Deep Research') && shell.includes('Knowledge Base') && shell.includes('Collections'));
 ok('Shell includes disabled future Settings', shell.includes('Settings (not available yet)'));
 ok('Shell uses compact non-clipping mobile navigation', shellCss.includes('@media (max-width: 768px)') && shellCss.includes('flex-wrap: wrap') && shellCss.includes('overflow-x: hidden'));
+ok('Shell identifies Mementos as a research notebook', shell.includes('A research notebook'));
+ok('Shell keeps destination helper text readable', shell.includes('Ask a question') && shell.includes('Review evidence'));
+ok('Shared visual tokens use paper and cherry red', globals.includes('--paper: #f5f1e9') && globals.includes('--red: #b7193b') && globals.includes('--font-display: Georgia'));
 ok('Page owns collection loading', page.includes("fetch('/api/collections')") && page.includes('setCollectionUnavailable'));
 ok('Deep Research receives shared collection state', root.includes('collectionUnavailable: boolean') && root.includes('onCollectionChange: (collection: string) => void'));
 ok('Deep Research does not refetch collections', !root.includes("fetch('/api/collections')"));

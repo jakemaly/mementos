@@ -1,49 +1,264 @@
 .shell {
-  min-height: 100vh;
-  display: flex;
-  background: #f8f7f3;
-  color: #1c1b19;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  display: grid;
+  overflow-x: hidden;
+  grid-template-columns: minmax(208px, 224px) minmax(0, 1fr);
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .navigation {
-  width: 216px;
-  flex: 0 0 216px;
+  position: sticky;
+  top: 0;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 0.35rem;
-  padding: 1.25rem 0.75rem;
-  border-right: 1px solid #d6d1cc;
+  width: 100%;
+  height: 100dvh;
+  min-width: 0;
+  padding: 2.1rem 1.4rem 1.5rem;
+  border-right: 1px solid var(--line);
+  background: var(--paper);
 }
 
-.wordmark { font-size: 1.15rem; font-weight: 650; letter-spacing: -0.02em; padding: 0 0.5rem 1.4rem; }
-.destinations { display: grid; gap: 0.2rem; }
-.destination, .contextAction {
-  min-height: 40px;
-  border: 0;
-  border-radius: 6px;
-  padding: 0.5rem 0.65rem;
-  background: transparent;
-  color: #49454f;
-  font: inherit;
-  font-size: 0.9rem;
-  text-align: left;
-  cursor: pointer;
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  padding-bottom: 2.15rem;
 }
-.destination[aria-current='page'], .contextAction { background: #9f1239; color: #fff; }
-.destination:hover:not(:disabled) { background: #ebe7e1; color: #1c1b19; }
-.destination[aria-current='page']:hover { background: #881033; color: #fff; }
-.destination:disabled { opacity: 0.55; cursor: not-allowed; }
-.contextAction { margin-top: auto; text-align: center; }
-.destination:focus-visible, .contextAction:focus-visible { outline: 2px solid #9f1239; outline-offset: 2px; }
-.content { min-width: 0; flex: 1; display: flex; }
+
+.wordmark {
+  position: relative;
+  width: fit-content;
+  color: var(--ink);
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.07em;
+  line-height: 1;
+}
+
+.wordmarkMark {
+  display: inline-block;
+  width: 0.32rem;
+  height: 0.32rem;
+  margin-left: 0.22rem;
+  background: var(--red);
+  vertical-align: baseline;
+}
+
+.identityNote,
+.navLabel,
+.navNumber,
+.navFootnote {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.navGroup {
+  min-width: 0;
+}
+
+.navLabel {
+  display: block;
+  margin-bottom: 0.7rem;
+  color: var(--red);
+}
+
+.destinations {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.destination {
+  display: grid;
+  grid-template-columns: 1.7rem minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: center;
+  min-height: 3rem;
+  min-width: 0;
+  padding: 0.55rem 0.35rem 0.55rem 0.55rem;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+
+.destination:hover:not(:disabled) {
+  border-left-color: var(--red-bright);
+  color: var(--ink);
+  background: var(--paper-deep);
+}
+
+.destination[aria-current='page'] {
+  border-left-color: var(--red);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.destination[aria-current='page'] .navNumber {
+  color: var(--red);
+}
+
+.destination:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.destination:focus-visible,
+.contextAction:focus-visible {
+  outline: 3px solid var(--red-bright);
+  outline-offset: 3px;
+}
+
+.navNumber {
+  color: var(--quiet);
+  font-size: 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.navCopy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.navCopy > span,
+.navCopy small {
+  overflow-wrap: anywhere;
+}
+
+.navCopy small {
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 450;
+  line-height: 1.25;
+}
+
+.navFoot {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: auto;
+  padding-top: 1.35rem;
+  border-top: 1px solid var(--line);
+}
+
+.contextAction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.65rem 0.8rem;
+  border: 0;
+  background: var(--red);
+  color: var(--paper-light);
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  text-align: left;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.contextAction:hover {
+  background: var(--red-bright);
+  transform: translateY(-1px);
+}
+
+.navFootnote {
+  max-width: 15rem;
+  color: var(--quiet);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.55;
+  text-transform: none;
+}
+
+.content {
+  display: flex;
+  min-width: 0;
+  min-height: 100dvh;
+}
 
 @media (max-width: 768px) {
-  .shell { display: block; }
-  .navigation { width: auto; min-height: 56px; padding: 0.5rem 0.75rem; border-right: 0; border-bottom: 1px solid #d6d1cc; flex-wrap: wrap; align-items: center; overflow-x: hidden; }
-  .wordmark { flex: 0 0 100%; padding: 0 0.5rem 0 0; white-space: nowrap; }
-  .destinations { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; gap: 0.15rem; }
-  .destination, .contextAction { flex: 0 0 auto; min-height: 36px; padding: 0.4rem 0.5rem; white-space: nowrap; font-size: 0.8rem; }
-  .contextAction { margin: 0 0 0 auto; }
+  .shell {
+    display: block;
+  }
+
+  .navigation {
+    position: sticky;
+    z-index: 10;
+    height: auto;
+    min-height: 0;
+    padding: 1rem 1rem 0.85rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .identity {
+    padding-bottom: 1rem;
+  }
+
+  .navLabel {
+    margin-bottom: 0.4rem;
+  }
+
+  .destinations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.7rem;
+  }
+
+  .destination {
+    display: flex;
+    min-height: 2.3rem;
+    padding: 0.45rem 0.1rem;
+    border-left: 0;
+    border-bottom: 2px solid transparent;
+  }
+
+  .destination:hover:not(:disabled),
+  .destination[aria-current='page'] {
+    border-left-color: transparent;
+    border-bottom-color: var(--red);
+    background: transparent;
+  }
+
+  .navNumber,
+  .navCopy small {
+    display: none;
+  }
+
+  .navCopy {
+    display: block;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .navFoot {
+    margin-top: 0.85rem;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .contextAction {
+    width: fit-content;
+    min-width: 10rem;
+  }
+
+  .navFootnote {
+    display: none;
+  }
+
+  .content {
+    min-height: calc(100dvh - 12rem);
+  }
 }
