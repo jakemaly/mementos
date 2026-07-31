@@ -11,15 +11,34 @@ function externalUrl(path: string): string | null {
   } catch { return null; }
 }
 
-export function CitationList({ sources }: { sources: CitationSource[] }) {
-  if (!sources.length) return null;
-  return <ol className={styles.citations} aria-label="Sources">
-    {sources.map((source, index) => {
-      const href = externalUrl(source.path);
-      return <li id={`source-${source.id}`} key={source.id}>
-        {href ? <a href={href} target="_blank" rel="noreferrer">[{index + 1}] {source.path}</a> : <span>[{index + 1}] {source.path}</span>}
-        {source.snippet && <p>{source.snippet}</p>}
-      </li>;
-    })}
-  </ol>;
+interface CitationListProps {
+  sources: CitationSource[];
+  anchorPrefix?: string;
+}
+
+export function CitationList({ sources, anchorPrefix = '' }: CitationListProps) {
+  const uniqueSources = Array.from(new Map(sources.map((source) => [source.id, source])).values());
+  if (!uniqueSources.length) return null;
+
+  return <section className={styles.sourceIndex} aria-labelledby={`${anchorPrefix}-source-index`}>
+    <header className={styles.sourceIndexHeader}>
+      <h3 id={`${anchorPrefix}-source-index`}>Source index</h3>
+      <span>{uniqueSources.length} {uniqueSources.length === 1 ? 'source' : 'sources'}</span>
+    </header>
+    <ol className={styles.citations}>
+      {uniqueSources.map((source, index) => {
+        const href = externalUrl(source.path);
+        const anchorId = `source-${anchorPrefix}-${source.id}`;
+        return <li id={anchorId} key={source.id}>
+          <div className={styles.citationRow}>
+            <span className={styles.citationNumber}>[{index + 1}]</span>
+            <div className={styles.citationBody}>
+              {href ? <a href={href} target="_blank" rel="noreferrer">{source.path}</a> : <span>{source.path}</span>}
+              {source.snippet && <p>{source.snippet}</p>}
+            </div>
+          </div>
+        </li>;
+      })}
+    </ol>
+  </section>;
 }

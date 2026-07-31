@@ -1,6 +1,6 @@
 'use client';
 
-import { KeyboardEvent } from 'react';
+import { FormEvent, KeyboardEvent } from 'react';
 import styles from './knowledge-base.module.css';
 
 interface ChatComposerProps {
@@ -11,14 +11,36 @@ interface ChatComposerProps {
 }
 
 export function ChatComposer({ value, disabled, onChange, onSubmit }: ChatComposerProps) {
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!disabled && value.trim()) onSubmit();
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (!disabled && value.trim()) onSubmit();
     }
   };
-  return <div className={styles.chatComposer}>
-    <textarea aria-label="Ask Knowledge Base" value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={onKeyDown} disabled={disabled} placeholder="Ask about this collection" rows={2} />
-    <button type="button" onClick={onSubmit} disabled={disabled || !value.trim()}>Send</button>
-  </div>;
+
+  return <form className={styles.chatComposer} onSubmit={submit}>
+    <div className={styles.composerField}>
+      <label className={styles.composerLabel} htmlFor="knowledge-base-question">Ask this collection</label>
+      <textarea
+        id="knowledge-base-question"
+        aria-label="Ask Knowledge Base"
+        aria-describedby="knowledge-base-question-hint"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={onKeyDown}
+        disabled={disabled}
+        placeholder="What should I find in this archive?"
+        rows={3}
+      />
+      <p id="knowledge-base-question-hint" className={styles.composerHint}>Enter to send · Shift+Enter for a new line</p>
+    </div>
+    <button type="submit" className={styles.sendButton} disabled={disabled || !value.trim()}>
+      Ask archive <span aria-hidden="true">↗</span>
+    </button>
+  </form>;
 }
