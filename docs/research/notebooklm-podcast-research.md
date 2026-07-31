@@ -1,7 +1,7 @@
 # NotebookLM-style source-grounded podcast research
 
-**Status:** Research only; no application code was changed.  
-**Access date:** 2026-07-31  
+- **Status:** Research only; no application code was changed.
+- **Access date:** 2026-07-31
 **Research method:** Web discovery was performed with Tavily and the findings were checked against the linked first-party documentation, API references, specifications, and repository code. Provider prices and quotas are volatile; the values below are a dated snapshot, not a contract.
 
 ## Executive recommendation
