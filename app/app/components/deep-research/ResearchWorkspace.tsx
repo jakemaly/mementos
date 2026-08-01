@@ -87,15 +87,17 @@ export function ResearchWorkspace({
         <div className={styles.workspaceTitleRow}>
           <div className={styles.workspaceHeading}>
             <h1 id="research-workspace-title">Follow the route.</h1>
-            <p>One visible path from the brief through search, evidence, and import.</p>
+            <p>One visible path from the brief through search to evidence, ready for review.</p>
           </div>
-          <div className={`${styles.statusStamp} ${styles[`status-${runState}`]}`} role="status" aria-live="polite">
-            <span className={styles.statusMark} aria-hidden="true">{runState === 'failed' ? '!' : runState === 'ingested' ? '✓' : '•'}</span>
-            <span>
-              <strong>{status.label}</strong>
-              <small>{status.detail}</small>
-              {isRunning && <small className={styles.elapsed}>Elapsed {formatElapsed(elapsedMs)}</small>}
-            </span>
+          <div className={styles.statusContext}>
+            <div className={`${styles.statusStamp} ${styles[`status-${runState}`]}`} role="status" aria-live="polite">
+              <span className={styles.statusMark} aria-hidden="true">{runState === 'failed' ? '!' : runState === 'ingested' ? '✓' : '•'}</span>
+              <span>
+                <strong>{status.label}</strong>
+                <small>{status.detail}</small>
+              </span>
+            </div>
+            {isRunning && <p className={styles.elapsed}>Elapsed {formatElapsed(elapsedMs)}</p>}
           </div>
         </div>
         <div className={styles.routeContext}>

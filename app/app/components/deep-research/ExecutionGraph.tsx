@@ -118,13 +118,6 @@ export function ExecutionGraph({
                   type="button"
                   className={`${styles.routeNode} ${styles[`routeNode-${node.status}`]} ${selected ? styles.routeNodeSelected : ''}`}
                   onClick={() => onNodeSelect(selected ? null : node.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      onNodeSelect(selected ? null : node.id);
-                    }
-                  }}
-                  tabIndex={0}
                   aria-pressed={selected}
                   aria-current={selected ? 'step' : undefined}
                   aria-label={`${node.label}: ${statusLabels[node.status]}. ${node.summary}`}
@@ -373,7 +366,7 @@ function buildRoute(trace: TraceEvent[], runState: RunState, sourceCount: number
 function buildStages(trace: TraceEvent[], runState: RunState, sourceCount: number): RouteStage[] {
   const hasBrief = trace.some((event) => event.type === 'brief_generated');
   const hasTrace = trace.some((event) => ['supervisor_evaluation', 'tool_started', 'iteration_complete'].includes(event.type));
-  const hasFailure = runState === 'failed' || trace.some((event) => event.type === 'error' || event.type === 'tool_failed');
+  const hasFailure = runState === 'failed' || trace.some((event) => event.type === 'error');
   const researchFinished = runState === 'completed' || runState === 'ingesting' || runState === 'ingested';
 
   return [
@@ -394,12 +387,6 @@ function buildStages(trace: TraceEvent[], runState: RunState, sourceCount: numbe
       label: 'Evidence',
       detail: sourceCount > 0 ? `${sourceCount} source${sourceCount === 1 ? '' : 's'} to review` : researchFinished ? 'No sources returned' : 'Sources will appear here',
       status: sourceCount > 0 && researchFinished ? 'active' : sourceCount > 0 ? 'active' : researchFinished ? 'completed' : 'upcoming',
-    },
-    {
-      id: 'import',
-      label: 'Import',
-      detail: runState === 'ingested' ? 'Collection updated' : runState === 'ingesting' ? 'Adding selected sources' : 'After review',
-      status: runState === 'ingested' ? 'completed' : runState === 'ingesting' ? 'active' : 'upcoming',
     },
   ];
 }
