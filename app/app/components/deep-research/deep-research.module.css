@@ -1473,3 +1473,189 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Idle composer: CSS-only dialogue geometry, keeping the controls native. */
+.composerMain {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: clamp(2rem, 6vw, 5rem) clamp(1rem, 5vw, 4rem);
+  overflow: visible;
+}
+
+.composerMain::before,
+.composerMain::after {
+  display: none;
+}
+
+.composerPanel {
+  position: relative;
+  width: min(100%, 58rem);
+  max-width: none;
+  padding: 1.25rem;
+  border: 3px solid var(--black);
+  background: var(--black);
+  box-shadow: 0.7rem 0.7rem 0 var(--red);
+}
+
+.composerPanel::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0.55rem -0.55rem -0.55rem 0.55rem;
+  border: 2px solid var(--red);
+  content: "";
+  pointer-events: none;
+}
+
+.composerForm,
+.composerHint {
+  position: relative;
+  z-index: 1;
+}
+
+.composerForm {
+  gap: 1.2rem;
+}
+
+.dialogueHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2.7rem;
+  margin: -2.25rem 0 0.25rem -0.55rem;
+}
+
+.speakerPlate {
+  padding: 0.65rem 1.2rem;
+  border: 3px solid var(--black);
+  background: var(--black);
+  color: var(--paper-light);
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  transform: skew(-10deg);
+}
+
+.dialogueContext {
+  color: var(--red-bright);
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.questionField {
+  gap: 0.65rem;
+}
+
+.fieldLabel {
+  color: var(--paper-light);
+}
+
+.composerInput {
+  min-height: 14rem;
+  padding: 1.15rem 1.25rem;
+  border: 3px solid var(--black);
+  background: var(--paper-light);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2.5vw, 1.85rem);
+  line-height: 1.4;
+  resize: vertical;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.composerInput::placeholder {
+  color: var(--muted);
+}
+
+.composerInput:focus-visible {
+  border-color: var(--red-bright);
+  box-shadow: 0 0 0 3px var(--paper-light), 0 0 0 6px var(--red-bright);
+  outline: none;
+}
+
+.composerFooter {
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid #4b4542;
+}
+
+.collectionSelect {
+  width: min(100%, 20rem);
+  border: 2px solid var(--paper-light);
+  background: var(--black);
+  color: var(--paper-light);
+}
+
+.collectionSelect:focus-visible {
+  border-color: var(--red-bright);
+  outline: 3px solid var(--red-bright);
+  outline-offset: 3px;
+}
+
+.submitButton {
+  min-height: 2.9rem;
+  padding: 0.7rem 0.95rem;
+  background: var(--red);
+  color: var(--paper-light);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: var(--red-bright);
+}
+
+.submitButton:disabled {
+  background: #5b1928;
+  color: #d8d0c8;
+  opacity: 1;
+}
+
+.composerHint {
+  margin-top: 1rem;
+  color: #c7c0b8;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 768px) {
+  .composerMain {
+    min-height: calc(100dvh - 12rem);
+    padding: 3rem 1rem 3.5rem;
+  }
+
+  .composerPanel {
+    min-height: 22rem;
+    padding: 1rem;
+    box-shadow: 0.45rem 0.45rem 0 var(--red);
+  }
+
+  .dialogueHeader {
+    margin-top: -2rem;
+  }
+
+  .composerInput {
+    min-height: 11rem;
+  }
+
+  .composerFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .collectionSelect,
+  .submitButton {
+    width: 100%;
+  }
+}
