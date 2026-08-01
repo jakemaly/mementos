@@ -343,23 +343,6 @@ function buildRoute(trace: TraceEvent[], runState: RunState, sourceCount: number
     }
   }
 
-  if (runState === 'failed' && !nodes.some((node) => node.status === 'failed')) {
-    const fallbackEvent: TraceEvent = {
-      id: 'route-failure',
-      type: 'error',
-      payload: { message: 'The research stream ended before completion.' },
-      timestamp: Date.now() / 1000,
-    };
-    addNode({
-      id: fallbackEvent.id,
-      label: 'Research failed',
-      summary: 'The research stream ended before completion.',
-      status: 'failed',
-      kind: 'error',
-      event: fallbackEvent,
-    });
-  }
-
   return { nodes, stages: buildStages(trace, runState, sourceCount) };
 }
 

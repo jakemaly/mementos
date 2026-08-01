@@ -35,7 +35,7 @@ export function ObservabilityTimeline({ trace, brief, isResearching, focusedNode
   useEffect(() => {
     if (!focusedNodeId) return;
     entryRefs.current.get(focusedNodeId)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [entries, focusedNodeId]);
+  }, [focusedNodeId]);
 
   if (entries.length === 0) {
     return <div className={styles.timelineEmpty}>Waiting for the first route event.</div>;

@@ -67,6 +67,7 @@ ok('Graph renders explicit loop edges', graph.includes("label: 'continue'"));
 ok('Graph exposes keyboard node selection', graph.includes('type="button"') && graph.includes('aria-pressed={selected}'));
 ok('Recoverable tool failures do not fail the route', graph.includes("const hasFailure = runState === 'failed' || trace.some((event) => event.type === 'error');"));
 ok('Import stays outside the route topology', !graph.includes("id: 'import'"));
+ok('Client failures do not create synthetic route nodes', !graph.includes("id: 'route-failure'"));
 ok('Timeline renders terminal completion', timeline.includes('Research complete'));
 
 console.log('\n=== Workspace ===\n');
@@ -87,6 +88,7 @@ ok('Route includes explicit stage labels', graph.includes('routeStages') && grap
 ok('Selected route nodes expose detail', graph.includes('routeDetail') && graph.includes('Status'));
 ok('Route selection keeps related timeline detail', timeline.includes('aria-current') && timeline.includes('timelineItemFocused'));
 ok('Route selection reveals related timeline detail', timeline.includes('scrollIntoView'));
+ok('Live events do not reset trace selection scrolling', timeline.includes('}, [focusedNodeId]);'));
 ok('Evidence is an ordered numbered list', sources.includes('<ol') && sources.includes('sourceNumber'));
 ok('Evidence import action is explicit', sources.includes('Import selected sources'));
 ok('Evidence selection status is announced', sources.includes('aria-live="polite"'));
