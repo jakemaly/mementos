@@ -136,8 +136,8 @@
 .dialogueStage {
   position: relative;
   display: flex;
-  min-height: 30rem;
-  height: clamp(30rem, 34vw, 32rem);
+  min-height: 32rem;
+  height: clamp(32rem, 37vw, 34rem);
   flex-direction: column;
   overflow: hidden;
   isolation: isolate;
@@ -187,17 +187,17 @@
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  padding: clamp(6.75rem, 11vw, 8.5rem) clamp(4rem, 11vw, 8.5rem) 0.75rem;
+  padding: clamp(9rem, 13vw, 11rem) clamp(4rem, 11vw, 8.5rem) 0.75rem;
 }
 
 .dialogueNamePlate {
   position: absolute;
   z-index: 2;
-  top: clamp(3.5rem, 6vw, 5rem);
+  top: clamp(5rem, 8vw, 7rem);
   left: clamp(5.5rem, 18%, 12rem);
   margin: 0;
   color: #111;
-  font-family: "P5 Optima", Impact, sans-serif;
+  font-family: "P5 Optima", Impact, var(--font-display);
   font-size: clamp(1.1rem, 2.3vw, 1.8rem);
   font-weight: 900;
   letter-spacing: 0.01em;
@@ -420,7 +420,7 @@
   }
 
   .dialogueNamePlate {
-    top: 3.25rem;
+    top: 4rem;
     left: 20%;
     font-size: clamp(0.95rem, 3.6vw, 1.35rem);
   }
