@@ -500,6 +500,12 @@
   min-width: 0;
 }
 
+.sketchPanel:focus-visible,
+.tracePanel:focus-visible {
+  outline: 3px solid var(--red-bright);
+  outline-offset: 3px;
+}
+
 @media (min-width: 769px) {
   .workspaceGrid {
     height: min(43rem, calc(100dvh - 19rem));

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { TraceEvent, ResearchBrief } from '@/app/lib/research-contracts';
 import styles from './deep-research.module.css';
 
@@ -29,7 +29,13 @@ const statusLabels: Record<TimelineStatus, string> = {
 
 export function ObservabilityTimeline({ trace, brief, isResearching, focusedNodeId }: ObservabilityTimelineProps) {
   const entries = useMemo(() => buildTimeline(trace, brief, isResearching), [trace, brief, isResearching]);
+  const entryRefs = useRef(new Map<string, HTMLLIElement>());
   const firstTime = trace[0]?.timestamp || 0;
+
+  useEffect(() => {
+    if (!focusedNodeId) return;
+    entryRefs.current.get(focusedNodeId)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [entries, focusedNodeId]);
 
   if (entries.length === 0) {
     return <div className={styles.timelineEmpty}>Waiting for the first route event.</div>;
@@ -45,6 +51,10 @@ export function ObservabilityTimeline({ trace, brief, isResearching, focusedNode
             id={`timeline-${entry.id}`}
             className={`${styles.timelineItem} ${styles[`timelineItem-${entry.status}`]} ${focused ? styles.timelineItemFocused : ''}`}
             aria-current={focused ? 'step' : undefined}
+            ref={(element) => {
+              if (element) entryRefs.current.set(entry.id, element);
+              else entryRefs.current.delete(entry.id);
+            }}
           >
             <span className={styles.timelineMarker} aria-hidden="true">{entry.status === 'completed' ? '✓' : entry.status === 'failed' ? '!' : '•'}</span>
             <div className={styles.timelineBody}>

@@ -1,6 +1,7 @@
 'use client';
 
 import { Source } from '@/app/lib/research-contracts';
+import { canonicalSourceKey } from './research-state';
 import styles from './deep-research.module.css';
 
 interface IngestResult {
@@ -13,7 +14,7 @@ interface IngestResult {
 
 interface SourceListProps {
   sources: Source[];
-  selectedUrls: Set<string>;
+  selectedKeys: Set<string>;
   onToggle: (url: string) => void;
   onToggleAll: () => void;
   onIngest: () => void;
@@ -32,7 +33,7 @@ function sourceDomain(url: string): string {
 
 export function SourceList({
   sources,
-  selectedUrls,
+  selectedKeys,
   onToggle,
   onToggleAll,
   onIngest,
@@ -40,8 +41,8 @@ export function SourceList({
   ingestResult,
   errorMessage,
 }: SourceListProps) {
-  const allSelected = sources.length > 0 && selectedUrls.size === sources.length;
-  const selectedCount = sources.filter((source) => selectedUrls.has(source.url)).length;
+  const selectedCount = sources.filter((source) => selectedKeys.has(canonicalSourceKey(source.url))).length;
+  const allSelected = sources.length > 0 && selectedCount === sources.length;
 
   return (
     <div className={styles.sourceListContainer}>
@@ -77,7 +78,7 @@ export function SourceList({
         <ol className={styles.sourceRows} aria-label="Discovered evidence sources">
           {sources.map((source, index) => {
             const checkboxId = `source-${index}`;
-            const checked = selectedUrls.has(source.url);
+            const checked = selectedKeys.has(canonicalSourceKey(source.url));
             return (
               <li key={source.url} className={styles.sourceRow}>
                 <input

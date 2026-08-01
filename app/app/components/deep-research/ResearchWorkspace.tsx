@@ -29,7 +29,7 @@ interface ResearchWorkspaceProps {
   brief: ResearchBrief | null;
   sketch: Sketch | null;
   sources: Source[];
-  selectedSourceUrls: Set<string>;
+  selectedSourceKeys: Set<string>;
   onToggleSource: (url: string) => void;
   onToggleAllSources: () => void;
   onIngest: () => void;
@@ -67,7 +67,7 @@ export function ResearchWorkspace({
   brief,
   sketch,
   sources,
-  selectedSourceUrls,
+  selectedSourceKeys,
   onToggleSource,
   onToggleAllSources,
   onIngest,
@@ -141,7 +141,7 @@ export function ResearchWorkspace({
           />
         </section>
 
-        <section className={`${styles.panel} ${styles.sketchPanel}`} aria-label="Research sketch">
+        <section className={`${styles.panel} ${styles.sketchPanel}`} aria-label="Research sketch" tabIndex={0}>
           <div className={styles.panelHeading}>
             <div>
               <span className={styles.panelKicker}>Brief / research sketch</span>
@@ -152,7 +152,7 @@ export function ResearchWorkspace({
           <ResearchSketch sketch={sketch} brief={brief} focused={selectedNodeId === briefNodeId} />
         </section>
 
-        <section className={`${styles.panel} ${styles.tracePanel}`} aria-label="Observability">
+        <section className={`${styles.panel} ${styles.tracePanel}`} aria-label="Observability" tabIndex={0}>
           <div className={styles.panelHeading}>
             <div>
               <span className={styles.panelKicker}>Trace / observability</span>
@@ -179,7 +179,7 @@ export function ResearchWorkspace({
           <p className={styles.panelDescription}>Select the evidence worth keeping, then Import selected sources into {selectedCollection || 'the chosen collection'}.</p>
           <SourceList
             sources={sources}
-            selectedUrls={selectedSourceUrls}
+            selectedKeys={selectedSourceKeys}
             onToggle={onToggleSource}
             onToggleAll={onToggleAllSources}
             onIngest={onIngest}

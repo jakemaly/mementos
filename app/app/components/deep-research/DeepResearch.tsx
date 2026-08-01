@@ -46,7 +46,7 @@ export function DeepResearch({
   const [brief, setBrief] = useState<ResearchBrief | null>(null);
   const [sketch, setSketch] = useState<Sketch | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
-  const [selectedSourceUrls, setSelectedSourceUrls] = useState<Set<string>>(new Set());
+  const [selectedSourceKeys, setSelectedSourceKeys] = useState<Set<string>>(new Set());
   const [errorMessage, setErrorMessage] = useState('');
   const [ingestResult, setIngestResult] = useState<IngestResult | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -82,7 +82,7 @@ export function DeepResearch({
     setBrief(null);
     setSketch(null);
     setSources([]);
-    setSelectedSourceUrls(new Set());
+    setSelectedSourceKeys(new Set());
     deselectedUrlsRef.current = new Set();
     setErrorMessage('');
     setIngestResult(null);
@@ -173,7 +173,7 @@ export function DeepResearch({
                 const newSources = (payload.sources as Source[]) || [];
                 setSources((prev) => mergeSources(prev, newSources));
                 // Auto-select newly discovered sources unless explicitly deselected
-                setSelectedSourceUrls((prev) =>
+                setSelectedSourceKeys((prev) =>
                   selectDiscoveredSources(prev, newSources, deselectedUrlsRef.current),
                 );
               } else if (eventType === 'done') {
@@ -184,16 +184,19 @@ export function DeepResearch({
                   timestamp: Date.now() / 1000,
                 }]);
                 if (data.sources) {
-                  const finalSources = data.sources.map((s: { url: string; title?: string; snippet?: string; score?: number }) => ({
-                    url: s.url,
-                    title: s.title || s.url,
-                    snippet: s.snippet || '',
-                    score: s.score || 0,
-                  }));
+                  const finalSources = mergeSources(
+                    [],
+                    data.sources.map((s: { url: string; title?: string; snippet?: string; score?: number }) => ({
+                      url: s.url,
+                      title: s.title || s.url,
+                      snippet: s.snippet || '',
+                      score: s.score || 0,
+                    })),
+                  );
                   // Reconcile final ranked sources with existing selection
                   setSources(finalSources);
                   // Preserve deselections
-                  setSelectedSourceUrls(
+                  setSelectedSourceKeys(
                     reconcileFinalSources(finalSources, deselectedUrlsRef.current),
                   );
                 }
@@ -251,35 +254,38 @@ export function DeepResearch({
   }, [clearRun]);
 
   const handleToggleSource = useCallback((url: string) => {
-    setSelectedSourceUrls((prev) => {
+    const key = canonicalSourceKey(url);
+    setSelectedSourceKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(url)) {
-        next.delete(url);
+      if (next.has(key)) {
+        next.delete(key);
         const nextDeselected = new Set(deselectedUrlsRef.current);
-        nextDeselected.add(canonicalSourceKey(url));
+        nextDeselected.add(key);
         deselectedUrlsRef.current = nextDeselected;
       } else {
         const nextDeselected = new Set(deselectedUrlsRef.current);
-        nextDeselected.delete(canonicalSourceKey(url));
+        nextDeselected.delete(key);
         deselectedUrlsRef.current = nextDeselected;
-        next.add(url);
+        next.add(key);
       }
       return next;
     });
   }, []);
 
   const handleToggleAllSources = useCallback(() => {
-    if (selectedSourceUrls.size === sources.length) {
-      setSelectedSourceUrls(new Set());
+    const selectedCount = sources.filter((source) => selectedSourceKeys.has(canonicalSourceKey(source.url))).length;
+    if (selectedCount === sources.length) {
+      setSelectedSourceKeys(new Set());
       deselectedUrlsRef.current = new Set(sources.map((s) => canonicalSourceKey(s.url)));
     } else {
-      setSelectedSourceUrls(new Set(sources.map((s) => s.url)));
+      setSelectedSourceKeys(new Set(sources.map((s) => canonicalSourceKey(s.url))));
       deselectedUrlsRef.current = new Set();
     }
-  }, [sources, selectedSourceUrls]);
+  }, [sources, selectedSourceKeys]);
 
   const handleIngest = useCallback(async () => {
-    if (selectedSourceUrls.size === 0 || !selectedCollection || collectionUnavailable) return;
+    const sourcesToIngest = sources.filter((source) => selectedSourceKeys.has(canonicalSourceKey(source.url)));
+    if (sourcesToIngest.length === 0 || !selectedCollection || collectionUnavailable) return;
 
     setRunState('ingesting');
     setIngestResult(null);
@@ -290,7 +296,7 @@ export function DeepResearch({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sources: sources.filter((s) => selectedSourceUrls.has(s.url)),
+          sources: sourcesToIngest,
           collection: selectedCollection,
           chunkSize: 500,
           chunkOverlap: 50,
@@ -322,7 +328,9 @@ export function DeepResearch({
       setErrorMessage('Network error during ingestion');
       setRunState('completed');
     }
-  }, [sources, selectedSourceUrls, selectedCollection, collectionUnavailable]);
+  }, [sources, selectedSourceKeys, selectedCollection, collectionUnavailable]);
+
+  const hasSelectedSources = sources.some((source) => selectedSourceKeys.has(canonicalSourceKey(source.url)));
 
   if (runState === 'idle') {
     return (
@@ -375,12 +383,12 @@ export function DeepResearch({
       brief={brief}
       sketch={sketch}
       sources={sources}
-      selectedSourceUrls={selectedSourceUrls}
+      selectedSourceKeys={selectedSourceKeys}
       onToggleSource={handleToggleSource}
       onToggleAllSources={handleToggleAllSources}
       onIngest={handleIngest}
       ingestDisabled={
-        selectedSourceUrls.size === 0
+        !hasSelectedSources
         || runState === 'starting'
         || runState === 'researching'
         || runState === 'ingesting'

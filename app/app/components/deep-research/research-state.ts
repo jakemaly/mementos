@@ -25,14 +25,15 @@ export function mergeSources(existing: Source[], incoming: Source[]): Source[] {
 }
 
 export function selectDiscoveredSources(
-  selectedUrls: Set<string>,
+  selectedKeys: Set<string>,
   incoming: Source[],
   deselectedKeys: Set<string>,
 ): Set<string> {
-  const selected = new Set(selectedUrls);
+  const selected = new Set(selectedKeys);
   for (const source of incoming) {
-    if (!deselectedKeys.has(canonicalSourceKey(source.url))) {
-      selected.add(source.url);
+    const key = canonicalSourceKey(source.url);
+    if (!deselectedKeys.has(key)) {
+      selected.add(key);
     }
   }
   return selected;
@@ -45,6 +46,6 @@ export function reconcileFinalSources(
   return new Set(
     finalSources
       .filter((source) => !deselectedKeys.has(canonicalSourceKey(source.url)))
-      .map((source) => source.url),
+      .map((source) => canonicalSourceKey(source.url)),
   );
 }
