@@ -7,15 +7,14 @@ Implementation complete through Task 15. Automated, configured-service, Chromium
 ## Source of truth
 
 - Product and design requirements: `docs/deep-research-design-overhaul-spec.md`
-- Design constitution: `docs/design.md`
 - Existing research pipeline: `sidecar/research/graph.py`
 - Existing Deep Research UI: `app/app/page.tsx`
 
 ## Overview
 
-Replace the current Deep Research dashboard with a single-purpose prompt-to-research-to-ingestion flow. The work proceeds contract-first: simplify the request, add live source and cancellation semantics, then replace the frontend incrementally with a composer and fixed four-pane workspace. Knowledge Base & Search remains functionally unchanged.
+Replace the current Deep Research dashboard with a single-purpose prompt-to-research-to-ingestion flow. The work proceeds contract-first: simplify the request, add live source and cancellation semantics, then replace the frontend incrementally with a composer and fixed four-pane workspace. The completed visual revision makes that workspace an asymmetric, event-derived route map with supporting brief, trace, and evidence panes. Knowledge Base & Search remains functionally unchanged.
 
-No dependency is added. The graph remains a small event-derived SVG implementation rather than adopting a graph library.
+No dependency is added. The route map remains a small event-derived semantic HTML/CSS implementation rather than adopting a graph library.
 
 ## Planning assumptions
 
@@ -353,29 +352,28 @@ The first working version may render simple semantic placeholders for the four p
 
 # Phase 4: Build the four-pane research workspace
 
-## Task 10: Render the event-derived execution graph
+## Task 10: Render the event-derived route map
 
-**Description:** Replace both existing graphs with one SVG graph derived from trace events. Lay out brief, repeated supervisor/tool iterations, scoring, and completion so loop direction is explicit.
+**Description:** Replace both existing graphs with one semantic HTML/CSS route map derived from trace events. Lay out brief, repeated supervisor/tool iterations, scoring, and completion so iteration returns are explicit.
 
 **Acceptance criteria:**
 
-- [ ] Nodes and edges come from received events, not a hard-coded architecture diagram.
+- [ ] Route events come from received events, not a hard-coded architecture diagram.
 - [ ] Repeated supervisor/tool loops, running/completed/failed states, and iteration labels are readable without relying only on color.
 - [ ] Keyboard or pointer node selection exposes status, query, tool, duration, and result count through the shared selected-event state.
 
 **Verification:**
 
 - [ ] `cd app && node test-deep-research-frontend.mjs`
-- [ ] Fixture with at least two iterations produces the expected ordered nodes and loop edges.
-- [ ] Keyboard-select each node in a manual browser check.
-- [ ] `cd app && npx eslint app/components/deep-research/ExecutionGraph.tsx app/components/deep-research/graph-model.ts`
+- [ ] Fixture with at least two iterations produces the expected ordered route events and iteration-return markers.
+- [ ] Keyboard-select each route event in a manual browser check.
+- [ ] `cd app && npx eslint app/components/deep-research/ExecutionGraph.tsx`
 
 **Dependencies:** Task 8 and Task 5
 
 **Files likely touched:**
 
 - `app/app/components/deep-research/ExecutionGraph.tsx` (new)
-- `app/app/components/deep-research/graph-model.ts` (new pure model)
 - `app/app/components/deep-research/DeepResearch.tsx`
 - `app/app/components/deep-research/deep-research.module.css`
 - `app/test-deep-research-frontend.mjs`
@@ -411,13 +409,13 @@ The first working version may render simple semantic placeholders for the four p
 
 **Estimated scope:** Medium — 5 files
 
-## Task 12: Compose the fixed graph-first workspace
+## Task 12: Compose the fixed route-map-first workspace
 
-**Description:** Add the active sidebar, read-only query/status header, and fixed desktop/mobile arrangement for graph, sketch, observability, and sources. Apply the matte, nearly monochrome, cherry-accent visual language locally so Knowledge Base styling is not redesigned.
+**Description:** Add the read-only query/status header and fixed desktop/mobile arrangement for the route map, sketch, observability, and sources. Apply calm reading density, asymmetrical route-map geometry, and softened boundaries locally so Knowledge Base styling is not redesigned.
 
 **Acceptance criteria:**
 
-- [ ] At 1024px and 1440px all four panes are simultaneously visible in the specified fixed positions, with the graph largest.
+- [ ] At 1024px and 1440px all four panes are simultaneously visible in the specified fixed positions, with the route map largest.
 - [ ] At 768px and 390px navigation compacts and panes form the specified linear order without horizontal page overflow.
 - [ ] Styling uses system fonts, minimal borders, one cherry accent, visible focus, reduced motion, and no Deep Research gradients/glass/nested cards.
 
