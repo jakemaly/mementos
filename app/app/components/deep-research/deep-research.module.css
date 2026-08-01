@@ -221,6 +221,7 @@
   width: calc(100% - clamp(3rem, 6vw, 6rem));
   min-height: 0;
   margin-inline: auto;
+  padding-top: clamp(2rem, 5vw, 4rem);
   flex: 1;
   flex-direction: column;
 }
