@@ -24,7 +24,7 @@ interface SourceListProps {
 
 function sourceDomain(url: string): string {
   try {
-    return new URL(url).hostname.replace('www.', '');
+    return new URL(url).hostname.replace(/^www\./, '');
   } catch {
     return url;
   }
@@ -40,19 +40,23 @@ export function SourceList({
   ingestResult,
   errorMessage,
 }: SourceListProps) {
-  if (sources.length === 0) {
-    return <div className={styles.sourceEmpty}>No sources yet.</div>;
-  }
+  const allSelected = sources.length > 0 && selectedUrls.size === sources.length;
+  const selectedCount = sources.filter((source) => selectedUrls.has(source.url)).length;
 
   return (
     <div className={styles.sourceListContainer}>
-      {/* Controls */}
       <div className={styles.sourceControls}>
-        <button className={styles.sourceToggleAll} onClick={onToggleAll} type="button">
-          {selectedUrls.size === sources.length ? 'Deselect all' : 'Select all'}
+        <button
+          className={styles.sourceToggleAll}
+          onClick={onToggleAll}
+          type="button"
+          aria-pressed={allSelected}
+          disabled={sources.length === 0}
+        >
+          {allSelected ? 'Deselect all' : 'Select all'}
         </button>
-        <span className={styles.sourceCount}>
-          {selectedUrls.size} of {sources.length} selected
+        <span className={styles.sourceCount} aria-live="polite">
+          {selectedCount} of {sources.length} selected
         </span>
         <button
           className={styles.ingestButton}
@@ -61,61 +65,65 @@ export function SourceList({
           type="button"
           aria-label="Import selected sources"
         >
-          Import {selectedUrls.size > 0 ? `${selectedUrls.size} sources` : ''}
+          Import selected sources
         </button>
       </div>
 
-      {/* Source rows */}
-      <div className={styles.sourceRows}>
-        {sources.map((source, index) => (
-          <div key={source.url} className={styles.sourceRow}>
-            <input
-              id={`source-${index}`}
-              type="checkbox"
-              checked={selectedUrls.has(source.url)}
-              onChange={() => onToggle(source.url)}
-              aria-label={`Select ${source.title || source.url}`}
-            />
-            <div className={styles.sourceInfo}>
-              <div className={styles.sourceTitle}>
-                <a
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className={styles.sourceLink}
-                >
-                  {source.title || source.url}
-                </a>
-              </div>
-              <span className={styles.sourceDomain}>{sourceDomain(source.url)}</span>
-              {source.snippet && (
-                <p className={styles.sourceSnippet}>{source.snippet}</p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+      {sources.length === 0 ? (
+        <p className={styles.sourceEmpty} role="status">
+          No sources yet. Evidence will appear here as searches return.
+        </p>
+      ) : (
+        <ol className={styles.sourceRows} aria-label="Discovered evidence sources">
+          {sources.map((source, index) => {
+            const checkboxId = `source-${index}`;
+            const checked = selectedUrls.has(source.url);
+            return (
+              <li key={source.url} className={styles.sourceRow}>
+                <input
+                  id={checkboxId}
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onToggle(source.url)}
+                  aria-label={`Select source ${index + 1}: ${source.title || source.url}`}
+                />
+                <span className={styles.sourceNumber} aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                <div className={styles.sourceInfo}>
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.sourceLink}
+                  >
+                    {source.title || source.url}
+                  </a>
+                  <span className={styles.sourceDomain}>{sourceDomain(source.url)}</span>
+                  {source.snippet && <p className={styles.sourceSnippet}>{source.snippet}</p>}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
-      {/* Ingestion result */}
       {ingestResult && (
-        <div className={styles.ingestResult} role="status">
-          <span className={ingestResult.success ? styles.ingestSuccess : ingestResult.partial ? styles.ingestWarning : styles.ingestFailed}>
+        <div className={styles.ingestResult} role="status" aria-live="polite">
+          <strong className={ingestResult.success ? styles.ingestSuccess : ingestResult.partial ? styles.ingestWarning : styles.ingestFailed}>
             {ingestResult.success
-              ? `Imported ${ingestResult.ingestedUrls.length} sources (${ingestResult.totalChunks} chunks)`
+              ? `Imported ${ingestResult.ingestedUrls.length} source${ingestResult.ingestedUrls.length === 1 ? '' : 's'} · ${ingestResult.totalChunks} chunks`
               : ingestResult.partial
-                ? `Partially imported ${ingestResult.ingestedUrls.length} sources (${ingestResult.totalChunks} chunks)`
+                ? `Partially imported ${ingestResult.ingestedUrls.length} source${ingestResult.ingestedUrls.length === 1 ? '' : 's'} · ${ingestResult.totalChunks} chunks`
                 : 'Import failed for all selected sources'}
-          </span>
+          </strong>
           {ingestResult.failedUrls.length > 0 && (
             <span className={styles.ingestFailed}>
-              {ingestResult.failedUrls.length} source(s) failed
+              {ingestResult.failedUrls.length} source{ingestResult.failedUrls.length === 1 ? '' : 's'} failed.
             </span>
           )}
         </div>
       )}
 
-      {errorMessage && <div className={styles.sourceError} role="alert">{errorMessage}</div>}
+      {errorMessage && <p className={styles.sourceError} role="alert">{errorMessage}</p>}
     </div>
   );
 }
