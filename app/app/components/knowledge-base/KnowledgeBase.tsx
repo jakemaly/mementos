@@ -36,12 +36,19 @@ export function KnowledgeBase(props: KnowledgeBaseProps) {
     const order: LocalView[] = ['chat', 'vector'];
     const currentIndex = order.indexOf(view);
     let nextIndex = currentIndex;
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % order.length;
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (currentIndex - 1 + order.length) % order.length;
-    if (event.key === 'Home') nextIndex = 0;
-    if (event.key === 'End') nextIndex = order.length - 1;
-    if (nextIndex === currentIndex) return;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = (currentIndex + 1) % order.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = (currentIndex - 1 + order.length) % order.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = order.length - 1;
+    } else {
+      return;
+    }
     event.preventDefault();
+    if (nextIndex === currentIndex) return;
     selectView(order[nextIndex]);
   };
 

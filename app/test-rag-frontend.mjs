@@ -29,6 +29,8 @@ ok('archive dossier names the active collection context', knowledgeBase.includes
 ok('tabs expose keyboard and tab-panel semantics', knowledgeBase.includes('aria-controls') && knowledgeBase.includes('ArrowRight') && knowledgeBase.includes('role="tabpanel"'));
 ok('Chat and Vector Search retain in-session state while switching', knowledgeBase.includes("hidden={view !== 'chat'}") && knowledgeBase.includes("hidden={view !== 'vector'}"));
 ok('Vector Search clears state on collection changes', vectorSearch.includes('}, [selectedCollection])'));
+ok('Vector Search cancels stale collection requests', vectorSearch.includes('requestRef.current?.abort()') && vectorSearch.includes('signal: controller.signal') && vectorSearch.includes('requestRef.current !== controller'));
+ok('tab navigation consumes boundary keys', knowledgeBase.includes("} else if (event.key === 'Home')") && knowledgeBase.includes('event.preventDefault();\n    if (nextIndex === currentIndex) return;'));
 ok('Vector Search supports 5, 10, and 20 results', vectorSearch.includes('[5, 10, 20]'));
 ok('Vector results show source, snippet, and score', vectorSearch.includes('result.filename') && vectorSearch.includes('result.score.toFixed(2)') && !vectorSearch.includes('charStart'));
 ok('snippet disclosure is keyboard-accessible', vectorSearch.includes('aria-expanded={expanded.has(result.id)}'));

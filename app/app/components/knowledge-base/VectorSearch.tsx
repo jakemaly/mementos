@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import styles from './knowledge-base.module.css';
 
 interface SearchResult { id: string; score: number; text: string; filename: string; }
@@ -14,21 +14,35 @@ export function VectorSearch({ collections, selectedCollection, onCollectionChan
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<SearchStatus>('idle');
   const [error, setError] = useState('');
+  const requestRef = useRef<AbortController | null>(null);
 
-  useEffect(() => { setResults([]); setExpanded(new Set()); setStatus('idle'); }, [selectedCollection]);
+  useEffect(() => {
+    requestRef.current?.abort();
+    requestRef.current = null;
+    setResults([]);
+    setExpanded(new Set());
+    setStatus('idle');
+  }, [selectedCollection]);
 
   const search = async (event: FormEvent) => {
     event.preventDefault();
     if (!query.trim() || !selectedCollection) return;
+    const controller = new AbortController();
+    requestRef.current?.abort();
+    requestRef.current = controller;
     setStatus('loading'); setError(''); setExpanded(new Set());
     try {
-      const response = await fetch('/api/query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: query.trim(), collection: selectedCollection, limit }) });
+      const response = await fetch('/api/query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: query.trim(), collection: selectedCollection, limit }), signal: controller.signal });
       const data = await response.json() as { results?: SearchResult[]; error?: string };
       if (!response.ok) throw new Error(data.error || 'Search failed');
+      if (requestRef.current !== controller) return;
       const next = Array.isArray(data.results) ? data.results : [];
       setResults(next); setStatus(next.length ? 'results' : 'empty');
     } catch (reason) {
+      if (controller.signal.aborted || requestRef.current !== controller) return;
       setError(reason instanceof Error ? reason.message : 'Search failed'); setStatus('error');
+    } finally {
+      if (requestRef.current === controller) requestRef.current = null;
     }
   };
 
