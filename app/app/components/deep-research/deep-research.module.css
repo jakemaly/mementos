@@ -193,17 +193,18 @@
 .dialogueNamePlate {
   position: absolute;
   z-index: 2;
-  top: clamp(5rem, 8vw, 7rem);
+  top: clamp(5.25rem, 8vw, 7.25rem);
   left: clamp(5.5rem, 18%, 12rem);
   margin: 0;
-  color: #111;
+  color: #fff;
   font-family: "P5 Optima", Impact, var(--font-display);
-  font-size: clamp(1.1rem, 2.3vw, 1.8rem);
+  font-size: clamp(1.35rem, 3vw, 2.25rem);
   font-weight: 900;
   letter-spacing: 0.01em;
   line-height: 1;
   pointer-events: none;
-  text-shadow: 1px 1px 0 #fff;
+  text-shadow: 0.055em 0.055em 0 #111;
+  -webkit-text-stroke: 1px #111;
   text-transform: uppercase;
   transform: rotate(-25deg);
   white-space: nowrap;
@@ -420,9 +421,9 @@
   }
 
   .dialogueNamePlate {
-    top: 4rem;
+    top: 4.15rem;
     left: 20%;
-    font-size: clamp(0.95rem, 3.6vw, 1.35rem);
+    font-size: clamp(1.1rem, 5vw, 1.45rem);
   }
 
   .dialogueInput {
@@ -470,7 +471,7 @@
 
   .dialogueNamePlate {
     left: 16%;
-    font-size: 1.05rem;
+    font-size: 1.2rem;
   }
 
   .dialoguePrompt,

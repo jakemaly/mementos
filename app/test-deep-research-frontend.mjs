@@ -40,7 +40,9 @@ ok('Composer gives the question a substantial writing area', css.includes('min-h
 ok('Composer has a dedicated narrow layout', css.includes('@media (max-width: 480px)') && css.includes('.dialogueContent'));
 ok('Composer keeps disabled action text readable', css.includes('.dialogueSubmit:disabled') && css.includes('color: #d7c9cb'));
 ok('Dialogue surface stays transparent over the page background', css.includes('border: 0;\n  background: transparent;'));
-ok('Mementos uses the requested angle and lower placement', css.includes('top: clamp(5rem, 8vw, 7rem)') && css.includes('rotate(-25deg)'));
+ok('Mementos uses the requested angle and lower placement', css.includes('top: clamp(5.25rem, 8vw, 7.25rem)') && css.includes('rotate(-25deg)'));
+ok('Mementos matches the heading shadow treatment', css.includes('text-shadow: 0.055em 0.055em 0 #111') && css.includes('-webkit-text-stroke: 1px #111'));
+ok('Mementos is sized as a focal label', css.includes('font-size: clamp(1.35rem, 3vw, 2.25rem)'));
 ok('Textarea surface is visually invisible', css.includes('border: 0;\n  border-radius: 0;\n  background: transparent;'));
 ok('Footer action is larger and anchored low', css.includes('min-width: 13rem') && css.includes('min-height: 3.35rem') && css.includes('8.5rem) 0.75rem'));
 ok('Navigator uses a question-first heading', root.includes('Begin with the question.'));
