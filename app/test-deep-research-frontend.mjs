@@ -39,6 +39,10 @@ ok('Composer uses the full dotted page treatment', css.includes('backgroundDot.p
 ok('Composer gives the question a substantial writing area', css.includes('min-height: 14rem'));
 ok('Composer has a dedicated narrow layout', css.includes('@media (max-width: 480px)') && css.includes('.dialogueContent'));
 ok('Composer keeps disabled action text readable', css.includes('.dialogueSubmit:disabled') && css.includes('color: #d7c9cb'));
+ok('Dialogue surface stays transparent over the page background', css.includes('border: 0;\n  background: transparent;'));
+ok('Mementos uses the requested angle and lower placement', css.includes('top: clamp(3.5rem, 6vw, 5rem)') && css.includes('rotate(-25deg)'));
+ok('Textarea surface is visually invisible', css.includes('border: 0;\n  border-radius: 0;\n  background: transparent;'));
+ok('Footer action is larger and anchored low', css.includes('min-width: 13rem') && css.includes('min-height: 3.35rem') && css.includes('8.5rem) 0.75rem'));
 ok('Navigator uses a question-first heading', root.includes('Begin with the question.'));
 ok('Composer uses the shared application shell', root.includes('<AppShell activeDestination="research"'));
 ok('Shell has semantic main navigation', shell.includes('aria-label="Main navigation"'));
