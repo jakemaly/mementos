@@ -33,6 +33,7 @@ ok('Composer has accessible submit action', composer.includes('aria-label="Start
 ok('Composer uses a visible start label', composer.includes('>Start research'));
 ok('Composer labels the target collection visibly', composer.includes('Save evidence to'));
 ok('Composer fields have stable form names', composer.includes('name="query"') && composer.includes('name="collection"'));
+ok('Composer omits the redundant prompt header', !composer.includes('dialoguePrompt'));
 ok('Composer uses one dialogue surface', composer.includes('dialogueStage') && composer.includes('dialogueFrame'));
 ok('Composer uses the reference frame and Optima font', css.includes('/p5-dialogue/images/db-main-medium.png') && css.includes('OptimaNovaLT-Black.woff2'));
 ok('Composer uses the full dotted page treatment', css.includes('backgroundDot.png') && css.includes('background-size: cover'));
@@ -44,6 +45,7 @@ ok('Mementos uses the requested angle and lower placement', css.includes('top: c
 ok('Mementos matches the heading shadow treatment', css.includes('text-shadow: 0.055em 0.055em 0 #111') && css.includes('-webkit-text-stroke: 1px #111'));
 ok('Mementos is sized as a focal label', css.includes('font-size: clamp(1.35rem, 3vw, 2.25rem)'));
 ok('Textarea surface is visually invisible', css.includes('border: 0;\n  border-radius: 0;\n  background: transparent;'));
+ok('Textarea is inset toward the frame center', css.includes('width: calc(100% - clamp(3rem, 6vw, 6rem))') && css.includes('margin-inline: auto'));
 ok('Footer action is larger and anchored low', css.includes('min-width: 13rem') && css.includes('min-height: 3.35rem') && css.includes('8.5rem) 0.75rem'));
 ok('Navigator uses a question-first heading', root.includes('Begin with the question.'));
 ok('Composer uses the shared application shell', root.includes('<AppShell activeDestination="research"'));

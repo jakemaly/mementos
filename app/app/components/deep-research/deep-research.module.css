@@ -217,12 +217,14 @@
 }
 
 .dialogueField {
+  display: flex;
+  width: calc(100% - clamp(3rem, 6vw, 6rem));
   min-height: 0;
+  margin-inline: auto;
   flex: 1;
-  grid-template-rows: auto minmax(0, 1fr);
+  flex-direction: column;
 }
 
-.dialoguePrompt,
 .dialogueLabel {
   color: #fff;
   font-family: "P5 Optima", Impact, var(--font-body);
@@ -237,6 +239,7 @@
 .dialogueInput {
   width: 100%;
   min-height: 14rem;
+  flex: 1;
   padding: 1rem 1.1rem;
   border: 0;
   border-radius: 0;
@@ -474,7 +477,6 @@
     font-size: 1.2rem;
   }
 
-  .dialoguePrompt,
   .dialogueLabel {
     font-size: 0.6rem;
   }

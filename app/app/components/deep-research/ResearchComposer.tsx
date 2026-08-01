@@ -54,7 +54,6 @@ export function ResearchComposer({
             <span aria-hidden="true">Mementos</span>
           </h2>
           <label className={styles.dialogueField}>
-            <span className={styles.dialoguePrompt}>What should Mementos research?</span>
             <textarea
               id="research-query"
               name="query"
