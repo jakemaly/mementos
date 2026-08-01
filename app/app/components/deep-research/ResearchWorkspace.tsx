@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { ExecutionGraph } from './ExecutionGraph';
 import { ResearchSketch } from './ResearchSketch';
 import { ObservabilityTimeline } from './ObservabilityTimeline';
@@ -20,6 +20,7 @@ interface IngestResult {
 
 interface ResearchWorkspaceProps {
   query: string;
+  selectedCollection: string;
   runState: RunState;
   elapsedMs: number;
   onNewResearch: () => void;
@@ -38,14 +39,26 @@ interface ResearchWorkspaceProps {
 }
 
 function formatElapsed(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  const rem = s % 60;
-  return m > 0 ? `${m}m ${rem}s` : `${rem}s`;
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return minutes > 0 ? `${minutes}m ${remainder}s` : `${remainder}s`;
+}
+
+function statusCopy(runState: RunState): { label: string; detail: string } {
+  switch (runState) {
+    case 'starting': return { label: 'Starting', detail: 'Preparing the research brief.' };
+    case 'researching': return { label: 'Researching', detail: 'Following search and supervisor events.' };
+    case 'completed': return { label: 'Route mapped', detail: 'Evidence is ready to review.' };
+    case 'failed': return { label: 'Failed', detail: 'The route stopped before completion.' };
+    case 'ingesting': return { label: 'Importing', detail: 'Adding selected evidence to the collection.' };
+    case 'ingested': return { label: 'Imported', detail: 'Selected evidence is in the collection.' };
+  }
 }
 
 export function ResearchWorkspace({
   query,
+  selectedCollection,
   runState,
   elapsedMs,
   onNewResearch,
@@ -63,93 +76,117 @@ export function ResearchWorkspace({
   errorMessage,
 }: ResearchWorkspaceProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-
   const isRunning = runState === 'starting' || runState === 'researching';
   const briefNodeId = trace.find((event) => event.type === 'brief_generated')?.id;
-  const statusLabel = useMemo(() => {
-    switch (runState) {
-      case 'starting': return 'Starting';
-      case 'researching': return 'Researching';
-      case 'completed': return 'Completed';
-      case 'failed': return 'Failed';
-      case 'ingesting': return 'Importing';
-      case 'ingested': return 'Imported';
-      default: return runState;
-    }
-  }, [runState]);
+  const status = statusCopy(runState);
 
   return (
-    <div className={styles.mainContent}>
-        {/* Top bar */}
-        <div className={styles.topBar}>
-          <div className={styles.queryStatus}>
-            <span className={styles.srOnly} aria-live="polite">Research status: {statusLabel}</span>
-            <span className={styles.queryText} title={query}>&quot;{query}&quot;</span>
-            <span className={`${styles.statusBadge} ${styles[`status-${runState}`]}`}>
-              {statusLabel}
+    <main className={styles.mainContent} aria-labelledby="research-workspace-title">
+      <header className={styles.workspaceHeader}>
+        <div className={styles.workspaceKicker}>02 / Deep Research · route map</div>
+        <div className={styles.workspaceTitleRow}>
+          <div className={styles.workspaceHeading}>
+            <h1 id="research-workspace-title">Follow the route.</h1>
+            <p>One visible path from the brief through search, evidence, and import.</p>
+          </div>
+          <div className={`${styles.statusStamp} ${styles[`status-${runState}`]}`} role="status" aria-live="polite">
+            <span className={styles.statusMark} aria-hidden="true">{runState === 'failed' ? '!' : runState === 'ingested' ? '✓' : '•'}</span>
+            <span>
+              <strong>{status.label}</strong>
+              <small>{status.detail}</small>
+              {isRunning && <small className={styles.elapsed}>Elapsed {formatElapsed(elapsedMs)}</small>}
             </span>
-            {isRunning && <span className={styles.elapsed}>{formatElapsed(elapsedMs)}</span>}
-          </div>
-          {isRunning && (
-            <button className={styles.cancelButton} onClick={onCancel} aria-label="Cancel research">
-              Cancel
-            </button>
-          )}
-          {!isRunning && (
-            <button className={styles.newButton} onClick={onNewResearch} aria-label="New research">
-              New research
-            </button>
-          )}
-        </div>
-
-        {/* Four-pane grid */}
-        <div className={styles.grid}>
-          {/* Left column: graph + observability */}
-          <div className={styles.leftColumn}>
-            <section className={styles.pane} aria-label="Execution graph">
-              <h2 className={styles.paneTitle}>Execution Graph</h2>
-              <ExecutionGraph
-                trace={trace}
-                brief={brief}
-                isResearching={isRunning}
-                selectedNodeId={selectedNodeId}
-                onNodeSelect={setSelectedNodeId}
-              />
-            </section>
-            <section className={styles.pane} aria-label="Observability">
-              <h2 className={styles.paneTitle}>Observability</h2>
-              <ObservabilityTimeline
-                trace={trace}
-                brief={brief}
-                isResearching={isRunning}
-                focusedNodeId={selectedNodeId}
-              />
-            </section>
-          </div>
-
-          {/* Right column: sketch + sources */}
-          <div className={styles.rightColumn}>
-            <section className={styles.pane} aria-label="Research sketch">
-              <h2 className={styles.paneTitle}>Research Sketch</h2>
-              <ResearchSketch sketch={sketch} brief={brief} focused={selectedNodeId === briefNodeId} />
-            </section>
-            <section className={styles.pane} aria-label="Sources">
-              <h2 className={styles.paneTitle}>
-                Sources ({sources.length})
-              </h2>
-              <SourceList
-                sources={sources}
-                selectedUrls={selectedSourceUrls}
-                onToggle={onToggleSource}
-                onToggleAll={onToggleAllSources}
-                onIngest={onIngest}
-                ingestDisabled={ingestDisabled}
-                ingestResult={ingestResult}
-                errorMessage={errorMessage}
-              />
-            </section>
           </div>
         </div>
-    </div>
+        <div className={styles.routeContext}>
+          <div className={styles.routeQuery}>
+            <span className={styles.fieldLabel}>Question / {selectedCollection || 'chosen collection'}</span>
+            <p title={query}>{query}</p>
+          </div>
+          <div className={styles.routeActions}>
+            {isRunning ? (
+              <button type="button" className={styles.cancelButton} onClick={onCancel} aria-label="Cancel research">
+                Cancel
+              </button>
+            ) : (
+              <button type="button" className={styles.newButton} onClick={onNewResearch} aria-label="New research">
+                New research
+              </button>
+            )}
+          </div>
+        </div>
+        {runState === 'failed' && errorMessage && (
+          <p className={styles.workspaceError} role="alert">{errorMessage}</p>
+        )}
+      </header>
+
+      <div className={styles.workspaceGrid}>
+        <section className={`${styles.panel} ${styles.routePanel}`} aria-label="Execution graph">
+          <div className={styles.panelHeading}>
+            <div>
+              <span className={styles.panelKicker}>Route / execution</span>
+              <h2 className={styles.panelTitle}>Route map.</h2>
+            </div>
+            <span className={styles.panelMeta}>Event-derived · selectable</span>
+          </div>
+          <ExecutionGraph
+            trace={trace}
+            isResearching={isRunning}
+            runState={runState}
+            sourceCount={sources.length}
+            selectedNodeId={selectedNodeId}
+            onNodeSelect={setSelectedNodeId}
+          />
+        </section>
+
+        <section className={`${styles.panel} ${styles.sketchPanel}`} aria-label="Research sketch">
+          <div className={styles.panelHeading}>
+            <div>
+              <span className={styles.panelKicker}>Brief / research sketch</span>
+              <h2 className={styles.panelTitle}>What the route is looking for.</h2>
+            </div>
+            <span className={styles.panelMeta}>Read only</span>
+          </div>
+          <ResearchSketch sketch={sketch} brief={brief} focused={selectedNodeId === briefNodeId} />
+        </section>
+
+        <section className={`${styles.panel} ${styles.tracePanel}`} aria-label="Observability">
+          <div className={styles.panelHeading}>
+            <div>
+              <span className={styles.panelKicker}>Trace / observability</span>
+              <h2 className={styles.panelTitle}>What happened, in order.</h2>
+            </div>
+            <span className={styles.panelMeta}>Chronological · plain language</span>
+          </div>
+          <ObservabilityTimeline
+            trace={trace}
+            brief={brief}
+            isResearching={isRunning}
+            focusedNodeId={selectedNodeId}
+          />
+        </section>
+
+        <section className={`${styles.panel} ${styles.evidencePanel}`} aria-label="Sources">
+          <div className={styles.panelHeading}>
+            <div>
+              <span className={styles.panelKicker}>Evidence / source register</span>
+              <h2 className={styles.panelTitle}>Review, then import.</h2>
+            </div>
+            <span className={styles.panelMeta}>{sources.length} discovered</span>
+          </div>
+          <p className={styles.panelDescription}>Select the evidence worth keeping, then Import selected sources into {selectedCollection || 'the chosen collection'}.</p>
+          <SourceList
+            sources={sources}
+            selectedUrls={selectedSourceUrls}
+            onToggle={onToggleSource}
+            onToggleAll={onToggleAllSources}
+            onIngest={onIngest}
+            ingestDisabled={ingestDisabled}
+            ingestResult={ingestResult}
+            errorMessage={runState === 'failed' ? '' : errorMessage}
+          />
+        </section>
+      </div>
+    </main>
   );
 }

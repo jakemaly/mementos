@@ -366,6 +366,7 @@ export function DeepResearch({
     <AppShell activeDestination="research" onNewResearch={handleNewResearch} onOpenKnowledgeBase={onOpenKnowledgeBase} onOpenCollections={onOpenCollections}>
       <ResearchWorkspace
       query={query}
+      selectedCollection={selectedCollection}
       runState={runState}
       elapsedMs={elapsedMs}
       onNewResearch={handleNewResearch}

@@ -22,6 +22,7 @@ const globals = fs.readFileSync('app/globals.css', 'utf8');
 const state = fs.readFileSync('app/components/deep-research/research-state.ts', 'utf8');
 const graph = fs.readFileSync('app/components/deep-research/ExecutionGraph.tsx', 'utf8');
 const timeline = fs.readFileSync('app/components/deep-research/ObservabilityTimeline.tsx', 'utf8');
+const sources = fs.readFileSync('app/components/deep-research/SourceList.tsx', 'utf8');
 
 console.log('\n=== Composer ===\n');
 ok('Composer renders one query textarea', composer.includes('aria-label="Research query"'));
@@ -72,6 +73,18 @@ ok('Workspace has observability pane', workspace.includes('aria-label="Observabi
 ok('Workspace has sources pane', workspace.includes('aria-label="Sources"'));
 ok('Workspace has cancel action', workspace.includes('aria-label="Cancel research"'));
 ok('Workspace has new research action', workspace.includes('aria-label="New research"'));
+ok('Route names the brief-to-evidence path', graph.includes('From brief to evidence'));
+ok('Workspace makes the route map primary', workspace.includes('Route map') && workspace.includes('routePanel'));
+ok('Workspace keeps import as the route handoff', workspace.includes('Import selected sources'));
+
+console.log('\n=== Route and evidence presentation ===\n');
+ok('Route is an ordered semantic map', graph.includes('<ol') && graph.includes('routeNode'));
+ok('Route includes explicit stage labels', graph.includes('routeStages') && graph.includes('Upcoming'));
+ok('Selected route nodes expose detail', graph.includes('routeDetail') && graph.includes('Status'));
+ok('Route selection keeps related timeline detail', timeline.includes('aria-current') && timeline.includes('timelineItemFocused'));
+ok('Evidence is an ordered numbered list', sources.includes('<ol') && sources.includes('sourceNumber'));
+ok('Evidence import action is explicit', sources.includes('Import selected sources'));
+ok('Evidence selection status is announced', sources.includes('aria-live="polite"'));
 
 console.log('\n=== Design constraints ===\n');
 ok('No gradients in Deep Research CSS', !css.includes('gradient'));
