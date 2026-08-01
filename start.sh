@@ -11,11 +11,9 @@ if [[ -f "$ROOT/.env" ]]; then
 fi
 
 # Check required vars
-for var in OPENAI_API_KEY OPENAI_API_BASE OPENAI_MODEL_NAME TDRANT_URL:-http://localhost:6333; do
-  key="${var%%:*}"
-  val="${!key:-}"
-  if [[ -z "$val" && "$var" != *":-"* ]]; then
-    echo "ERROR: $key is not set" >&2
+for var in OPENAI_API_KEY OPENAI_API_BASE OPENAI_MODEL_NAME; do
+  if [[ -z "${!var:-}" ]]; then
+    echo "ERROR: $var is not set" >&2
     exit 1
   fi
 done

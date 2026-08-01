@@ -60,7 +60,7 @@ This matches the repository's current shape and avoids prematurely introducing K
    - `app/app/api/collections/[collection]/lightrag-backfill/route.ts`
    - `sidecar/dump_graph.py`
 
-   Use values such as `SIDECAR_URL=http://sidecar:8000` and `QDRANT_URL=http://qdrant:6333` inside Compose. Add `QDRANT_API_KEY` support to both clients if Qdrant is authenticated. The existing `start.sh` also has a `TDRANT_URL` typo and is a local launcher, not a production supervisor.
+   Use values such as `SIDECAR_URL=http://sidecar:8000` and `QDRANT_URL=http://qdrant:6333` inside Compose. Add `QDRANT_API_KEY` support to both clients if Qdrant is authenticated. The existing `start.sh` is a local launcher, not a production supervisor.
 
 3. **Add TLS and proxy configuration.**
    Configure the reverse proxy for:

@@ -4,15 +4,7 @@ A deep-research agent and LightRAG visualization for personal knowledge manageme
 
 ---
 
-## Demo
-
-<!-- Place a demo video or screenshot in `assets/demo.mp4` and link it here -->
-
-[Watch the demo](assets/demo.mp4)
-
----
-
-## Getting Started
+## Run locally
 
 ### Prerequisites
 
@@ -23,10 +15,8 @@ A deep-research agent and LightRAG visualization for personal knowledge manageme
 ### 1. Set Environment Variables
 
 ```bash
-export OPENAI_API_KEY="your-llm-api-key"
-export OPENAI_API_BASE="https://api.openai.com/v1"
-export OPENAI_MODEL_NAME="gpt-4o-mini"
-export TAVILY_API_KEY="your-tavily-search-key"
+cp .env.example .env
+# Edit .env and add your API keys.
 ```
 
 ### 2. Start Qdrant
@@ -53,6 +43,12 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+## Repository layout
+
+* `app/` — Next.js frontend
+* `sidecar/` — FastAPI and LightRAG service
+* `docs/` — design and architecture notes
 
 ---
 
