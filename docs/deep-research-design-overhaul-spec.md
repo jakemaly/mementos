@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — requires approval before implementation.
+Implemented — route-map visual revision.
 
 ## Objective
 
@@ -15,10 +15,10 @@ The product is not a conversational assistant. It is a single-user chat-to-resea
 Success means:
 
 1. The initial screen has one clear focal point: the research composer.
-2. The active screen has four distinct, simultaneous panes: live graph, research sketch, chronological observability, and sources.
-3. The graph accurately depicts the executed pipeline and its supervisor/tool loops.
+2. The active screen is an asymmetric, route-map-first workspace with distinct route, research-sketch, chronological-observability, and evidence panes.
+3. The route map accurately depicts executed events and repeated supervisor/tool iterations.
 4. Sources appear before final scoring, are deduplicated, default to selected, and can be ingested into the collection chosen before research starts.
-5. The interface follows `docs/design.md`: light-first, matte, nearly monochrome, minimally bordered, restrained, and accessible.
+5. The interface uses calm reading density: matte paper, restrained near-monochrome surfaces, a single dark route canvas, minimal boundaries, and accessible interaction cues.
 
 ## User and primary workflow
 
@@ -33,7 +33,7 @@ Success means:
 2. Choose an existing collection in the composer.
 3. Enter a prompt.
 4. Submit the prompt.
-5. Observe the live graph, sketch, timeline, and arriving sources.
+5. Observe the live route map, sketch, timeline, and arriving sources.
 6. Optionally deselect unwanted sources.
 7. Import the selected sources into the preselected collection.
 8. Start a new research run, which clears the current run and returns to the composer.
@@ -53,13 +53,13 @@ Cancellation does not preserve or ingest partial findings.
 
 - Deep Research empty, running, completed, failed, cancelled, and ingestion states.
 - Deep Research information architecture and responsive layout.
-- A new event-driven execution graph based on actual trace events.
+- An event-derived route map based on actual trace events.
 - A chronological observability timeline.
 - Live source arrival, deduplication, selection, and ingestion.
 - Existing-collection selection before research starts.
 - Removal of user-supplied domain and file-type filters from frontend and backend.
 - Removal of redundant Deep Research components, state, styles, and API fields.
-- A compact sidebar in the active research workspace.
+- A route-map-first workspace with explicit status, evidence selection, and import states.
 - Chrome, Chromium, and Safari support.
 
 ### Out of scope
@@ -69,7 +69,7 @@ Cancellation does not preserve or ingest partial findings.
 - Adding a synthesized research answer or conversational thread.
 - User-selectable tools or research modes.
 - Resizable or rearrangeable panes.
-- Graph zoom, pan, minimap, or fullscreen controls.
+- Route-map zoom, pan, minimap, or fullscreen controls.
 - Dark mode.
 - Research history, saved sessions, authentication, or multi-user behavior.
 - Mobile-specific feature parity beyond a readable linear layout.
@@ -78,17 +78,15 @@ Cancellation does not preserve or ingest partial findings.
 
 ## Design principles
 
-The implementation must follow `docs/design.md` over the current Material/glass styling.
-
 - Warm white matte background; charcoal text.
 - Near-monochrome palette.
 - Cherry red is the only brand accent and is reserved for focus, selection, active state, and primary actions.
 - Semantic success, warning, and error colors may be used sparingly with text or icons; color must not be the only signal.
 - System font stack. Do not add a font dependency.
-- Minimal borders around the four genuinely distinct panes.
+- Keep the route map visually primary with asymmetrical geometry; use softened, sparse boundaries for its supporting reading panes.
 - No decorative gradients, glass cards, nested cards, giant pills, stacked shadows, or ornamental logo mark.
 - Use spacing, typography, and alignment before adding containers.
-- Motion is limited to subtle fades, status transitions, and graph continuity; respect `prefers-reduced-motion`.
+- Motion is limited to subtle fades and status transitions; respect `prefers-reduced-motion`.
 - Every interactive element must have a visible keyboard focus state and an accessible name.
 
 ## Information architecture
@@ -121,55 +119,49 @@ Keyboard behavior:
 
 ### View B: Active research workspace
 
-A compact sidebar appears only after submission. It provides:
-
-- Mementos text identity.
-- A **New research** action.
-- A settings entry for future app-level settings; no new settings implementation is required by this spec.
-
-The main workspace uses a fixed graph-first layout:
+The main workspace uses a fixed, asymmetric route-map-first layout:
 
 ```text
-┌────────┬────────────────────────────────────┬──────────────────────┐
-│        │ Query, status, elapsed time, Cancel│                      │
-│        ├────────────────────────────────────┤ Research sketch      │
-│ Side-  │                                    │                      │
-│ bar    │ Live execution graph               ├──────────────────────┤
-│        │                                    │ Sources              │
-│        ├────────────────────────────────────┤                      │
-│        │ Tool calls & observability         │                      │
-└────────┴────────────────────────────────────┴──────────────────────┘
+┌────────────────────────────────────────┬─────────────────────┐
+│ Query, status, elapsed time, Cancel     │                     │
+├────────────────────────────────────────┤ Research sketch     │
+│                                        │                     │
+│ Event-derived route map                 ├─────────────────────┤
+│                                        │ Evidence register   │
+├────────────────────────────────────────┤                     │
+│ Chronological trace                     │                     │
+└────────────────────────────────────────┴─────────────────────┘
 ```
 
 - Left/main column: approximately two-thirds of available workspace width.
 - Right/inspector column: approximately one-third.
-- Graph receives the largest area.
-- Observability sits directly beneath the graph.
-- Sketch sits above sources in the right column.
+- The dark route canvas receives the largest, most prominent area.
+- Chronological observability sits directly beneath the route map.
+- The read-only sketch sits above the numbered evidence register in the supporting column.
 - All four panes remain visible simultaneously at desktop widths.
 - Pane positions are fixed and are not user-resizable.
 
-The query is read-only after submission. The top row shows its status, elapsed time, and Cancel while running. After completion, Cancel is replaced by New research.
+The query is read-only after submission. The header shows a textual, icon-backed status, elapsed time, and Cancel while running. After completion, Cancel is replaced by New research.
 
 ### Responsive behavior
 
 At narrow widths, the sidebar becomes a compact top navigation and panes become one linear page in this order:
 
 1. Query and run status
-2. Graph
+2. Route map
 3. Sketch
 4. Observability
 5. Sources and ingestion action
 
-The mobile layout prioritizes readability; it does not add tabs, horizontal pane scrolling, or graph controls.
+The mobile layout prioritizes readability; it does not add tabs, horizontal pane scrolling, or route-map controls.
 
 ## Pane requirements
 
-### 1. Live execution graph
+### 1. Event-derived route map
 
-The graph is generated from live trace events. It must not use the current hard-coded topology.
+The route map is generated from live trace events. It must not use a hard-coded topology.
 
-The graph depicts actual execution:
+The route map depicts actual execution:
 
 1. Brief generation
 2. Supervisor evaluation
@@ -179,15 +171,15 @@ The graph depicts actual execution:
 6. Scoring
 7. Research completion
 
-Graph rules:
+Route-map rules:
 
 - Each iteration is visually distinguishable without relying only on color.
-- Loop edges visibly return tool execution to the next supervisor node.
+- Inline iteration-return markers make repeated supervisor/tool loops legible.
 - Completed nodes remain visible.
-- Running, completed, failed, and cancelled states have distinct labels and geometry/icon treatment.
-- The graph ends at research completion. Source ingestion is a subsequent user action, not a research-graph node.
-- Do not render both a static architecture graph and a dynamic trace graph.
-- Do not add graph controls in this iteration.
+- Starting, researching, completed, failed, importing, and imported states have distinct labels and non-color geometry/icon treatment.
+- The route map ends at research completion. Source ingestion is a subsequent user action, not a route-map node.
+- Do not render both a static architecture graph and a dynamic trace route map.
+- Do not add route-map controls in this iteration.
 
 Each node displays a concise label and status. Selecting a node exposes:
 
@@ -247,6 +239,7 @@ Sources appear in a compact vertical list as soon as the backend reports them, b
 Each source row shows only:
 
 - selection checkbox
+- visible ordinal
 - title
 - domain
 - snippet
@@ -287,7 +280,7 @@ The Deep Research UI uses these explicit states:
 State rules:
 
 - A run receives a client-side run ID so late events from an aborted run are ignored.
-- Starting a new run clears graph, sketch, observability, sources, selection, errors, and ingestion status.
+- Starting a new run clears the route map, sketch, observability, sources, selection, errors, and ingestion status.
 - The selected collection may remain selected when returning to the composer.
 - Source selection is keyed by canonical URL, not array index.
 - Empty, loading, partial, timeout, failure, and zero-source results all have explicit text states.
@@ -348,7 +341,7 @@ Requirements:
 
 ### Trace payload completeness
 
-Ensure trace events contain the data required by the graph and timeline:
+Ensure trace events contain the data required by the route map and timeline:
 
 - `tool_started`: tool, query or query list, iteration
 - `tool_completed`: tool, query or query list, duration, result count, iteration
@@ -379,7 +372,7 @@ Keep `/api/research/ingest` as the ingestion endpoint and retain its current col
 
 ## Components and project structure
 
-No new dependency is required. Use React, CSS Modules, semantic HTML, and SVG.
+No new dependency is required. Use React, CSS Modules, and semantic HTML.
 
 Target structure; exact naming may vary if an existing component can be reused cleanly:
 
@@ -391,8 +384,8 @@ app/app/
 │   └── deep-research/
 │       ├── DeepResearch.tsx         # Run state and request orchestration
 │       ├── ResearchComposer.tsx     # Prompt + collection + send
-│       ├── ResearchWorkspace.tsx    # Fixed four-pane composition
-│       ├── ExecutionGraph.tsx       # Event-derived SVG graph
+│       ├── ResearchWorkspace.tsx    # Fixed asymmetric four-pane composition
+│       ├── ExecutionGraph.tsx       # Event-derived semantic HTML/CSS route map
 │       ├── ResearchSketch.tsx       # Read-only sketch
 │       ├── ObservabilityTimeline.tsx
 │       └── SourceList.tsx           # Selection + ingestion action
@@ -422,8 +415,8 @@ Do not delete Knowledge Base & Search behavior or its components merely because 
 - Use semantic `form`, `button`, `select`, `ol`, `li`, `aside`, and heading elements.
 - Label the composer and collection selector.
 - Announce run status and ingestion status through restrained `aria-live` regions.
-- Graph nodes are focusable controls with visible focus and textual names.
-- Provide a textual graph/timeline representation so the pipeline is understandable without interpreting SVG geometry.
+- Route-map events are focusable controls with visible focus and textual names.
+- Provide a textual route-map/timeline representation so the pipeline is understandable without interpreting its geometry.
 - Source rows use real checkboxes and links; clicking a row must not create duplicate checkbox toggles.
 - Maintain WCAG AA text contrast.
 - Do not rely solely on cherry red, green, or node fill to convey state.
@@ -439,7 +432,7 @@ Required:
 
 Verify at minimum:
 
-- 1440px desktop graph-first layout
+- 1440px desktop route-map-first layout
 - 1024px compact desktop/tablet layout
 - 768px and 390px linear layouts
 
@@ -486,7 +479,7 @@ Verify:
 - Idle view contains only the intended composer surface.
 - Submission requires both a non-empty prompt and selected collection.
 - `Enter` submits and `Shift+Enter` inserts a newline.
-- Live events append graph nodes and chronological timeline entries.
+- Live events append route-map events and chronological timeline entries.
 - Source events append deduplicated, default-selected sources.
 - Explicitly deselected sources remain deselected after later events and final ranking.
 - Cancel aborts the request, clears the run, and returns to the composer.
@@ -498,8 +491,8 @@ Verify:
 In Safari and Chrome:
 
 - Run a query that produces at least two supervisor/tool iterations.
-- Confirm loop direction and active/completed graph states are readable.
-- Select graph nodes and verify their details.
+- Confirm iteration returns and active/completed route-map states are readable.
+- Select route-map events and verify their details.
 - Deselect sources while new sources are still arriving.
 - Cancel one active run and confirm no more events appear.
 - Complete a run and ingest a subset of sources.
@@ -510,7 +503,7 @@ In Safari and Chrome:
 
 1. Update and test research request/SSE contracts, live source events, and cancellation cleanup.
 2. Introduce the explicit Deep Research state model and composer without changing Knowledge Base & Search.
-3. Build the event-derived graph and node selection behavior.
+3. Build the event-derived route map and event-selection behavior.
 4. Consolidate observability into one timeline and sketch into one pane.
 5. Build live source reconciliation, selection, and ingestion states.
 6. Apply the new layout and visual language, including responsive behavior.
@@ -543,7 +536,7 @@ In Safari and Chrome:
 - Add decorative gradients, broad glass surfaces, nested card layouts, or dark mode.
 - Continue backend work after the user cancels.
 - Auto-ingest sources without the explicit import action.
-- Reintroduce duplicate graph or observability views.
+- Reintroduce duplicate route-map or observability views.
 
 ## Acceptance criteria
 
@@ -551,10 +544,10 @@ The overhaul is complete when all of the following are true:
 
 - [ ] Before submission, Deep Research shows a wordmark and one composer containing collection selection and send.
 - [ ] Domain and file-type input is removed from frontend, proxy, sidecar route, graph state, sketch prompt, tool plumbing, and tests.
-- [ ] Submission transitions to a fixed four-pane graph-first workspace.
-- [ ] The graph is derived from actual trace events and clearly renders repeated supervisor/tool loops.
+- [ ] Submission transitions to a fixed asymmetric four-pane route-map-first workspace.
+- [ ] The route map is derived from actual trace events and clearly renders repeated supervisor/tool loops.
 - [ ] Clicking a node exposes status, query, tool, duration, and result count when applicable.
-- [ ] The sketch, graph, observability timeline, and sources are all simultaneously visible on desktop.
+- [ ] The sketch, route map, observability timeline, and sources are all simultaneously visible on desktop.
 - [ ] Observability is chronological and includes step, tool, query, duration, count, confidence, gaps, sub-questions, errors, iteration, and stop reason.
 - [ ] No new model summarization call or latency is added.
 - [ ] Sources appear before final completion, are URL-deduplicated, and default to selected.
@@ -564,11 +557,11 @@ The overhaul is complete when all of the following are true:
 - [ ] New research clears the run and opens a fresh composer.
 - [ ] Knowledge Base & Search behavior is unchanged.
 - [ ] The old static graph, duplicate dynamic graph, separate thinking accordion, and supervisor checklist are removed.
-- [ ] The result follows the light matte, minimally bordered, cherry-accent design constitution.
+- [ ] The result uses calm reading density, a primary dark route canvas, softened boundaries, and restrained cherry accents.
 - [ ] The layout becomes a readable linear page on narrow screens.
 - [ ] Lint, build, frontend route/runtime checks, and sidecar research tests pass.
 - [ ] The flow is manually verified in Safari and Chrome without console errors or horizontal overflow.
 
 ## Open questions
 
-None blocking. Exact spacing, cherry-red token, pane proportions, and graph geometry are implementation-level design decisions governed by `docs/design.md` and the acceptance criteria above.
+None blocking. Exact spacing, cherry-red token, pane proportions, and route-map geometry are implementation-level design decisions governed by the acceptance criteria above.
