@@ -195,7 +195,7 @@
   z-index: 2;
   top: clamp(5.25rem, 8vw, 7.25rem);
   left: clamp(5.5rem, 18%, 12rem);
-  margin: 0;
+  margin: 0 0 0 -0.75rem;
   color: #fff;
   font-family: "P5 Optima", Impact, var(--font-display);
   font-size: clamp(1.35rem, 3vw, 2.25rem);
