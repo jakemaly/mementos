@@ -57,6 +57,7 @@ ok('Live sources are merged without duplicates', root.includes('mergeSources(pre
 ok('Deselections survive final reconciliation', root.includes('reconcileFinalSources(finalSources'));
 ok('New sources default to selected', root.includes('selectDiscoveredSources(prev, newSources'));
 ok('Import waits for completed research', root.includes("runState === 'researching'") && root.includes('ingestDisabled'));
+ok('Source selection uses canonical keys for imports', root.includes('selectedSourceKeys.has(canonicalSourceKey(source.url))'));
 
 console.log('\\n=== Event-derived graph ===\\n');
 ok('Graph derives tool nodes from tool_started events', graph.includes("event.type === 'tool_started'"));
@@ -85,6 +86,7 @@ ok('Route is an ordered semantic map', graph.includes('<ol') && graph.includes('
 ok('Route includes explicit stage labels', graph.includes('routeStages') && graph.includes('Upcoming'));
 ok('Selected route nodes expose detail', graph.includes('routeDetail') && graph.includes('Status'));
 ok('Route selection keeps related timeline detail', timeline.includes('aria-current') && timeline.includes('timelineItemFocused'));
+ok('Route selection reveals related timeline detail', timeline.includes('scrollIntoView'));
 ok('Evidence is an ordered numbered list', sources.includes('<ol') && sources.includes('sourceNumber'));
 ok('Evidence import action is explicit', sources.includes('Import selected sources'));
 ok('Evidence selection status is announced', sources.includes('aria-live="polite"'));
@@ -95,6 +97,7 @@ ok('Responsive layout exists', css.includes('@media (max-width: 768px)'));
 ok('1024px remains two-column', css.includes('@media (max-width: 900px)'));
 ok('Mobile panes use graph/sketch/observability/sources order', css.includes('order: 1') && css.includes('order: 2') && css.includes('order: 3') && css.includes('order: 4'));
 ok('Desktop panes remain constrained and scrollable', css.includes('@media (min-width: 769px)') && css.includes('overflow-y: auto'));
+ok('Scrollable detail panes are keyboard-focusable', workspace.includes('styles.sketchPanel') && workspace.includes('styles.tracePanel') && workspace.includes('tabIndex={0}'));
 ok('Visible focus styles exist', css.includes(':focus-visible'));
 ok('Cherry accent is scoped', css.includes('--accent: #9f1239') && css.includes('var(--accent)'));
 ok('Reduced motion is respected', css.includes('prefers-reduced-motion: reduce'));
