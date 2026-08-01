@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback } from 'react';
 import styles from './deep-research.module.css';
 
@@ -36,55 +37,79 @@ export function ResearchComposer({
 
   return (
     <form
-      className={styles.composerForm}
+      className={styles.dialogueForm}
       onSubmit={(e) => {
         e.preventDefault();
         if (!disabled) onSubmit();
       }}
     >
-      <label className={styles.questionField}>
-        <span className={styles.fieldLabel}>Research question</span>
-        <textarea
-          id="research-query"
-          name="query"
-          className={styles.composerInput}
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          rows={4}
-          aria-label="Research query"
-          autoFocus
+      <section className={styles.dialogueStage} aria-label="Mementos research dialogue">
+        <Image
+          className={styles.dialogueFrame}
+          src="/p5-dialogue/images/db-main-small.png"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 768px) calc(100vw - 2rem), 1040px"
+          aria-hidden="true"
         />
-      </label>
-      <div className={styles.composerFooter}>
-        <label className={styles.collectionField}>
-          <span className={styles.fieldLabel}>Save evidence to</span>
-          <select
-            id="target-collection"
-            name="collection"
-            className={styles.collectionSelect}
-            value={selectedCollection}
-            onChange={(e) => onCollectionChange(e.target.value)}
-            aria-label="Target collection"
-          >
-            {collections.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="submit"
-          className={styles.submitButton}
-          disabled={disabled}
-          aria-label="Start research"
-        >
-          <span>Start research</span>
-          <span aria-hidden="true">↗</span>
-        </button>
-      </div>
+        <div className={styles.dialogueContext} aria-hidden="true">
+          <span>DEEP RESEARCH</span>
+          <span>↗</span>
+        </div>
+        <div className={styles.dialogueLayer}>
+          <div className={styles.dialogueNamePlate}>
+            <span className={styles.visuallyHidden}>Mementos</span>
+            <span className={styles.dialogueNameText} aria-hidden="true">
+              <span className={styles.dialogueNameTile}>M</span>
+              <span>EMENTOS</span>
+            </span>
+          </div>
+          <label className={styles.dialogueField}>
+            <span className={styles.dialoguePrompt}>What should Mementos research?</span>
+            <textarea
+              id="research-query"
+              name="query"
+              className={styles.dialogueInput}
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              rows={4}
+              aria-label="Research query"
+              autoFocus
+            />
+          </label>
+          <div className={styles.dialogueFooter}>
+            <label className={styles.dialogueCollection}>
+              <span className={styles.dialogueLabel}>Save evidence to</span>
+              <select
+                id="target-collection"
+                name="collection"
+                className={styles.dialogueSelect}
+                value={selectedCollection}
+                onChange={(e) => onCollectionChange(e.target.value)}
+                aria-label="Target collection"
+              >
+                {collections.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="submit"
+              className={styles.dialogueSubmit}
+              disabled={disabled}
+              aria-label="Start research"
+            >
+              <span>START RESEARCH</span>
+              <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </div>
+      </section>
     </form>
   );
 }

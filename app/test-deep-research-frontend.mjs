@@ -30,7 +30,7 @@ ok('Composer renders collection selector', composer.includes('aria-label="Target
 ok('Composer supports Shift+Enter newline behavior', composer.includes('e.shiftKey'));
 ok('Composer prevents default Enter submission', composer.includes('e.preventDefault()'));
 ok('Composer has accessible submit action', composer.includes('aria-label="Start research"'));
-ok('Composer uses a visible start label', composer.includes('>Start research'));
+ok('Composer uses a visible uppercase start label', composer.includes('>START RESEARCH'));
 ok('Composer labels the target collection visibly', composer.includes('Save evidence to'));
 ok('Composer fields have stable form names', composer.includes('name="query"') && composer.includes('name="collection"'));
 ok('Navigator uses a question-first heading', root.includes('Begin with the question.'));
