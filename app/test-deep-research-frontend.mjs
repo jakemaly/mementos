@@ -47,6 +47,7 @@ ok('Mementos is sized as a focal label', css.includes('font-size: clamp(1.35rem,
 ok('Textarea surface is visually invisible', css.includes('border: 0;\n  border-radius: 0;\n  background: transparent;'));
 ok('Textarea is inset toward the frame center', css.includes('width: calc(100% - clamp(3rem, 6vw, 6rem))') && css.includes('margin-inline: auto'));
 ok('Footer action is larger and anchored low', css.includes('min-width: 13rem') && css.includes('min-height: 3.35rem') && css.includes('8.5rem) 0.75rem'));
+ok('Footer controls share a vertical rhythm', css.includes('.dialogueSelect') && css.includes('min-height: 3.35rem'));
 ok('Navigator uses a question-first heading', root.includes('Begin with the question.'));
 ok('Composer uses the shared application shell', root.includes('<AppShell activeDestination="research"'));
 ok('Shell has semantic main navigation', shell.includes('aria-label="Main navigation"'));
