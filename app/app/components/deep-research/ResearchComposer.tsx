@@ -42,6 +42,13 @@ export function ResearchComposer({
         if (!disabled) onSubmit();
       }}
     >
+      <div className={styles.dialogueHeader}>
+        <span className={styles.speakerPlate}>MEMENTOS</span>
+        <span className={styles.dialogueContext}>DEEP RESEARCH</span>
+      </div>
+      <div className={styles.dialoguePrompt}>
+        <h1>Begin with the question.</h1>
+      </div>
       <label className={styles.questionField}>
         <span className={styles.fieldLabel}>Research question</span>
         <textarea
@@ -81,7 +88,7 @@ export function ResearchComposer({
           disabled={disabled}
           aria-label="Start research"
         >
-          <span>Start research</span>
+          <span>START RESEARCH</span>
           <span aria-hidden="true">↗</span>
         </button>
       </div>

@@ -336,33 +336,18 @@ export function DeepResearch({
     return (
       <AppShell activeDestination="research" onOpenKnowledgeBase={onOpenKnowledgeBase} onOpenCollections={onOpenCollections}>
         <main className={styles.composerMain}>
-          <div className={styles.composerIntro}>
-            <p className={styles.composerKicker}><span>01</span> Navigator</p>
-            <p className={styles.composerStatus}>Research entry / {selectedCollection || 'Choose a collection'}</p>
-            <h1>Begin with the question.</h1>
-            <p className={styles.composerLede}>
-              Turn a loose question into a traceable brief, a search route, and evidence you can revisit.
-            </p>
-          </div>
-
-          <div className={styles.composerDeck}>
-            <div className={styles.routeNote} aria-hidden="true">
-              <span className={styles.routeNoteLine} />
-              <span className={styles.routeNoteLabel}>Question → brief → evidence</span>
-            </div>
-            <div className={styles.composerPanel}>
-              <ResearchComposer
-                query={query}
-                onQueryChange={setQuery}
-                selectedCollection={selectedCollection}
-                onCollectionChange={onCollectionChange}
-                collections={collections}
-                onSubmit={handleSubmit}
-                disabled={collectionUnavailable || !query.trim() || !selectedCollection}
-                placeholder="What should Mementos research?"
-              />
-              <p className={styles.composerHint}>Press Enter to begin · Shift + Enter for a new line</p>
-            </div>
+          <div className={styles.composerPanel}>
+            <ResearchComposer
+              query={query}
+              onQueryChange={setQuery}
+              selectedCollection={selectedCollection}
+              onCollectionChange={onCollectionChange}
+              collections={collections}
+              onSubmit={handleSubmit}
+              disabled={collectionUnavailable || !query.trim() || !selectedCollection}
+              placeholder="What should Mementos research?"
+            />
+            <p className={styles.composerHint}>Press Enter to begin · Shift + Enter for a new line</p>
           </div>
           {errorMessage && <div className={styles.error} role="alert">{errorMessage}</div>}
         </main>
