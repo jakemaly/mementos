@@ -33,6 +33,12 @@ ok('Composer has accessible submit action', composer.includes('aria-label="Start
 ok('Composer uses a visible start label', composer.includes('>Start research'));
 ok('Composer labels the target collection visibly', composer.includes('Save evidence to'));
 ok('Composer fields have stable form names', composer.includes('name="query"') && composer.includes('name="collection"'));
+ok('Composer uses one dialogue surface', composer.includes('dialogueStage') && composer.includes('dialogueFrame'));
+ok('Composer uses the reference frame and Optima font', css.includes('/p5-dialogue/images/db-main-medium.png') && css.includes('OptimaNovaLT-Black.woff2'));
+ok('Composer uses the full dotted page treatment', css.includes('backgroundDot.png') && css.includes('background-size: cover'));
+ok('Composer gives the question a substantial writing area', css.includes('min-height: 14rem'));
+ok('Composer has a dedicated narrow layout', css.includes('@media (max-width: 480px)') && css.includes('.dialogueContent'));
+ok('Composer keeps disabled action text readable', css.includes('.dialogueSubmit:disabled') && css.includes('color: #d7c9cb'));
 ok('Navigator uses a question-first heading', root.includes('Begin with the question.'));
 ok('Composer uses the shared application shell', root.includes('<AppShell activeDestination="research"'));
 ok('Shell has semantic main navigation', shell.includes('aria-label="Main navigation"'));
