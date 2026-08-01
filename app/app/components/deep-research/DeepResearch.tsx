@@ -337,7 +337,7 @@ export function DeepResearch({
       <AppShell activeDestination="research" onOpenKnowledgeBase={onOpenKnowledgeBase} onOpenCollections={onOpenCollections}>
         <main className={styles.composerMain}>
           <div className={styles.composerIntro}>
-            <p className={styles.composerKicker}><span>01</span> Navigator</p>
+            <p className={styles.composerKicker}><span>01</span> Phantom archive</p>
             <p className={styles.composerStatus}>Research entry / {selectedCollection || 'Choose a collection'}</p>
             <h1>Begin with the question.</h1>
             <p className={styles.composerLede}>
@@ -351,6 +351,7 @@ export function DeepResearch({
               <span className={styles.routeNoteLabel}>Question → brief → evidence</span>
             </div>
             <div className={styles.composerPanel}>
+              <span className={styles.dialogueNameplate} aria-hidden="true">MEMENTOS</span>
               <ResearchComposer
                 query={query}
                 onQueryChange={setQuery}
