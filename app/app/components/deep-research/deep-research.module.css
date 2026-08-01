@@ -363,6 +363,10 @@
   box-shadow: 5px 5px 0 var(--red);
 }
 
+.statusContext {
+  justify-self: end;
+}
+
 .statusStamp.status-completed,
 .statusStamp.status-ingested {
   border-left-color: var(--success);
@@ -411,9 +415,12 @@
   line-height: 1.35;
 }
 
-.statusStamp .elapsed {
+.elapsed {
+  margin: 0.65rem 0 0;
   color: var(--red-bright);
   font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-align: right;
 }
 
 .routeContext {
@@ -485,12 +492,27 @@
     "trace evidence";
   grid-template-columns: minmax(0, 1.55fr) minmax(18rem, 0.7fr);
   gap: clamp(1.8rem, 4vw, 3.5rem) clamp(1.8rem, 4vw, 3.8rem);
-  align-items: start;
+  align-items: stretch;
   margin-top: 1.8rem;
 }
 
 .panel {
   min-width: 0;
+}
+
+@media (min-width: 769px) {
+  .workspaceGrid {
+    height: min(43rem, calc(100dvh - 19rem));
+    min-height: 30rem;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .panel {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
 }
 
 .routePanel {
@@ -603,7 +625,7 @@
 
 .routeStages {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.35rem;
   margin: 1.4rem 0 1.25rem;
   padding: 0;
@@ -1316,6 +1338,10 @@
   }
 
   .statusStamp {
+    justify-self: start;
+  }
+
+  .statusContext {
     justify-self: start;
   }
 

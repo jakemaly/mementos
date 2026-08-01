@@ -63,7 +63,9 @@ ok('Graph derives tool nodes from tool_started events', graph.includes("event.ty
 ok('Graph folds completion into invocation status', graph.includes('completionByParent'));
 ok('Graph preserves completed nodes', graph.includes("status = completion?.type"));
 ok('Graph renders explicit loop edges', graph.includes("label: 'continue'"));
-ok('Graph exposes keyboard node selection', graph.includes('tabIndex={0}') && graph.includes('aria-pressed={selected}'));
+ok('Graph exposes keyboard node selection', graph.includes('type="button"') && graph.includes('aria-pressed={selected}'));
+ok('Recoverable tool failures do not fail the route', graph.includes("const hasFailure = runState === 'failed' || trace.some((event) => event.type === 'error');"));
+ok('Import stays outside the route topology', !graph.includes("id: 'import'"));
 ok('Timeline renders terminal completion', timeline.includes('Research complete'));
 
 console.log('\n=== Workspace ===\n');
@@ -73,6 +75,7 @@ ok('Workspace has observability pane', workspace.includes('aria-label="Observabi
 ok('Workspace has sources pane', workspace.includes('aria-label="Sources"'));
 ok('Workspace has cancel action', workspace.includes('aria-label="Cancel research"'));
 ok('Workspace has new research action', workspace.includes('aria-label="New research"'));
+ok('Elapsed timer stays outside the live status region', workspace.includes('styles.statusContext') && !workspace.includes('<small className={styles.elapsed}>'));
 ok('Route names the brief-to-evidence path', graph.includes('From brief to evidence'));
 ok('Workspace makes the route map primary', workspace.includes('Route map') && workspace.includes('routePanel'));
 ok('Workspace keeps import as the route handoff', workspace.includes('Import selected sources'));
@@ -91,6 +94,7 @@ ok('No gradients in Deep Research CSS', !css.includes('gradient'));
 ok('Responsive layout exists', css.includes('@media (max-width: 768px)'));
 ok('1024px remains two-column', css.includes('@media (max-width: 900px)'));
 ok('Mobile panes use graph/sketch/observability/sources order', css.includes('order: 1') && css.includes('order: 2') && css.includes('order: 3') && css.includes('order: 4'));
+ok('Desktop panes remain constrained and scrollable', css.includes('@media (min-width: 769px)') && css.includes('overflow-y: auto'));
 ok('Visible focus styles exist', css.includes(':focus-visible'));
 ok('Cherry accent is scoped', css.includes('--accent: #9f1239') && css.includes('var(--accent)'));
 ok('Reduced motion is respected', css.includes('prefers-reduced-motion: reduce'));
