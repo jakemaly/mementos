@@ -12,7 +12,7 @@ export default function Dashboard() {
   const [collections, setCollections] = useState<string[]>([]);
   const [selectedCollection, setSelectedCollection] = useState('');
   const [collectionUnavailable, setCollectionUnavailable] = useState(false);
-  const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const [collectionSettingsOpen, setCollectionSettingsOpen] = useState(false);
 
   const refreshCollections = useCallback(async () => {
     try {
@@ -36,7 +36,7 @@ export default function Dashboard() {
     selectedCollection,
     collectionUnavailable,
     onCollectionChange: setSelectedCollection,
-    onOpenCollections: () => setCollectionsOpen(true),
+    onOpenCollectionSettings: () => setCollectionSettingsOpen(true),
   };
 
   return <>
@@ -46,14 +46,14 @@ export default function Dashboard() {
       unavailable={collectionUnavailable}
       onCollectionChange={setSelectedCollection}
       onOpenResearch={() => setView('research')}
-      onOpenCollections={() => setCollectionsOpen(true)}
+      onOpenCollectionSettings={() => setCollectionSettingsOpen(true)}
     />}
     <CollectionsDrawer
-      open={collectionsOpen}
+      open={collectionSettingsOpen}
       collections={collections}
       selectedCollection={selectedCollection}
       unavailable={collectionUnavailable}
-      onClose={() => setCollectionsOpen(false)}
+      onClose={() => setCollectionSettingsOpen(false)}
       onCollectionChange={setSelectedCollection}
       onRefresh={refreshCollections}
     />

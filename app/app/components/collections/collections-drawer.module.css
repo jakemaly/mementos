@@ -3,6 +3,9 @@
 .header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
 .header h2 { margin: 0; font-size: 1.1rem; }
 .section { display: grid; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #d6d1cc; }
+.sectionTitle { margin: 0; color: #1c1b19; font-size: 0.95rem; }
+.option { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; background: #ebe9e4 !important; color: #49454f !important; text-align: left; }
+.option small { color: #77716b; font-size: 0.75rem; font-weight: 400; }
 .label { display: grid; gap: 0.4rem; color: #49454f; font-size: 0.85rem; }
 .label input, .label select { min-height: 40px; padding: 0.5rem; border: 1px solid #d6d1cc; border-radius: 6px; background: #fff; font: inherit; color: #1c1b19; }
 .drawer button { min-height: 40px; border: 0; border-radius: 6px; padding: 0.5rem 0.75rem; background: #9f1239; color: #fff; font: inherit; cursor: pointer; }

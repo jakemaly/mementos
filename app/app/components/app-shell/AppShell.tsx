@@ -11,7 +11,7 @@ interface AppShellProps {
   onNewResearch?: () => void;
   onOpenResearch?: () => void;
   onOpenKnowledgeBase?: () => void;
-  onOpenCollections?: () => void;
+  onOpenCollectionSettings?: () => void;
 }
 
 export function AppShell({
@@ -20,7 +20,7 @@ export function AppShell({
   onNewResearch,
   onOpenResearch,
   onOpenKnowledgeBase,
-  onOpenCollections,
+  onOpenCollectionSettings,
 }: AppShellProps) {
   return (
     <div className={styles.shell}>
@@ -60,27 +60,15 @@ export function AppShell({
               </span>
             </button>
             <button
-              id="collections-trigger"
+              id="collection-settings-trigger"
               type="button"
               className={styles.destination}
-              onClick={onOpenCollections}
+              onClick={onOpenCollectionSettings}
             >
               <span className={styles.navNumber} aria-hidden="true">03</span>
               <span className={styles.navCopy}>
-                <span>Collections</span>
-                <small>Choose a source set</small>
-              </span>
-            </button>
-            <button
-              type="button"
-              className={styles.destination}
-              disabled
-              aria-label="Settings (not available yet)"
-            >
-              <span className={styles.navNumber} aria-hidden="true">04</span>
-              <span className={styles.navCopy}>
-                <span>Settings</span>
-                <small>Not available yet</small>
+                <span>Collection and Settings</span>
+                <small>Sources and preferences</small>
               </span>
             </button>
           </div>

@@ -35,7 +35,7 @@ export function CollectionsDrawer({
   const requestClose = useCallback(() => {
     if (ingesting) return;
     onClose();
-    document.getElementById('collections-trigger')?.focus();
+    document.getElementById('collection-settings-trigger')?.focus();
   }, [ingesting, onClose]);
 
   useEffect(() => {
@@ -101,10 +101,10 @@ export function CollectionsDrawer({
 
   return (
     <div className={styles.backdrop} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) requestClose(); }}>
-      <aside ref={drawerRef} className={styles.drawer} role="dialog" aria-modal="true" aria-label="Collections manager">
+      <aside ref={drawerRef} className={styles.drawer} role="dialog" aria-modal="true" aria-label="Collection and Settings menu">
         <header className={styles.header}>
-          <h2>Collections</h2>
-          <button ref={closeRef} type="button" onClick={requestClose} disabled={ingesting} aria-label="Close collections">Close</button>
+          <h2>Collection and Settings</h2>
+          <button ref={closeRef} type="button" onClick={requestClose} disabled={ingesting} aria-label="Close collection and settings menu">Close</button>
         </header>
         {unavailable ? <p className={styles.message} role="alert">Knowledge base storage is unavailable.</p> : <>
           <label className={styles.label}>Active collection
@@ -127,6 +127,13 @@ export function CollectionsDrawer({
           </section>
           {message && <p className={styles.message} role="status">{message}</p>}
         </>}
+        <section className={styles.section} aria-labelledby="settings-options-title">
+          <h3 id="settings-options-title" className={styles.sectionTitle}>Settings</h3>
+          <button type="button" className={styles.option} disabled>User preferences <small>Coming soon</small></button>
+          <button type="button" className={styles.option} disabled>Theme selection <small>Coming soon</small></button>
+          <button type="button" className={styles.option} disabled>Notification controls <small>Coming soon</small></button>
+          <button type="button" className={styles.option} disabled>Integration settings <small>Coming soon</small></button>
+        </section>
       </aside>
     </div>
   );

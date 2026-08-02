@@ -14,7 +14,7 @@ interface KnowledgeBaseProps {
   unavailable: boolean;
   onCollectionChange: (collection: string) => void;
   onOpenResearch: () => void;
-  onOpenCollections: () => void;
+  onOpenCollectionSettings: () => void;
 }
 
 const tabLabels: Record<LocalView, string> = {
@@ -62,7 +62,7 @@ export function KnowledgeBase(props: KnowledgeBaseProps) {
     ? 'Ask the archive and read each answer beside its supporting sources.'
     : 'Search the same collection directly when you need the raw matches.';
 
-  return <AppShell activeDestination="knowledge-base" onOpenResearch={props.onOpenResearch} onOpenCollections={props.onOpenCollections}>
+  return <AppShell activeDestination="knowledge-base" onOpenResearch={props.onOpenResearch} onOpenCollectionSettings={props.onOpenCollectionSettings}>
     <main className={styles.workspace} aria-labelledby="knowledge-base-title">
       <header className={styles.pageHeader}>
         <div className={styles.headingCopy}>

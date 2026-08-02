@@ -28,7 +28,7 @@ interface DeepResearchProps {
   selectedCollection: string;
   collectionUnavailable: boolean;
   onCollectionChange: (collection: string) => void;
-  onOpenCollections?: () => void;
+  onOpenCollectionSettings?: () => void;
   onOpenKnowledgeBase?: () => void;
 }
 
@@ -37,7 +37,7 @@ export function DeepResearch({
   selectedCollection,
   collectionUnavailable,
   onCollectionChange,
-  onOpenCollections,
+  onOpenCollectionSettings,
   onOpenKnowledgeBase,
 }: DeepResearchProps) {
   const [runState, setRunState] = useState<RunState>('idle');
@@ -334,7 +334,7 @@ export function DeepResearch({
 
   if (runState === 'idle') {
     return (
-      <AppShell activeDestination="research" onOpenKnowledgeBase={onOpenKnowledgeBase} onOpenCollections={onOpenCollections}>
+      <AppShell activeDestination="research" onOpenKnowledgeBase={onOpenKnowledgeBase} onOpenCollectionSettings={onOpenCollectionSettings}>
         <main className={styles.composerMain}>
           <div className={styles.composerIntro}>
             <p className={styles.composerKicker}><span>01</span> Phantom archive</p>
@@ -371,7 +371,7 @@ export function DeepResearch({
   }
 
   return (
-    <AppShell activeDestination="research" onNewResearch={handleNewResearch} onOpenKnowledgeBase={onOpenKnowledgeBase} onOpenCollections={onOpenCollections}>
+    <AppShell activeDestination="research" onNewResearch={handleNewResearch} onOpenKnowledgeBase={onOpenKnowledgeBase} onOpenCollectionSettings={onOpenCollectionSettings}>
       <ResearchWorkspace
       query={query}
       selectedCollection={selectedCollection}
