@@ -67,7 +67,7 @@ export function AppShell({
             >
               <span className={styles.navNumber} aria-hidden="true">03</span>
               <span className={styles.navCopy}>
-                <span>Collection and Settings</span>
+                <span>Settings</span>
                 <small>Sources and preferences</small>
               </span>
             </button>
