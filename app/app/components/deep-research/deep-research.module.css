@@ -17,11 +17,29 @@
   min-width: 0;
   min-height: 100dvh;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
   isolation: isolate;
   padding: clamp(2rem, 5vw, 4rem) clamp(1.1rem, 5vw, 5.5rem) 4rem;
   background-color: #fff;
   background-image: none;
+}
+
+.composerMain::after {
+  position: absolute;
+  z-index: 0;
+  right: clamp(-10rem, -12vw, -4rem);
+  bottom: clamp(1rem, 5vw, 4rem);
+  width: clamp(20rem, 38vw, 36rem);
+  height: clamp(13rem, 20vw, 19rem);
+  border-radius: 50%;
+  background-color: var(--red-bright);
+  background-image: url("/p5-dialogue/images/backgroundDot.png");
+  background-position: center;
+  background-size: cover;
+  content: "";
+  opacity: 0.14;
+  pointer-events: none;
+  transform: rotate(-12deg);
 }
 
 .composerIntro,
@@ -123,7 +141,7 @@
   position: absolute;
   top: clamp(0.25rem, 1vw, 0.9rem);
   right: clamp(1rem, 5vw, 5rem);
-  width: clamp(1.65rem, 3vw, 2.4rem);
+  width: clamp(2rem, 4vw, 3rem);
   height: auto;
   opacity: 0.82;
   transform: rotate(18deg);

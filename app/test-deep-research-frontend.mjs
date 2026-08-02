@@ -38,6 +38,7 @@ ok('Composer uses one dialogue surface', composer.includes('dialogueStage') && c
 ok('Composer uses the reference frame and Optima font', css.includes('/p5-dialogue/images/db-main-medium.png') && css.includes('OptimaNovaLT-Black.woff2'));
 ok('Composer uses a quiet white page treatment', css.includes('background-color: #fff') && css.includes('background-image: none'));
 ok('Composer includes the Persona knife accent', root.includes('p5-dialogue/images/knife.png') && css.includes('.knifeMark'));
+ok('Composer uses a muted dotted corner accent', css.includes('.composerMain::after') && css.includes('backgroundDot.png') && css.includes('opacity: 0.14'));
 ok('Composer gives the question a substantial writing area', css.includes('min-height: 14rem'));
 ok('Composer has a dedicated narrow layout', css.includes('@media (max-width: 480px)') && css.includes('.dialogueContent'));
 ok('Composer keeps disabled action text readable', css.includes('.dialogueSubmit:disabled') && css.includes('color: #d7c9cb'));
