@@ -527,7 +527,7 @@
 .dialogueVisual {
   position: relative;
   width: 100%;
-  aspect-ratio: 1275 / 500;
+  height: clamp(32rem, 37vw, 34rem);
 }
 
 .dialogueVisual canvas {
@@ -538,10 +538,10 @@
 
 .dialogueField {
   position: absolute;
-  top: 61%;
-  left: 38%;
-  width: 57%;
-  height: 34%;
+  top: 46%;
+  left: 25%;
+  width: 75%;
+  height: 54%;
   display: block;
   margin: 0;
   padding: 0;
@@ -569,7 +569,12 @@
 .dialogueInput:focus-visible { outline: 3px solid #fff; outline-offset: 5px; }
 
 @media (max-width: 768px) {
-  .dialogueField { left: 37%; width: 59%; }
+  .dialogueVisual { height: 35rem; }
+  .dialogueField { left: 25%; width: 75%; }
+}
+
+@media (max-width: 480px) {
+  .dialogueVisual { height: 38rem; }
 }
 
 /* ── Workspace (View B) ────────────────────────────────────────────── */
