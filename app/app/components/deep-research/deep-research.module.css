@@ -515,6 +515,63 @@
   }
 }
 
+/* The generator's main-box canvas path: the native textarea is transparent
+   and remains the focus/typing surface while the canvas paints the query. */
+.dialogueStage {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  display: block;
+}
+
+.dialogueVisual {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1275 / 500;
+}
+
+.dialogueVisual canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dialogueField {
+  position: absolute;
+  top: 61%;
+  left: 38%;
+  width: 57%;
+  height: 34%;
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+.dialogueInput {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: #fff;
+  cursor: text;
+  font: 18pt "P5 Optima", Impact, sans-serif;
+  line-height: 1.7;
+  resize: none;
+  text-shadow: none;
+}
+
+.dialogueInput::placeholder { color: transparent; }
+.dialogueInput:focus { outline: none; }
+.dialogueInput:focus-visible { outline: 3px solid #fff; outline-offset: 5px; }
+
+@media (max-width: 768px) {
+  .dialogueField { left: 37%; width: 59%; }
+}
+
 /* ── Workspace (View B) ────────────────────────────────────────────── */
 
 .workspace {

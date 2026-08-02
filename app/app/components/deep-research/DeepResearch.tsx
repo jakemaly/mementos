@@ -361,7 +361,6 @@ export function DeepResearch({
                 collections={collections}
                 onSubmit={handleSubmit}
                 disabled={collectionUnavailable || !query.trim() || !selectedCollection}
-                placeholder="What should Mementos research?"
               />
               <p className={styles.composerHint}>Press Enter to begin · Shift + Enter for a new line</p>
             </div>
