@@ -20,11 +20,8 @@
   overflow: visible;
   isolation: isolate;
   padding: clamp(2rem, 5vw, 4rem) clamp(1.1rem, 5vw, 5.5rem) 4rem;
-  background-color: #ff2828;
-  background-image: url("/p5-dialogue/images/backgroundDot.png");
-  background-position: right top;
-  background-repeat: no-repeat;
-  background-size: cover;
+  background-color: #fff;
+  background-image: none;
 }
 
 .composerIntro,
@@ -43,20 +40,18 @@
   display: flex;
   gap: 0.65rem;
   align-items: center;
-  color: #fff;
+  color: var(--red);
   font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.14em;
-  text-shadow: 2px 2px 0 #111;
   text-transform: uppercase;
 }
 
 .composerKicker span {
   padding: 0.12rem 0.35rem;
-  background: #fff;
-  color: #111;
+  background: var(--black);
+  color: var(--paper-light);
   font-variant-numeric: tabular-nums;
-  text-shadow: none;
 }
 
 .composerStatus {
@@ -64,7 +59,7 @@
   margin-top: 0.85rem;
   padding: 0.22rem 0.5rem;
   background: #111;
-  box-shadow: 3px 3px 0 #fff;
+  box-shadow: 3px 3px 0 var(--red-bright);
   color: #fff;
   font-size: 0.7rem;
   letter-spacing: 0.04em;
@@ -73,23 +68,20 @@
 .composerIntro h1 {
   max-width: 50rem;
   margin-top: 1.1rem;
-  color: #fff;
-  font-family: "P5 Optima", Impact, var(--font-display);
+  color: var(--ink);
+  font-family: var(--font-display);
   font-size: clamp(2.9rem, 5.5vw, 5.2rem);
-  font-weight: 900;
+  font-weight: 500;
   letter-spacing: -0.07em;
   line-height: 0.91;
-  text-shadow: 0.055em 0.055em 0 #111;
-  -webkit-text-stroke: 1px #111;
 }
 
 .composerLede {
   max-width: 35rem;
   margin-top: 1.35rem;
-  color: #fff;
+  color: var(--muted);
   font-size: clamp(0.92rem, 1.5vw, 1.05rem);
   line-height: 1.55;
-  text-shadow: 2px 2px 0 #111;
 }
 
 .composerDeck {
@@ -104,20 +96,18 @@
   gap: 0.7rem;
   align-items: center;
   margin-bottom: 0.8rem;
-  color: #fff;
+  color: var(--ink);
   font-size: 0.66rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   line-height: 1.45;
-  text-shadow: 2px 2px 0 #111;
   text-transform: uppercase;
 }
 
 .routeNoteLine {
   flex: 0 0 2rem;
   height: 3px;
-  background: #111;
-  box-shadow: 2px 2px 0 #fff;
+  background: var(--red-bright);
 }
 
 .routeNoteLabel {
@@ -127,6 +117,16 @@
 .composerPanel {
   width: min(100%, 67rem);
   margin: 0 auto;
+}
+
+.knifeMark {
+  position: absolute;
+  top: clamp(0.25rem, 1vw, 0.9rem);
+  right: clamp(1rem, 5vw, 5rem);
+  width: clamp(1.65rem, 3vw, 2.4rem);
+  height: auto;
+  opacity: 0.82;
+  transform: rotate(18deg);
 }
 
 .dialogueForm {
@@ -349,9 +349,8 @@
 
 .composerHint {
   margin-top: 1rem;
-  color: #fff;
+  color: var(--muted);
   font-size: 0.68rem;
-  text-shadow: 2px 2px 0 #111;
 }
 
 .error {

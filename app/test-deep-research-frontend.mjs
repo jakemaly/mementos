@@ -36,7 +36,8 @@ ok('Composer fields have stable form names', composer.includes('name="query"') &
 ok('Composer omits the redundant prompt header', !composer.includes('dialoguePrompt'));
 ok('Composer uses one dialogue surface', composer.includes('dialogueStage') && composer.includes('dialogueFrame'));
 ok('Composer uses the reference frame and Optima font', css.includes('/p5-dialogue/images/db-main-medium.png') && css.includes('OptimaNovaLT-Black.woff2'));
-ok('Composer uses the full dotted page treatment', css.includes('backgroundDot.png') && css.includes('background-size: cover'));
+ok('Composer uses a quiet white page treatment', css.includes('background-color: #fff') && css.includes('background-image: none'));
+ok('Composer includes the Persona knife accent', root.includes('p5-dialogue/images/knife.png') && css.includes('.knifeMark'));
 ok('Composer gives the question a substantial writing area', css.includes('min-height: 14rem'));
 ok('Composer has a dedicated narrow layout', css.includes('@media (max-width: 480px)') && css.includes('.dialogueContent'));
 ok('Composer keeps disabled action text readable', css.includes('.dialogueSubmit:disabled') && css.includes('color: #d7c9cb'));
@@ -52,8 +53,8 @@ ok('Collection control is wrapped in the action treatment', css.includes('.dialo
 ok('Navigator uses a question-first heading', root.includes('Begin with the question.'));
 ok('Composer uses the shared application shell', root.includes('<AppShell activeDestination="research"'));
 ok('Shell has semantic main navigation', shell.includes('aria-label="Main navigation"'));
-ok('Shell exposes destination actions', shell.includes('Deep Research') && shell.includes('Knowledge Base') && shell.includes('Collections'));
-ok('Shell includes disabled future Settings', shell.includes('Settings (not available yet)'));
+ok('Shell exposes destination actions', shell.includes('Deep Research') && shell.includes('Knowledge Base') && shell.includes('Settings'));
+ok('Shell includes collection settings entry', shell.includes('collection-settings-trigger'));
 ok('Shell uses compact non-clipping mobile navigation', shellCss.includes('@media (max-width: 768px)') && shellCss.includes('flex-wrap: wrap') && shellCss.includes('overflow-x: hidden'));
 ok('Shell identifies Mementos as a research notebook', shell.includes('A research notebook'));
 ok('Shell keeps destination helper text readable', shell.includes('Ask a question') && shell.includes('Review evidence'));
@@ -119,7 +120,7 @@ ok('Scrollable detail panes are keyboard-focusable', workspace.includes('styles.
 ok('Visible focus styles exist', css.includes(':focus-visible'));
 ok('Cherry accent is scoped', css.includes('--accent: #9f1239') && css.includes('var(--accent)'));
 ok('Reduced motion is respected', css.includes('prefers-reduced-motion: reduce'));
-ok('Settings entry is present', shell.includes('Settings (not available yet)'));
+ok('Settings entry is present', shell.includes('collection-settings-trigger'));
 
 console.log(`\n${PASS} ${passed} passed`);
 console.log(`${FAIL} ${failed} failed`);
