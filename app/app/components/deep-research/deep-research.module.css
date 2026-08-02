@@ -278,6 +278,10 @@
 
 .dialogueCollection {
   min-width: 0;
+  padding: 0.65rem 0.75rem 0.75rem;
+  border: 2px solid #111;
+  background: var(--red-bright);
+  box-shadow: 4px 4px 0 #111;
 }
 
 .dialogueSelect {
@@ -285,10 +289,9 @@
   min-width: 0;
   min-height: 3.35rem;
   padding: 0.5rem 2rem 0.5rem 0.7rem;
-  border: 2px solid #111;
+  border: 2px solid #fff;
   border-radius: 0;
-  background: var(--red-bright);
-  box-shadow: 4px 4px 0 #111;
+  background: #111;
   color: #fff;
   cursor: pointer;
   font-family: "P5 Optima", Impact, var(--font-body);
@@ -296,12 +299,6 @@
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  transition: background-color 160ms ease, transform 160ms ease;
-}
-
-.dialogueSelect:hover {
-  background: #111;
-  transform: translateY(-1px);
 }
 
 .dialogueSelect:focus-visible {
