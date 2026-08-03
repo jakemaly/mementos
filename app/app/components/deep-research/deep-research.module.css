@@ -106,7 +106,7 @@
   width: 100%;
   max-width: 67rem;
   flex: 0 0 auto;
-  margin: clamp(2.25rem, 4vw, 3.5rem) 0 0;
+  margin: clamp(1rem, 2vw, 1.75rem) 0 0;
 }
 
 .routeNote {
@@ -428,7 +428,7 @@
   }
 
   .composerDeck {
-    margin-top: 2.75rem;
+    margin-top: 1.5rem;
   }
 
   .routeNote {
@@ -483,7 +483,7 @@
   }
 
   .composerDeck {
-    margin-top: 2.35rem;
+    margin-top: 1.25rem;
   }
 
   .dialogueStage {
