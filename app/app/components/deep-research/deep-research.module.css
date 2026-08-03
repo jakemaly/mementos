@@ -530,7 +530,7 @@
   width: 1387px;
   height: 544px;
   max-width: none;
-  margin-top: clamp(-10rem, -10vw, -5rem);
+  margin-top: clamp(-14rem, -14vw, -7rem);
   margin-left: calc(100% - 1387px);
 }
 
@@ -590,7 +590,7 @@
 @media (max-width: 480px) {
   .dialogueVisual {
     height: 38rem;
-    margin-top: -6rem;
+    margin-top: -9rem;
   }
 }
 
