@@ -20,7 +20,7 @@
   overflow: hidden;
   isolation: isolate;
   padding: clamp(2rem, 5vw, 4rem) clamp(1.1rem, 5vw, 5.5rem) 4rem;
-  background: linear-gradient(180deg, #fbf4e8 0%, #eee0cd 42%, #b3917c 100%);
+  background: linear-gradient(180deg, #F5F1E6 0%, #8A6656 52%, #3E2723 100%);
 }
 
 .halftoneBackground {
