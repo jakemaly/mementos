@@ -513,7 +513,6 @@
   height: auto;
   aspect-ratio: 1275 / 500;
   max-width: 1387px;
-  margin-top: clamp(-8rem, -8vw, -4rem);
   margin-left: 0;
 }
 
@@ -569,7 +568,7 @@
 
 @media (max-width: 480px) {
   .dialogueVisual {
-    margin-top: -6rem;
+    margin-top: 0;
   }
 }
 
