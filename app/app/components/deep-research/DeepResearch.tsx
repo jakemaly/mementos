@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { ResearchComposer } from './ResearchComposer';
+import { HalftoneBackground } from './HalftoneBackground';
 import { AppShell } from '@/app/components/app-shell/AppShell';
 import { ResearchWorkspace } from './ResearchWorkspace';
 import { Source, TraceEvent, ResearchBrief, Sketch } from '@/app/lib/research-contracts';
@@ -337,6 +338,7 @@ export function DeepResearch({
     return (
       <AppShell activeDestination="research" onOpenKnowledgeBase={onOpenKnowledgeBase} onOpenCollectionSettings={onOpenCollectionSettings}>
         <main className={styles.composerMain}>
+          <HalftoneBackground />
           <div className={styles.composerIntro}>
             <p className={styles.composerKicker}><span>01</span> Phantom archive</p>
             <p className={styles.composerStatus}>Research entry / {selectedCollection || 'Choose a collection'}</p>

@@ -20,8 +20,21 @@
   overflow: hidden;
   isolation: isolate;
   padding: clamp(2rem, 5vw, 4rem) clamp(1.1rem, 5vw, 5.5rem) 4rem;
-  background-color: var(--paper);
-  background-image: none;
+  background: linear-gradient(180deg, #fbf4e8 0%, #eee0cd 42%, #b3917c 100%);
+}
+
+.halftoneBackground {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.halftoneBackground svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .composerIntro,
