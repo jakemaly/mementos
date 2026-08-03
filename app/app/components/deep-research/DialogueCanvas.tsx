@@ -18,9 +18,10 @@ export function DialogueCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLImageElement | null>(null);
   const [imageReady, setImageReady] = useState(false);
+  const [fontReady, setFontReady] = useState(false);
 
-  // Load the box once. The old readiness flag could be satisfied by the font
-  // before the image loaded, leaving the initial canvas permanently blank.
+  // Load the box and custom font once. The box is drawn immediately; query
+  // text waits for the font so fallback metrics cannot move or resize it.
   useEffect(() => {
     const box = new Image();
     const showBox = () => {
@@ -30,6 +31,8 @@ export function DialogueCanvas({
     box.onload = showBox;
     box.src = BOX;
     if (box.complete && box.naturalWidth > 0) showBox();
+
+    void (document.fonts?.load(`18pt "${FONT}"`) ?? Promise.resolve()).then(() => setFontReady(true));
 
     return () => {
       box.onload = null;
@@ -44,6 +47,8 @@ export function DialogueCanvas({
 
     context.clearRect(0, 0, WIDTH, HEIGHT);
     context.drawImage(box, 320, 234, 950, 266);
+    if (!fontReady) return;
+
     context.font = `18pt "${FONT}"`;
     context.fillStyle = '#fff';
     context.textAlign = 'left';
@@ -54,7 +59,7 @@ export function DialogueCanvas({
     const rows = text.split('\n').slice(0, 3);
     const y = rows.length === 2 ? [387, 417] : [373, 403, 433];
     rows.forEach((row, index) => context.fillText(row, 500, y[index]));
-  }, [text, imageReady]);
+  }, [text, imageReady, fontReady]);
 
   return (
     <div

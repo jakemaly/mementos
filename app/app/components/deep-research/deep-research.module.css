@@ -558,7 +558,9 @@
   border-radius: 0;
   background: transparent;
   color: transparent;
-  caret-color: #fff;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+  caret-color: transparent;
   cursor: text;
   font: 18pt "P5 Optima", Impact, sans-serif;
   line-height: 1.7;
