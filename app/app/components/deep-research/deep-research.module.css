@@ -526,10 +526,11 @@
 
 .dialogueVisual {
   position: relative;
-  width: 1275px;
-  height: 500px;
+  /* Uniformly scale the generator canvas to the former 34rem stage height. */
+  width: 1387px;
+  height: 544px;
   max-width: none;
-  margin-left: calc(100% - 1275px);
+  margin-left: calc(100% - 1387px);
 }
 
 .dialogueVisual canvas {
@@ -572,7 +573,7 @@
 .dialogueInput:focus { outline: none; }
 .dialogueInput:focus-visible { outline: 3px solid #fff; outline-offset: 5px; }
 
-@media (max-width: 1275px) {
+@media (max-width: 1387px) {
   .dialogueVisual {
     width: 100%;
     height: clamp(32rem, 37vw, 34rem);
