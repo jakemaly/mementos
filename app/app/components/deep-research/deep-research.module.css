@@ -509,12 +509,12 @@
 .dialogueVisual {
   position: relative;
   /* Pull the artwork up with the shorter composer layout. */
-  width: 1387px;
+  width: 100%;
   height: auto;
   aspect-ratio: 1275 / 500;
-  max-width: none;
-  margin-top: clamp(-14rem, -14vw, -7rem);
-  margin-left: calc(100% - 1387px);
+  max-width: 1387px;
+  margin-top: clamp(-8rem, -8vw, -4rem);
+  margin-left: 0;
 }
 
 .dialogueVisual canvas {
@@ -560,7 +560,6 @@
 @media (max-width: 1387px) {
   .dialogueVisual {
     width: 100%;
-    margin-left: 0;
   }
 }
 
@@ -570,7 +569,7 @@
 
 @media (max-width: 480px) {
   .dialogueVisual {
-    margin-top: -9rem;
+    margin-top: -6rem;
   }
 }
 
