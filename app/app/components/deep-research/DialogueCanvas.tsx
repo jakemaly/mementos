@@ -7,6 +7,7 @@ const WIDTH = 1275;
 const HEIGHT = 500;
 const BOX = '/p5-dialogue/images/db-main-medium.png';
 const FONT = 'P5 Optima';
+const SPEAKER = 'DEEP RESEARCH';
 
 export function DialogueCanvas({
   text,
@@ -48,6 +49,32 @@ export function DialogueCanvas({
     context.clearRect(0, 0, WIDTH, HEIGHT);
     context.drawImage(box, 320, 234, 950, 266);
     if (!fontReady) return;
+
+    // The generator centers the speaker name at x=418, baseline y=438.
+    context.font = `18pt "${FONT}"`;
+    context.textAlign = 'left';
+    context.textBaseline = 'alphabetic';
+    const speakerWidth = context.measureText(SPEAKER).width;
+    const speakerX = 418 - speakerWidth / 2;
+    context.fillStyle = '#000';
+    context.fillText(SPEAKER, speakerX, 438);
+
+    // Keep the generator's black name tiles, using stable positions so the
+    // name does not jump while the query is being edited.
+    for (const position of [2, 8]) {
+      const before = SPEAKER.slice(0, position);
+      const x = speakerX + context.measureText(before).width;
+      const metrics = context.measureText(SPEAKER[position]);
+      context.fillStyle = '#000';
+      context.fillRect(
+        x,
+        438 - metrics.actualBoundingBoxAscent - 4,
+        metrics.width,
+        metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent + 7,
+      );
+      context.fillStyle = '#fff';
+      context.fillText(SPEAKER[position], x, 438);
+    }
 
     context.font = `18pt "${FONT}"`;
     context.fillStyle = '#fff';
