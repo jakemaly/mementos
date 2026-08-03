@@ -50,7 +50,11 @@ export function DialogueCanvas({
     context.drawImage(box, 320, 234, 950, 266);
     if (!fontReady) return;
 
-    // The generator centers the speaker name at x=418, baseline y=438.
+    // ImageCanvas in the generator rotates the name and tile canvases before
+    // drawing the main-box name. Keep that transform; it is why the name is
+    // not aligned like ordinary horizontal canvas text.
+    context.save();
+    context.rotate(-14.65 * Math.PI / 180);
     context.font = `18pt "${FONT}"`;
     context.textAlign = 'left';
     context.textBaseline = 'alphabetic';
@@ -75,6 +79,7 @@ export function DialogueCanvas({
       context.fillStyle = '#fff';
       context.fillText(SPEAKER[position], x, 438);
     }
+    context.restore();
 
     context.font = `18pt "${FONT}"`;
     context.fillStyle = '#fff';
