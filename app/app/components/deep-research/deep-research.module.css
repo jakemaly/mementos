@@ -526,10 +526,11 @@
 
 .dialogueVisual {
   position: relative;
-  /* Uniformly scale the generator canvas to the former 34rem stage height. */
+  /* Pull the artwork up with the shorter composer layout. */
   width: 1387px;
   height: 544px;
   max-width: none;
+  margin-top: clamp(-8rem, -8vw, -4rem);
   margin-left: calc(100% - 1387px);
 }
 
@@ -587,7 +588,10 @@
 }
 
 @media (max-width: 480px) {
-  .dialogueVisual { height: 38rem; }
+  .dialogueVisual {
+    height: 38rem;
+    margin-top: -4rem;
+  }
 }
 
 /* ── Workspace (View B) ────────────────────────────────────────────── */
