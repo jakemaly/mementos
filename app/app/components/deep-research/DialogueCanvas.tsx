@@ -6,6 +6,7 @@ import styles from './deep-research.module.css';
 const WIDTH = 1275;
 const HEIGHT = 500;
 const BOX = '/p5-dialogue/images/db-main-medium.png';
+const PORTRAIT = '/p5-dialogue/images/protagonist.png';
 const FONT = 'P5 Optima';
 const SPEAKER = 'DEEP RESEARCH';
 
@@ -18,25 +19,36 @@ export function DialogueCanvas({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLImageElement | null>(null);
+  const portraitRef = useRef<HTMLImageElement | null>(null);
   const [imageReady, setImageReady] = useState(false);
+  const [portraitReady, setPortraitReady] = useState(false);
   const [fontReady, setFontReady] = useState(false);
 
   // Load the box and custom font once. The box is drawn immediately; query
   // text waits for the font so fallback metrics cannot move or resize it.
   useEffect(() => {
     const box = new Image();
+    const portrait = new Image();
     const showBox = () => {
       boxRef.current = box;
       setImageReady(true);
     };
+    const showPortrait = () => {
+      portraitRef.current = portrait;
+      setPortraitReady(true);
+    };
     box.onload = showBox;
+    portrait.onload = showPortrait;
     box.src = BOX;
+    portrait.src = PORTRAIT;
     if (box.complete && box.naturalWidth > 0) showBox();
+    if (portrait.complete && portrait.naturalWidth > 0) showPortrait();
 
     void (document.fonts?.load(`18pt "${FONT}"`) ?? Promise.resolve()).then(() => setFontReady(true));
 
     return () => {
       box.onload = null;
+      portrait.onload = null;
     };
   }, []);
 
@@ -44,9 +56,11 @@ export function DialogueCanvas({
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
     const box = boxRef.current;
-    if (!canvas || !context || !box || !imageReady) return;
+    const portrait = portraitRef.current;
+    if (!canvas || !context || !box || !portrait || !imageReady || !portraitReady) return;
 
     context.clearRect(0, 0, WIDTH, HEIGHT);
+    context.drawImage(portrait, 150, 150, 400, 400);
     context.drawImage(box, 320, 234, 950, 266);
     if (!fontReady) return;
 
@@ -91,7 +105,7 @@ export function DialogueCanvas({
     const rows = text.split('\n').slice(0, 3);
     const y = rows.length === 2 ? [387, 417] : [373, 403, 433];
     rows.forEach((row, index) => context.fillText(row, 500, y[index]));
-  }, [text, imageReady, fontReady]);
+  }, [text, imageReady, portraitReady, fontReady]);
 
   return (
     <div
