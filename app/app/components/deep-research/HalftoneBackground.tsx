@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import styles from './deep-research.module.css';
 
 const GRID_STEP = 14;
-const DOT = '#F5F1E6';
+const DOT = '#A9826B';
 
 export function HalftoneBackground() {
   const backgroundRef = useRef<HTMLDivElement>(null);
