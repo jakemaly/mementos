@@ -17,18 +17,19 @@ export function DialogueCanvas({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLImageElement | null>(null);
-  const [assetsReady, setAssetsReady] = useState(false);
+  const [imageReady, setImageReady] = useState(false);
 
-  // Load static assets once. Recreating the image in the text effect made
-  // every keystroke clear the canvas and briefly show an empty bubble.
+  // Load the box once. The old readiness flag could be satisfied by the font
+  // before the image loaded, leaving the initial canvas permanently blank.
   useEffect(() => {
     const box = new Image();
-    box.onload = () => {
+    const showBox = () => {
       boxRef.current = box;
-      setAssetsReady(true);
+      setImageReady(true);
     };
+    box.onload = showBox;
     box.src = BOX;
-    void (document.fonts?.load(`18pt "${FONT}"`) ?? Promise.resolve()).then(() => setAssetsReady(true));
+    if (box.complete && box.naturalWidth > 0) showBox();
 
     return () => {
       box.onload = null;
@@ -39,7 +40,7 @@ export function DialogueCanvas({
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
     const box = boxRef.current;
-    if (!canvas || !context || !box || !assetsReady) return;
+    if (!canvas || !context || !box || !imageReady) return;
 
     context.clearRect(0, 0, WIDTH, HEIGHT);
     context.drawImage(box, 320, 234, 950, 266);
@@ -53,7 +54,7 @@ export function DialogueCanvas({
     const rows = text.split('\n').slice(0, 3);
     const y = rows.length === 2 ? [387, 417] : [373, 403, 433];
     rows.forEach((row, index) => context.fillText(row, 500, y[index]));
-  }, [text, assetsReady]);
+  }, [text, imageReady]);
 
   return (
     <div

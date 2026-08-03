@@ -526,8 +526,10 @@
 
 .dialogueVisual {
   position: relative;
-  width: 100%;
-  height: clamp(32rem, 37vw, 34rem);
+  width: 1275px;
+  height: 500px;
+  max-width: none;
+  margin-left: calc(100% - 1275px);
 }
 
 .dialogueVisual canvas {
@@ -567,6 +569,14 @@
 .dialogueInput::placeholder { color: transparent; }
 .dialogueInput:focus { outline: none; }
 .dialogueInput:focus-visible { outline: 3px solid #fff; outline-offset: 5px; }
+
+@media (max-width: 1275px) {
+  .dialogueVisual {
+    width: 100%;
+    height: clamp(32rem, 37vw, 34rem);
+    margin-left: 0;
+  }
+}
 
 @media (max-width: 768px) {
   .dialogueVisual { height: 35rem; }
