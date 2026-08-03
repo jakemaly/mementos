@@ -525,10 +525,10 @@
 .dialogueCaret {
   position: absolute;
   z-index: 2;
-  top: 68%;
+  top: 71%;
   left: 39.2%;
-  width: 2px;
-  height: 9%;
+  width: 1px;
+  height: 5%;
   background: #fff;
   opacity: 0;
   pointer-events: none;
@@ -537,11 +537,6 @@
 .dialogueVisual:focus-within .dialogueCaret {
   opacity: 1;
   animation: dialogueCaretBlink 1s steps(1, end) infinite;
-}
-
-.dialogueField:focus-within {
-  outline: 2px solid rgba(255, 255, 255, 0.72);
-  outline-offset: 0.45rem;
 }
 
 @keyframes dialogueCaretBlink {

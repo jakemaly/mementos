@@ -103,7 +103,7 @@ export function DialogueCanvas({
 
     if (!text) {
       context.fillStyle = 'rgba(255, 255, 255, 0.58)';
-      context.fillText('CLICK TO BEGIN TYPING', 500, 373);
+      context.fillText('click to begin typing…', 500, 373);
     }
 
     // These coordinates and the two-line offset come from the generator's
