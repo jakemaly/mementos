@@ -510,7 +510,8 @@
   position: relative;
   /* Pull the artwork up with the shorter composer layout. */
   width: 1387px;
-  height: 544px;
+  height: auto;
+  aspect-ratio: 1275 / 500;
   max-width: none;
   margin-top: clamp(-14rem, -14vw, -7rem);
   margin-left: calc(100% - 1387px);
@@ -559,19 +560,16 @@
 @media (max-width: 1387px) {
   .dialogueVisual {
     width: 100%;
-    height: clamp(32rem, 37vw, 34rem);
     margin-left: 0;
   }
 }
 
 @media (max-width: 768px) {
-  .dialogueVisual { height: 35rem; }
   .dialogueField { left: 25%; width: 75%; }
 }
 
 @media (max-width: 480px) {
   .dialogueVisual {
-    height: 38rem;
     margin-top: -9rem;
   }
 }

@@ -60,7 +60,8 @@ export function DialogueCanvas({
     if (!canvas || !context || !box || !portrait || !imageReady || !portraitReady) return;
 
     context.clearRect(0, 0, WIDTH, HEIGHT);
-    context.drawImage(portrait, 150, 150, 400, 400);
+    // Match the generator's Joker placement: 500px portrait at (65, 30).
+    context.drawImage(portrait, 65, 30, 500, 500);
     context.drawImage(box, 320, 234, 950, 266);
     if (!fontReady) return;
 
