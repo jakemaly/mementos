@@ -340,7 +340,7 @@ export function DeepResearch({
           <div className={styles.composerIntro}>
             <p className={styles.composerKicker}><span>01</span> Phantom archive</p>
             <p className={styles.composerStatus}>Research entry / {selectedCollection || 'Choose a collection'}</p>
-            <h1>Begin with the question.</h1>
+            <h1>What to research today?</h1>
             <Image className={styles.knifeMark} src="/p5-dialogue/images/knife.png" alt="" width={32} height={44} aria-hidden="true" />
             <p className={styles.composerLede}>
               Turn a loose question into a traceable brief, a search route, and evidence you can revisit.
