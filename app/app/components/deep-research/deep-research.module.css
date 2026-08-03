@@ -522,6 +522,32 @@
   height: 100%;
 }
 
+.dialogueCaret {
+  position: absolute;
+  z-index: 2;
+  top: 68%;
+  left: 39.2%;
+  width: 2px;
+  height: 9%;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dialogueVisual:focus-within .dialogueCaret {
+  opacity: 1;
+  animation: dialogueCaretBlink 1s steps(1, end) infinite;
+}
+
+.dialogueField:focus-within {
+  outline: 2px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 0.45rem;
+}
+
+@keyframes dialogueCaretBlink {
+  50% { opacity: 0; }
+}
+
 .dialogueField {
   position: absolute;
   top: 46%;
@@ -569,6 +595,12 @@
 @media (max-width: 480px) {
   .dialogueVisual {
     margin-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialogueVisual:focus-within .dialogueCaret {
+    animation: none;
   }
 }
 

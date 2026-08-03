@@ -101,6 +101,11 @@ export function DialogueCanvas({
     context.textAlign = 'left';
     context.textBaseline = 'alphabetic';
 
+    if (!text) {
+      context.fillStyle = 'rgba(255, 255, 255, 0.58)';
+      context.fillText('CLICK TO BEGIN TYPING', 500, 373);
+    }
+
     // These coordinates and the two-line offset come from the generator's
     // findTextCoords/main-box rendering path.
     const rows = text.split('\n').slice(0, 3);
@@ -118,6 +123,9 @@ export function DialogueCanvas({
       }}
     >
       <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} aria-hidden="true" />
+      {!text && (
+        <span className={styles.dialogueCaret} data-dialogue-caret aria-hidden="true" />
+      )}
       {input}
     </div>
   );
