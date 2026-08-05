@@ -597,23 +597,22 @@
   }
 }
 
-/* ── Workspace (View B) ────────────────────────────────────────────── */
+/* ── Research trace surface (View B) ─────────────────────────────── */
 
-.workspace {
-  min-width: 0;
-  background: var(--paper);
-}
-
-.mainContent {
+.traceMain {
   flex: 1;
   min-width: 0;
-  padding: clamp(1.3rem, 3vw, 3.5rem) clamp(1rem, 4vw, 4.5rem) 5rem;
+  padding: clamp(1.2rem, 3vw, 2.6rem) clamp(1rem, 4vw, 4rem) 6rem;
   background: var(--paper);
 }
 
-.workspaceHeader,
-.workspaceGrid {
-  width: min(1180px, 100%);
+.traceUtility {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem 2rem;
+  align-items: center;
+  justify-content: space-between;
+  width: min(1080px, 100%);
   margin: 0 auto;
 }
 
@@ -628,28 +627,11 @@
   text-transform: uppercase;
 }
 
-.workspaceTitleRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2rem;
-  align-items: end;
-  margin-top: 0.8rem;
-}
-
-.workspaceHeading h1 {
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-size: clamp(2.8rem, 6vw, 5.4rem);
-  font-weight: 500;
-  letter-spacing: -0.07em;
-  line-height: 0.9;
-}
-
-.workspaceHeading p {
-  max-width: 35rem;
-  margin-top: 0.85rem;
-  color: var(--muted);
-  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+.statusContext {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.4rem;
+  align-items: center;
 }
 
 .statusStamp {
@@ -663,10 +645,6 @@
   background: var(--black);
   color: var(--paper-light);
   box-shadow: 5px 5px 0 var(--red);
-}
-
-.statusContext {
-  justify-self: end;
 }
 
 .statusStamp.status-completed,
@@ -718,37 +696,9 @@
 }
 
 .elapsed {
-  margin: 0.65rem 0 0;
   color: var(--red-bright);
   font-family: var(--font-mono);
   font-size: 0.68rem;
-  text-align: right;
-}
-
-.routeContext {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1.25rem;
-  align-items: end;
-  margin-top: clamp(1.8rem, 4vw, 3.2rem);
-  padding: 1rem 0 1.1rem;
-  border-top: 1px solid var(--line-dark);
-  border-bottom: 1px solid var(--line);
-}
-
-.routeQuery {
-  min-width: 0;
-}
-
-.routeQuery p {
-  max-width: 58rem;
-  margin-top: 0.4rem;
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-size: clamp(1.05rem, 2vw, 1.35rem);
-  letter-spacing: -0.025em;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
 }
 
 .routeActions {
@@ -776,663 +726,660 @@
 }
 
 .cancelButton:focus-visible,
-.newButton:focus-visible {
+.newButton:focus-visible,
+.artifactRow:focus-visible,
+.ingestNode:focus-visible,
+.popoverClose:focus-visible {
   outline: 3px solid var(--red-bright);
   outline-offset: 3px;
 }
 
 .workspaceError {
-  margin-top: 0.8rem;
+  width: min(1080px, 100%);
+  margin: 1rem auto 0;
   color: var(--error);
   font-size: 0.82rem;
 }
 
-.workspaceGrid {
-  display: grid;
-  grid-template-areas:
-    "route sketch"
-    "trace evidence";
-  grid-template-columns: minmax(0, 1.55fr) minmax(18rem, 0.7fr);
-  gap: clamp(1.8rem, 4vw, 3.5rem) clamp(1.8rem, 4vw, 3.8rem);
-  align-items: stretch;
-  margin-top: 1.8rem;
+/* ── Query calling-card header ───────────────────────────────────── */
+
+.traceQuery {
+  width: min(1080px, 100%);
+  margin: clamp(1.8rem, 4vw, 3.2rem) auto 0;
+  text-align: center;
 }
 
-.panel {
+.callingCardFrame {
+  display: flex;
+  justify-content: center;
   min-width: 0;
 }
 
-.sketchPanel:focus-visible,
-.tracePanel:focus-visible {
-  outline: 3px solid var(--red-bright);
-  outline-offset: 3px;
+.callingCardCanvas {
+  max-width: 100%;
+  height: auto;
 }
 
-@media (min-width: 769px) {
-  .workspaceGrid {
-    height: min(43rem, calc(100dvh - 19rem));
-    min-height: 30rem;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .panel {
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-  }
+.traceQueryText {
+  max-width: 46rem;
+  margin: 1.1rem auto 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
-.routePanel {
-  --accent: #9f1239;
-  grid-area: route;
-  padding: 1.25rem clamp(1rem, 2.5vw, 1.6rem) 1.35rem;
+/* ── Route rows and connectors ───────────────────────────────────── */
+
+.traceRouteWrap {
+  width: min(1080px, 100%);
+  margin: clamp(1.6rem, 4vw, 3rem) auto 0;
+}
+
+.traceRoute {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.traceRow {
+  position: relative;
+  min-width: 0;
+  padding-top: 2.7rem;
+}
+
+.traceRowMilestone {
+  align-self: center;
+  width: min(620px, 100%);
+  padding-top: 0;
+}
+
+.traceRowCheckpoint {
+  width: min(660px, 100%);
+}
+
+.traceRow-left {
+  align-self: flex-start;
+}
+
+.traceRow-right {
+  align-self: flex-end;
+}
+
+.traceRowRanked {
+  align-self: center;
+  width: min(560px, 100%);
+}
+
+.traceRowIngest {
+  align-self: center;
+  width: min(560px, 100%);
+}
+
+.traceConnector {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2.7rem;
+  pointer-events: none;
+}
+
+.traceConnectorBatch {
+  height: 2.3rem;
+}
+
+.traceConnector path {
+  fill: none;
+  stroke: var(--black);
+  stroke-width: 3;
+  stroke-linecap: square;
+  animation: traceDrawOn 0.5s ease-out both;
+}
+
+.traceConnectorActive path {
+  stroke: var(--red-bright);
+}
+
+@keyframes traceDrawOn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Cards: angular black geometry with red offsets ──────────────── */
+
+.traceMarker {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.45rem;
+  height: 1.45rem;
+  border: 2px solid currentColor;
+  color: var(--red-bright);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.traceMarkerRunning {
+  animation: tracePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes tracePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.milestoneCard {
+  position: relative;
+  z-index: 1;
+  padding: 1.05rem 1.15rem 1.15rem;
+  border: 1px solid var(--line-dark);
+  background: var(--paper-light);
+  box-shadow: 5px 5px 0 var(--black);
+}
+
+.milestoneKicker {
+  color: var(--red);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.artifactRows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 0.85rem;
+}
+
+.artifactRowWrap {
+  position: relative;
+  flex: 1 1 15rem;
+  min-width: 0;
+}
+
+.artifactRow {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0;
+  text-align: left;
+  font: inherit;
+}
+
+.artifactRow > span:first-child {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.3rem;
+  height: 1.3rem;
+  border: 2px solid currentColor;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.artifactRowCreated {
+  border: 0;
+  background: var(--black);
+  box-shadow: 3px 3px 0 var(--red);
+  color: var(--paper-light);
+  cursor: pointer;
+}
+
+.artifactRowCreated:hover {
+  box-shadow: 3px 3px 0 var(--red-bright);
+}
+
+.artifactRowCreated > span:first-child {
+  color: #9bc6a6;
+}
+
+.artifactRowCreated strong,
+.artifactRowCreated small {
+  display: block;
+}
+
+.artifactRowCreated strong {
+  font-size: 0.8rem;
+}
+
+.artifactRowCreated small {
+  margin-top: 0.18rem;
+  color: #c7c0b8;
+  font-size: 0.66rem;
+}
+
+.artifactRowPending {
+  border: 1px dashed var(--line-dark);
+  background: transparent;
+  color: var(--muted);
+}
+
+.artifactRowPending strong,
+.artifactRowPending small {
+  display: block;
+}
+
+.artifactRowPending strong {
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.artifactRowPending small {
+  margin-top: 0.18rem;
+  font-size: 0.66rem;
+}
+
+/* ── Artifact popover ────────────────────────────────────────────── */
+
+.artifactPopover {
+  position: absolute;
+  z-index: 6;
+  top: calc(100% + 0.7rem);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(26rem, calc(100vw - 2rem));
+  max-height: min(26rem, 60vh);
+  border: 1px solid var(--line-dark);
+  background: var(--paper-light);
+  box-shadow: 6px 6px 0 var(--black);
+}
+
+.artifactPopoverHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.7rem 0.9rem;
   background: var(--black);
   color: var(--paper-light);
 }
 
-.sketchPanel {
-  grid-area: sketch;
+.artifactPopoverHead strong {
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
 }
 
-.tracePanel {
-  grid-area: trace;
+.popoverClose {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--line-dark);
+  border-radius: 0;
+  background: transparent;
+  color: var(--paper-light);
+  cursor: pointer;
+  font-size: 0.72rem;
 }
 
-.evidencePanel {
-  grid-area: evidence;
+.popoverClose:hover {
+  border-color: var(--red-bright);
+  color: var(--red-bright);
 }
 
-.sketchPanel,
-.tracePanel,
-.evidencePanel {
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--line-dark);
+.artifactPopoverBody {
+  padding: 0.9rem 1rem 1.1rem;
+  overflow-y: auto;
 }
 
-.panelHeading {
+.artifactLead {
+  color: var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.artifactSection {
+  margin-top: 0.9rem;
+}
+
+.artifactLabel {
+  color: var(--red);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.artifactList {
+  display: grid;
+  gap: 0.28rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.artifactList li {
+  padding-left: 0.65rem;
+  border-left: 2px solid var(--line);
+  color: var(--ink);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* ── Checkpoints and batch fan-out ───────────────────────────────── */
+
+.checkpointCard,
+.rankedCard {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  gap: 0.8rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--black);
+  box-shadow: 4px 4px 0 var(--red);
+  color: var(--paper-light);
+}
+
+.checkpointCopy {
+  display: block;
+  min-width: 0;
+}
+
+.checkpointCopy strong,
+.checkpointCopy small {
+  display: block;
+}
+
+.checkpointCopy strong {
+  font-size: 0.84rem;
+  letter-spacing: 0.02em;
+}
+
+.checkpointCopy small {
+  margin-top: 0.22rem;
+  color: #c7c0b8;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.rankedCard[data-status='pending'] .checkpointCopy small {
+  color: #c7c0b8;
+}
+
+.fanOut {
+  display: flex;
+  flex-direction: column;
+  margin: 1.4rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.batchRow {
+  position: relative;
+  align-self: flex-start;
+  width: min(26rem, 100%);
+  padding-top: 2.3rem;
+}
+
+.batchRow:first-child {
+  padding-top: 0;
+}
+
+.batchRowRight {
+  align-self: flex-end;
+}
+
+.batchCard {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  min-width: 0;
+  padding: 0.8rem 0.95rem;
+  background: var(--black);
+  box-shadow: 3px 3px 0 var(--red);
+  color: var(--paper-light);
+}
+
+.batchCard[data-status='pending'] {
+  background: transparent;
+  border: 1px dashed var(--line-dark);
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.batchCard[data-status='failed'] {
+  box-shadow: 3px 3px 0 var(--error);
+}
+
+.batchCard[data-status='failed'] .batchMarker {
+  color: #f3a29f;
+}
+
+.batchMarker {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid currentColor;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.batchCard[data-status='completed'] .batchMarker {
+  color: #9bc6a6;
+}
+
+.batchCard[data-status='pending'] .batchMarker {
+  color: var(--muted);
+}
+
+.batchCopy {
+  display: block;
+  min-width: 0;
+}
+
+.batchQuery {
+  display: block;
+  max-width: 100%;
+  color: var(--paper-light);
+  font-size: 0.8rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batchCard[data-status='pending'] .batchQuery {
+  color: var(--muted);
+}
+
+.batchCopy small {
+  display: block;
+  margin-top: 0.2rem;
+  color: #c7c0b8;
+  font-size: 0.66rem;
+}
+
+.batchCard[data-status='pending'] .batchCopy small {
+  color: var(--quiet);
+}
+
+/* ── Ingest destination ──────────────────────────────────────────── */
+
+.ingestCard {
+  position: relative;
+  z-index: 1;
+}
+
+.ingestNode {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line-dark);
+  border-radius: 0;
+  background: var(--black);
+  box-shadow: 5px 5px 0 var(--red-bright);
+  color: var(--paper-light);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.ingestNode:disabled {
+  cursor: default;
+  box-shadow: 5px 5px 0 var(--line-dark);
+  opacity: 0.85;
+}
+
+.ingestNode:disabled .checkpointCopy small {
+  color: #a29a90;
+}
+
+.ingestMarker {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.45rem;
+  height: 1.45rem;
+  border: 2px solid currentColor;
+  color: var(--red-bright);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.traceSummary {
+  width: min(1080px, 100%);
+  margin: 1.6rem auto 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+/* ── Source checklist modal ──────────────────────────────────────── */
+
+.sourceModal {
+  width: min(46rem, calc(100vw - 2rem));
+  max-height: min(46rem, 86vh);
+  padding: 0;
+  border: 1px solid var(--line-dark);
+  border-radius: 0;
+  background: var(--paper-light);
+  box-shadow: 10px 10px 0 rgba(23, 22, 21, 0.4);
+}
+
+.sourceModal::backdrop {
+  background: rgba(23, 22, 21, 0.55);
+}
+
+.sourceModalHead {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
-  align-items: baseline;
-  min-width: 0;
-  padding-bottom: 0.8rem;
-  border-bottom: 1px solid var(--line);
+  gap: 1.5rem;
+  align-items: flex-start;
+  padding: 1.1rem 1.2rem;
+  background: var(--black);
+  color: var(--paper-light);
 }
 
-.routePanel .panelHeading {
-  border-bottom-color: #48443f;
+.sourceModalHead .panelKicker {
+  color: var(--red-bright);
 }
 
-.panelTitle {
+.sourceModalHead h2 {
   margin-top: 0.45rem;
-  color: var(--ink);
   font-family: var(--font-display);
-  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  font-size: 1.45rem;
   font-weight: 500;
   letter-spacing: -0.045em;
   line-height: 1;
 }
 
-.routePanel .panelTitle,
-.routePanel .panelKicker {
-  color: var(--paper-light);
-}
-
-.routePanel .panelKicker {
-  color: var(--red-bright);
-}
-
-.panelMeta {
-  flex: 0 0 auto;
-  color: var(--muted);
-  font-size: 0.65rem;
-  text-align: right;
-}
-
-.routePanel .panelMeta {
-  color: #aaa39a;
-}
-
-.panelDescription {
-  margin: 0.85rem 0 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.45;
-}
-
-/* ── Event-derived route map ──────────────────────────────────────── */
-
-.graphContainer {
-  min-width: 0;
-  padding-top: 1.1rem;
-}
-
-.routeMapIntro {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(9rem, 15rem);
-  gap: 1.25rem;
-  align-items: end;
-}
-
-.routeMapTitle {
-  margin-top: 0.42rem;
-  color: var(--paper-light);
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3.8vw, 3rem);
-  font-weight: 500;
-  letter-spacing: -0.06em;
-  line-height: 0.93;
-}
-
-.routeMapDescription {
-  color: #bdb6ad;
+.sourceModalHead p {
+  margin-top: 0.5rem;
+  color: #c7c0b8;
   font-size: 0.72rem;
-  line-height: 1.45;
 }
 
-.routeStages {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.35rem;
-  margin: 1.4rem 0 1.25rem;
-  padding: 0;
-  list-style: none;
+.sourceModalBody {
+  max-height: min(38rem, 68vh);
+  padding: 0.4rem 1.2rem 1.4rem;
+  overflow-y: auto;
 }
 
-.routeStage {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.45rem;
-  min-width: 0;
-  min-height: 4.2rem;
-  padding: 0.55rem 0.55rem 0.6rem;
-  border-top: 3px solid #6d6860;
-  background: #24211f;
+.sourceModalBody .sourceListContainer {
+  padding-top: 1.2rem;
 }
 
-.routeStage-active {
-  border-top-color: var(--red-bright);
-}
-
-.routeStage-completed {
-  border-top-color: #9b958b;
-}
-
-.routeStage-failed {
-  border-top-color: #ed8d87;
-}
-
-.routeStage-upcoming {
-  opacity: 0.65;
-}
-
-.routeStageNumber {
-  color: #aaa39a;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-}
-
-.routeStageCopy {
-  min-width: 0;
-}
-
-.routeStageCopy strong,
-.routeStageCopy small {
-  display: block;
-}
-
-.routeStageCopy strong {
-  color: var(--paper-light);
-  font-size: 0.72rem;
-  line-height: 1.1;
-}
-
-.routeStageCopy small {
-  margin-top: 0.3rem;
-  color: #aaa39a;
-  font-size: 0.62rem;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-}
-
-.routeStageStatus {
-  grid-column: 2;
-  color: var(--red-bright);
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.routeStage-completed .routeStageStatus {
-  color: #c8c1b9;
-}
-
-.routeStage-failed .routeStageStatus {
-  color: #f3a29f;
-}
-
-.routeList {
-  position: relative;
-  display: grid;
-  gap: 0.3rem;
-  margin: 0;
-  padding: 0.5rem 0 0.2rem;
-  list-style: none;
-}
-
-.routeList::before {
-  position: absolute;
-  top: 1.2rem;
-  bottom: 1.2rem;
-  left: 0.9rem;
-  width: 2px;
-  background: var(--red-bright);
-  content: "";
-}
-
-.routeItem {
-  position: relative;
-  min-width: 0;
-}
-
-.routeNode {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) auto;
-  gap: 0.65rem;
-  align-items: start;
-  width: 100%;
-  min-height: 4.25rem;
-  padding: 0.65rem 0.55rem 0.65rem 0;
-  border: 1px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: var(--paper-light);
-  text-align: left;
-}
-
-.routeNode:hover {
-  border-color: #605a53;
-  background: #262321;
-}
-
-.routeNode:focus-visible {
-  outline: 3px solid var(--red-bright);
-  outline-offset: 3px;
-}
-
-.routeItem-tool .routeNode {
-  width: calc(100% - 2.25rem);
-  margin-left: 2.25rem;
-}
-
-.routeItem-tool .routeNode::before {
-  position: absolute;
-  top: -0.55rem;
-  left: -1.35rem;
-  width: 1.2rem;
-  height: 1.35rem;
-  border-bottom: 1px solid #605a53;
-  border-left: 1px solid #605a53;
-  content: "";
-}
-
-.routeNodeMarker {
-  display: grid;
-  place-items: center;
-  width: 1.35rem;
-  height: 1.35rem;
-  margin-top: 0.15rem;
-  border: 2px solid #a8a29a;
-  border-radius: 50%;
-  background: var(--black);
-  color: #c9c2b9;
-  font-size: 0.7rem;
-  font-weight: 900;
-}
-
-.routeItem-tool .routeNodeMarker {
-  border-radius: 2px;
-  transform: rotate(45deg);
-}
-
-.routeItem-tool .routeNodeMarker > span {
-  transform: rotate(-45deg);
-}
-
-.routeNode-active {
-  border-color: var(--red-bright);
-  background: #331d22;
-}
-
-.routeNode-active .routeNodeMarker {
-  border-color: var(--red-bright);
-  background: var(--red-bright);
-  color: var(--paper-light);
-}
-
-.routeNode-completed .routeNodeMarker {
-  border-color: #a8a29a;
-  background: #6c665f;
-  color: var(--paper-light);
-}
-
-.routeNode-failed {
-  border-color: #d46f69;
-  background: #362322;
-}
-
-.routeNode-failed .routeNodeMarker {
-  border-color: #ed8d87;
-  color: #f3a29f;
-}
-
-.routeNodeSelected {
-  box-shadow: inset 4px 0 0 var(--accent);
-}
-
-.routeNodeCopy {
-  min-width: 0;
-}
-
-.routeNodeMeta {
-  display: block;
-  color: var(--red-bright);
-  font-size: 0.59rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.routeNodeCopy strong,
-.routeNodeCopy small {
-  display: block;
-}
-
-.routeNodeCopy strong {
-  margin-top: 0.25rem;
-  color: var(--paper-light);
-  font-size: 0.84rem;
-  line-height: 1.15;
-}
-
-.routeNodeCopy small {
-  margin-top: 0.25rem;
-  color: #b9b2aa;
-  font-size: 0.71rem;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
+/* ── Narrow surface ──────────────────────────────────────────────── */
 
-.routeNodeStatus {
-  padding-top: 0.12rem;
-  color: #b9b2aa;
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.routeNode-active .routeNodeStatus {
-  color: var(--red-bright);
-}
-
-.routeNode-failed .routeNodeStatus {
-  color: #f3a29f;
-}
-
-.routeLoop {
-  display: flex;
-  gap: 0.45rem;
-  align-items: center;
-  margin: 0.35rem 0 0.1rem 2.9rem;
-  color: #b9b2aa;
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.routeLoop span:first-child {
-  color: var(--red-bright);
-  font-size: 1rem;
-}
-
-.routeEmpty {
-  display: grid;
-  gap: 0.35rem;
-  margin-top: 1.25rem;
-  padding: 1rem 1rem 1.1rem;
-  border-top: 1px solid #48443f;
-  border-bottom: 1px solid #48443f;
-  color: #c9c2b9;
-  font-size: 0.78rem;
-}
-
-.routeEmpty strong {
-  color: var(--paper-light);
-  font-size: 0.9rem;
-}
-
-.routeDetail {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1.25rem;
-  align-items: start;
-  margin-top: 1rem;
-  padding: 0.95rem 0.9rem 0.95rem 1rem;
-  border-left: 6px solid var(--red-bright);
-  background: #24211f;
-}
-
-.routeDetailCopy h3 {
-  margin-top: 0.35rem;
-  color: var(--paper-light);
-  font-size: 0.9rem;
-}
-
-.routeDetailCopy p {
-  max-width: 42rem;
-  margin-top: 0.3rem;
-  color: #c9c2b9;
-  font-size: 0.72rem;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-
-.routeDetailList {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 8.5rem;
-  font-size: 0.65rem;
-}
-
-.routeDetailList div {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.55rem;
-}
-
-.routeDetailList dt {
-  color: #9f9890;
-}
-
-.routeDetailList dd {
-  color: var(--paper-light);
-  text-align: right;
-  overflow-wrap: anywhere;
-}
-
-.routeTextSummary {
-  margin-top: 0.75rem;
-  color: #9f9890;
-  font-size: 0.65rem;
-}
-
-/* ── Supporting inspection surfaces ────────────────────────────────── */
-
-.sketchContent {
-  display: grid;
-  gap: 1rem;
-  padding-top: 1rem;
-}
-
-.sketchFocused {
-  padding: 0.8rem;
-  border-left: 4px solid var(--red);
-  background: var(--paper-deep);
-  outline: 2px solid var(--red-bright);
-  outline-offset: 0.3rem;
-}
-
-.sketchSection {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.sketchLabel {
-  color: var(--red);
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.sketchList {
-  display: grid;
-  gap: 0.25rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.sketchItem {
-  padding-left: 0.65rem;
-  border-left: 2px solid var(--line);
-  color: var(--ink);
-  font-size: 0.78rem;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-
-.sketchEmpty,
-.timelineEmpty,
-.sourceEmpty {
-  color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 1.45;
-}
-
-.sketchEmpty {
-  padding-top: 1rem;
-}
-
-/* ── Observability timeline ────────────────────────────────────────── */
-
-.timelineList {
-  display: grid;
-  margin: 0;
-  padding: 0.55rem 0 0;
-  list-style: none;
-}
-
-.timelineItem {
-  display: grid;
-  grid-template-columns: 1.35rem minmax(0, 1fr);
-  gap: 0.7rem;
-  align-items: start;
-  padding: 0.75rem 0.15rem 0.75rem 0.65rem;
-  border-bottom: 1px solid var(--line);
-  border-left: 3px solid transparent;
-}
-
-.timelineItemFocused {
-  border-left-color: var(--red);
-  background: var(--paper-deep);
-}
-
-.timelineMarker {
-  display: grid;
-  place-items: center;
-  width: 1rem;
-  height: 1rem;
-  border: 1px solid var(--muted);
-  border-radius: 50%;
-  color: var(--muted);
-  font-size: 0.62rem;
-  font-weight: 900;
-}
-
-.timelineItem-running {
-  border-left-color: var(--red);
-}
-
-.timelineItem-running .timelineMarker {
-  border-color: var(--red);
-  color: var(--red);
-}
+@media (max-width: 720px) {
+  .traceMain {
+    padding: 1.4rem 1rem 4.5rem;
+  }
 
-.timelineItem-failed {
-  border-left-color: var(--error);
-}
+  .traceUtility {
+    gap: 0.8rem 1.2rem;
+  }
 
-.timelineItem-failed .timelineMarker {
-  border-color: var(--error);
-  color: var(--error);
-}
+  .statusStamp {
+    min-width: 0;
+  }
 
-.timelineBody {
-  min-width: 0;
-}
+  .traceRowCheckpoint {
+    width: 100%;
+  }
 
-.timelineMeta {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.8rem;
-  color: var(--quiet);
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-}
+  .traceRow-left,
+  .traceRow-right {
+    align-self: stretch;
+  }
 
-.timelineMeta span:last-child {
-  color: var(--muted);
-  font-family: var(--font-body);
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
+  .batchRow {
+    width: 100%;
+  }
 
-.timelineItem-running .timelineMeta span:last-child {
-  color: var(--red);
-}
+  .batchRowRight {
+    align-self: stretch;
+  }
 
-.timelineItem-failed .timelineMeta span:last-child {
-  color: var(--error);
-}
+  .traceRowMilestone,
+  .traceRowRanked,
+  .traceRowIngest {
+    width: 100%;
+  }
 
-.timelineLabel {
-  display: block;
-  margin-top: 0.3rem;
-  color: var(--ink);
-  font-size: 0.8rem;
-  line-height: 1.2;
-}
+  .artifactPopover {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: 100%;
+    max-height: 72vh;
+    margin: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+  }
 
-.timelineDetail {
-  display: block;
-  margin-top: 0.25rem;
-  color: var(--muted);
-  font-size: 0.72rem;
-  line-height: 1.4;
-  white-space: pre-line;
-  overflow-wrap: anywhere;
+  .traceRowCheckpoint {
+    padding-top: 2.2rem;
+  }
 }
 
-.timelineEmpty {
-  padding-top: 1rem;
+@media (prefers-reduced-motion: reduce) {
+  .traceConnector path,
+  .traceMarkerRunning {
+    animation: none;
+  }
 }
 
 /* ── Evidence register ─────────────────────────────────────────────── */
@@ -1620,42 +1567,19 @@
 /* ── Responsive route ─────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  .mainContent {
+  .traceMain {
     padding-right: 1.5rem;
     padding-left: 1.5rem;
-  }
-
-  .workspaceGrid {
-    grid-template-columns: minmax(0, 1.35fr) minmax(16rem, 0.75fr);
-    gap: 2rem;
-  }
-
-  .routeStages {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 768px) {
-  .mainContent {
+  .traceMain {
     padding: 1.75rem 1rem 3.5rem;
-  }
-
-  .workspaceTitleRow {
-    grid-template-columns: 1fr;
-    gap: 1.2rem;
-  }
-
-  .statusStamp {
-    justify-self: start;
   }
 
   .statusContext {
     justify-self: start;
-  }
-
-  .routeContext {
-    grid-template-columns: 1fr;
-    align-items: start;
   }
 
   .routeActions,
@@ -1663,112 +1587,22 @@
   .newButton {
     width: 100%;
   }
-
-  .workspaceGrid {
-    grid-template-areas:
-      "route"
-      "sketch"
-      "trace"
-      "evidence";
-    grid-template-columns: 1fr;
-    gap: 2.2rem;
-  }
-
-  /* The DOM and visual order stay aligned in the linear layout. */
-  .routePanel { order: 1; }
-  .sketchPanel { order: 2; }
-  .tracePanel { order: 3; }
-  .evidencePanel { order: 4; }
-
-  .routePanel {
-    padding-right: 0.8rem;
-    padding-left: 0.8rem;
-  }
-
-  .panelHeading {
-    align-items: start;
-  }
-
-  .routeMapIntro {
-    grid-template-columns: 1fr;
-    gap: 0.65rem;
-  }
-
-  .routeMapDescription {
-    max-width: 30rem;
-  }
 }
 
 @media (max-width: 560px) {
-  .mainContent {
+  .traceMain {
     padding-right: 0.85rem;
     padding-left: 0.85rem;
-  }
-
-  .workspaceHeading h1 {
-    font-size: clamp(2.8rem, 15vw, 4.7rem);
   }
 
   .statusStamp {
     width: 100%;
   }
-
-  .routeStages {
-    grid-template-columns: 1fr;
-  }
-
-  .routeNode {
-    grid-template-columns: 1.8rem minmax(0, 1fr);
-  }
-
-  .routeNodeStatus {
-    grid-column: 2;
-    padding-top: 0;
-  }
-
-  .routeItem-tool .routeNode {
-    width: calc(100% - 1.35rem);
-    margin-left: 1.35rem;
-  }
-
-  .routeItem-tool .routeNode::before {
-    left: -0.85rem;
-    width: 0.75rem;
-  }
-
-  .routeLoop {
-    margin-left: 2.35rem;
-  }
-
-  .routeDetail {
-    grid-template-columns: 1fr;
-  }
-
-  .routeDetailList {
-    min-width: 0;
-  }
-
-  .routeDetailList dd {
-    text-align: left;
-  }
-
-  .sourceControls {
-    align-items: stretch;
-  }
-
-  .sourceCount {
-    flex-basis: 100%;
-    order: 3;
-  }
-
-  .ingestButton {
-    flex: 1;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .composerMain *,
-  .mainContent * {
+  .traceMain * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

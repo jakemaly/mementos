@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { ResearchComposer } from './ResearchComposer';
 import { AppShell } from '@/app/components/app-shell/AppShell';
-import { ResearchWorkspace } from './ResearchWorkspace';
+import { TraceSurface } from './TraceSurface';
 import { Source, TraceEvent, ResearchBrief, Sketch } from '@/app/lib/research-contracts';
 import styles from './deep-research.module.css';
 import {
@@ -362,7 +362,7 @@ export function DeepResearch({
 
   return (
     <AppShell activeDestination="research" onNewResearch={handleNewResearch} onOpenKnowledgeBase={onOpenKnowledgeBase} onOpenCollectionSettings={onOpenCollectionSettings}>
-      <ResearchWorkspace
+      <TraceSurface
       query={query}
       selectedCollection={selectedCollection}
       runState={runState}
