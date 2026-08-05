@@ -793,31 +793,26 @@
 }
 
 .traceRowMilestone {
-  align-self: center;
-  width: min(620px, 100%);
   padding-top: 0;
 }
 
 .traceRowCheckpoint {
-  width: min(660px, 100%);
+  width: 100%;
 }
 
-.traceRow-left {
-  align-self: flex-start;
+/* Checkpoint cards sit at the 25/75 anchors the connectors route to. */
+.traceRow-left .checkpointCard {
+  width: 50%;
 }
 
-.traceRow-right {
-  align-self: flex-end;
+.traceRow-right .checkpointCard {
+  width: 50%;
+  margin-left: 50%;
 }
 
-.traceRowRanked {
-  align-self: center;
-  width: min(560px, 100%);
-}
-
+.traceRowRanked,
 .traceRowIngest {
-  align-self: center;
-  width: min(560px, 100%);
+  width: 100%;
 }
 
 .traceConnector {
@@ -830,15 +825,17 @@
   pointer-events: none;
 }
 
-.traceConnectorBatch {
-  height: 2.3rem;
+.traceConnectorFan {
+  height: 2.4rem;
 }
 
 .traceConnector path {
   fill: none;
   stroke: var(--black);
-  stroke-width: 3;
-  stroke-linecap: square;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
   animation: traceDrawOn 0.5s ease-out both;
 }
 
@@ -876,7 +873,11 @@
 
 .milestoneCard {
   position: relative;
-  z-index: 1;
+  /* Above every route card (z-index 1) and connector (z-index 0) so the
+     artifact popover paints over the rows below it. */
+  z-index: 30;
+  width: min(620px, 100%);
+  margin: 0 auto;
   padding: 1.05rem 1.15rem 1.15rem;
   border: 1px solid var(--line-dark);
   background: var(--paper-light);
@@ -1074,7 +1075,7 @@
 .rankedCard {
   position: relative;
   z-index: 1;
-  display: inline-flex;
+  display: flex;
   gap: 0.8rem;
   align-items: center;
   width: 100%;
@@ -1082,6 +1083,11 @@
   background: var(--black);
   box-shadow: 4px 4px 0 var(--red);
   color: var(--paper-light);
+}
+
+.rankedCard {
+  width: min(560px, 100%);
+  margin: 0 auto;
 }
 
 .checkpointCopy {
@@ -1111,27 +1117,25 @@
   color: #c7c0b8;
 }
 
+/* Parallel batches fan out in one horizontal row; narrow screens
+   collapse to a vertical stack (see media query below). */
+.fanOutArea {
+  position: relative;
+  margin-top: 2.4rem;
+}
+
 .fanOut {
-  display: flex;
-  flex-direction: column;
-  margin: 1.4rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(var(--fan-count, 1), minmax(0, 1fr));
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .batchRow {
   position: relative;
-  align-self: flex-start;
-  width: min(26rem, 100%);
-  padding-top: 2.3rem;
-}
-
-.batchRow:first-child {
-  padding-top: 0;
-}
-
-.batchRowRight {
-  align-self: flex-end;
+  min-width: 0;
+  padding: 0 0.45rem;
 }
 
 .batchCard {
@@ -1217,6 +1221,8 @@
 .ingestCard {
   position: relative;
   z-index: 1;
+  width: min(560px, 100%);
+  margin: 0 auto;
 }
 
 .ingestNode {
@@ -1230,18 +1236,16 @@
   background: var(--black);
   box-shadow: 5px 5px 0 var(--red-bright);
   color: var(--paper-light);
-  cursor: pointer;
   text-align: left;
   font: inherit;
 }
 
-.ingestNode:disabled {
-  cursor: default;
+.ingestNode[data-status='locked'] {
   box-shadow: 5px 5px 0 var(--line-dark);
   opacity: 0.85;
 }
 
-.ingestNode:disabled .checkpointCopy small {
+.ingestNode[data-status='locked'] .checkpointCopy small {
   color: #a29a90;
 }
 
@@ -1266,37 +1270,26 @@
   text-align: center;
 }
 
-/* ── Source checklist modal ──────────────────────────────────────── */
+/* ── Source register (inline, bottom of the trace) ───────────────── */
 
-.sourceModal {
-  width: min(46rem, calc(100vw - 2rem));
-  max-height: min(46rem, 86vh);
-  padding: 0;
+.sourceRegister {
+  margin-top: 1.4rem;
   border: 1px solid var(--line-dark);
-  border-radius: 0;
   background: var(--paper-light);
-  box-shadow: 10px 10px 0 rgba(23, 22, 21, 0.4);
+  box-shadow: 6px 6px 0 var(--black);
 }
 
-.sourceModal::backdrop {
-  background: rgba(23, 22, 21, 0.55);
-}
-
-.sourceModalHead {
-  display: flex;
-  justify-content: space-between;
-  gap: 1.5rem;
-  align-items: flex-start;
-  padding: 1.1rem 1.2rem;
+.sourceRegisterHead {
+  padding: 1rem 1.1rem;
   background: var(--black);
   color: var(--paper-light);
 }
 
-.sourceModalHead .panelKicker {
+.sourceRegisterHead .panelKicker {
   color: var(--red-bright);
 }
 
-.sourceModalHead h2 {
+.sourceRegisterHead h2 {
   margin-top: 0.45rem;
   font-family: var(--font-display);
   font-size: 1.45rem;
@@ -1305,19 +1298,17 @@
   line-height: 1;
 }
 
-.sourceModalHead p {
+.sourceRegisterHead p {
   margin-top: 0.5rem;
   color: #c7c0b8;
   font-size: 0.72rem;
 }
 
-.sourceModalBody {
-  max-height: min(38rem, 68vh);
-  padding: 0.4rem 1.2rem 1.4rem;
-  overflow-y: auto;
+.sourceRegisterBody {
+  padding: 0.4rem 1.1rem 1.4rem;
 }
 
-.sourceModalBody .sourceListContainer {
+.sourceRegisterBody .sourceListContainer {
   padding-top: 1.2rem;
 }
 
@@ -1336,27 +1327,25 @@
     min-width: 0;
   }
 
-  .traceRowCheckpoint {
+  /* Every card collapses to the full width; all anchors sit at 50. */
+  .traceRow-left .checkpointCard,
+  .traceRow-right .checkpointCard {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .milestoneCard,
+  .rankedCard,
+  .ingestCard {
     width: 100%;
   }
 
-  .traceRow-left,
-  .traceRow-right {
-    align-self: stretch;
+  .fanOut {
+    grid-template-columns: 1fr;
   }
 
   .batchRow {
-    width: 100%;
-  }
-
-  .batchRowRight {
-    align-self: stretch;
-  }
-
-  .traceRowMilestone,
-  .traceRowRanked,
-  .traceRowIngest {
-    width: 100%;
+    padding: 0;
   }
 
   .artifactPopover {

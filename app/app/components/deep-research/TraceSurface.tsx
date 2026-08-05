@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, ReactNode, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ResearchBrief, Sketch, Source } from '@/app/lib/research-contracts';
 import { ResearchTraceProjection } from './trace-model';
 import { buildTraceRoute, CheckpointNode, IngestNode } from './trace-route';
@@ -138,34 +138,55 @@ function CallingCardArt({ text }: { text: string }) {
   );
 }
 
-// ── Connector geometry (deterministic, behind semantic content) ────────
+// ── Connector geometry (deterministic wires between node anchors) ──────
 
-function RowConnector({ active }: { active?: boolean }) {
+/**
+ * Anchors are horizontal positions as fractions of the route width
+ * (0–100 in the viewBox). Every node exposes an anchor set: milestone,
+ * ranked and ingest sit centered (50); checkpoint cards sit at 25/75 on
+ * wide screens and 50 on narrow; batch cards sit at (i + 0.5)/N across a
+ * horizontal fan-out and 50 when stacked. A connector is one wire per
+ * bottom anchor (`from`) routed to the single top anchor (`to`) with one
+ * elbow; coincident anchors render a straight line. Coincident wires
+ * dedupe so stacked batches draw a single line.
+ */
+function RouteConnector({ from, to, active, fan }: { from: readonly number[]; to: number; active?: boolean; fan?: boolean }) {
+  const anchors = [...new Set(from)];
+  const className = [
+    styles.traceConnector,
+    fan ? styles.traceConnectorFan : '',
+    active ? styles.traceConnectorActive : '',
+  ].join(' ');
   return (
-    <svg
-      className={`${styles.traceConnector} ${active ? styles.traceConnectorActive : ''}`}
-      viewBox="0 0 100 40"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <path d="M 50 40 L 46 30 L 54 20 L 46 10 L 50 0" />
+    <svg className={className} viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
+      {anchors.map((anchor) => (
+        <path
+          key={anchor}
+          d={anchor === to
+            ? `M ${to} 0 L ${to} 40`
+            : `M ${to} 0 L ${to} 14 L ${anchor} 26 L ${anchor} 40`}
+        />
+      ))}
     </svg>
   );
 }
 
-function BatchConnector({ right, active }: { right?: boolean; active?: boolean }) {
-  return (
-    <svg
-      className={`${styles.traceConnector} ${styles.traceConnectorBatch} ${active ? styles.traceConnectorActive : ''}`}
-      viewBox="0 0 100 40"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <path d={right
-        ? 'M 50 40 L 54 28 L 66 14 L 70 0'
-        : 'M 50 40 L 46 28 L 34 14 L 30 0'} />
-    </svg>
-  );
+/** Batch centers: (i + 0.5)/N across a horizontal fan-out, 50 when stacked. */
+function batchAnchors(count: number, narrow: boolean): number[] {
+  return Array.from({ length: count }, (_, i) => (narrow ? 50 : ((i + 0.5) / count) * 100));
+}
+
+/** Mirrors the 720px CSS breakpoint so connector geometry matches the layout. */
+function useNarrowSurface(): boolean {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 720px)');
+    const update = () => setNarrow(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+  return narrow;
 }
 
 // ── Artifact popover ───────────────────────────────────────────────────
@@ -271,10 +292,9 @@ export function TraceSurface({
   errorMessage,
 }: TraceSurfaceProps) {
   const [openArtifact, setOpenArtifact] = useState<'brief' | 'sketch' | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
   const briefTriggerRef = useRef<HTMLButtonElement | null>(null);
   const sketchTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const narrow = useNarrowSurface();
 
   const isRunning = runState === 'starting' || runState === 'researching';
   const status = statusCopy(runState);
@@ -308,26 +328,6 @@ export function TraceSurface({
     });
   }, []);
 
-  // Close the dialog on the native close event (Escape or explicit close).
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    const onClose = () => setModalOpen(false);
-    dialog.addEventListener('close', onClose);
-    return () => dialog.removeEventListener('close', onClose);
-  }, []);
-
-  // A successful import closes the modal; partial/total failures stay
-  // visible in the checklist so failed sources remain retryable.
-  useEffect(() => {
-    if (ingestResult?.success && modalOpen) dialogRef.current?.close();
-  }, [ingestResult, modalOpen]);
-
-  const openModal = useCallback(() => {
-    setModalOpen(true);
-    dialogRef.current?.showModal();
-  }, []);
-
   const summary = useMemo(() => {
     const total = checkpoints.reduce((sum, cp) => sum + cp.batches.length, 0);
     const resolved = checkpoints.reduce(
@@ -340,12 +340,20 @@ export function TraceSurface({
     return parts.join(' · ');
   }, [checkpoints, sources.length]);
 
-  const checkpointRows = checkpoints.map((cp, index) => {
-    const isActive = cp.id === activeCheckpointId;
+  // Anchor threading: every row's connector wires the previous row's
+  // anchors to this row's card center, so lines visibly connect nodes.
+  const checkpointEntries = checkpoints.map((cp, index) => {
     const side = index % 2 === 0 ? 'left' : 'right';
+    const center = narrow ? 50 : side === 'left' ? 25 : 75;
+    const anchors = cp.batches.length > 0 ? batchAnchors(cp.batches.length, narrow) : [center];
+    return { cp, isActive: cp.id === activeCheckpointId, side, center, anchors };
+  });
+  const checkpointRows = checkpointEntries.map((entry, index) => {
+    const { cp, isActive, side, center, anchors } = entry;
+    const prevAnchors = index === 0 ? [50] : checkpointEntries[index - 1].anchors;
     return (
       <li key={cp.id} className={`${styles.traceRow} ${styles.traceRowCheckpoint} ${styles[`traceRow-${side}`]}`}>
-        <RowConnector active={isActive} />
+        <RouteConnector from={prevAnchors} to={center} active={isActive} />
         <div className={styles.checkpointCard}>
           <span className={`${styles.traceMarker} ${cp.status === 'running' ? styles.traceMarkerRunning : ''}`} aria-hidden="true">
             {cp.status === 'completed' ? '✓' : '•'}
@@ -356,27 +364,32 @@ export function TraceSurface({
           </span>
         </div>
         {cp.batches.length > 0 && (
-          <ul className={styles.fanOut}>
-            {cp.batches.map((batch, batchIndex) => (
-              <li key={batch.id} className={`${styles.batchRow} ${batchIndex % 2 === 1 ? styles.batchRowRight : ''}`}>
-                <BatchConnector right={batchIndex % 2 === 1} active={isActive && (batch.status === 'pending' || batch.status === 'running')} />
-                <div className={styles.batchCard} data-status={batch.status}>
-                  <span className={styles.batchMarker} aria-hidden="true">
-                    {batch.status === 'completed' ? '✓' : batch.status === 'failed' ? '!' : batch.status === 'running' ? '•' : '○'}
-                  </span>
-                  <span className={styles.batchCopy}>
-                    <span className={styles.batchQuery} title={batch.query}>{batch.query}</span>
-                    <small>
-                      {batch.status === 'pending' && 'planned'}
-                      {batch.status === 'running' && `searching · ${batch.tool || 'search'}`}
-                      {batch.status === 'completed' && (batch.zero ? '0 sources' : `${batch.newCount} new source${batch.newCount === 1 ? '' : 's'} · ${batch.tool || 'search'}`)}
-                      {batch.status === 'failed' && `failed · ${batch.tool || 'search'}`}
-                    </small>
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className={styles.fanOutArea}>
+            <RouteConnector from={anchors} to={center} active={isActive} fan />
+            <ul
+              className={styles.fanOut}
+              style={{ ['--fan-count' as string]: String(cp.batches.length) } as CSSProperties}
+            >
+              {cp.batches.map((batch) => (
+                <li key={batch.id} className={styles.batchRow}>
+                  <div className={styles.batchCard} data-status={batch.status}>
+                    <span className={styles.batchMarker} aria-hidden="true">
+                      {batch.status === 'completed' ? '✓' : batch.status === 'failed' ? '!' : batch.status === 'running' ? '•' : '○'}
+                    </span>
+                    <span className={styles.batchCopy}>
+                      <span className={styles.batchQuery} title={batch.query}>{batch.query}</span>
+                      <small>
+                        {batch.status === 'pending' && 'planned'}
+                        {batch.status === 'running' && `searching · ${batch.tool || 'search'}`}
+                        {batch.status === 'completed' && (batch.zero ? '0 sources' : `${batch.newCount} new source${batch.newCount === 1 ? '' : 's'} · ${batch.tool || 'search'}`)}
+                        {batch.status === 'failed' && `failed · ${batch.tool || 'search'}`}
+                      </small>
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </li>
     );
@@ -506,7 +519,7 @@ export function TraceSurface({
           {checkpointRows}
 
           <li className={`${styles.traceRow} ${styles.traceRowRanked}`}>
-            <RowConnector active={ranked.status === 'running'} />
+            <RouteConnector from={checkpointEntries.length > 0 ? checkpointEntries[checkpointEntries.length - 1].anchors : [50]} to={50} active={ranked.status === 'running'} />
             <div className={styles.rankedCard} data-status={ranked.status}>
               <span className={`${styles.traceMarker} ${ranked.status === 'running' ? styles.traceMarkerRunning : ''}`} aria-hidden="true">
                 {ranked.status === 'completed' ? '✓' : ranked.status === 'running' ? '•' : '○'}
@@ -523,14 +536,9 @@ export function TraceSurface({
           </li>
 
           <li className={`${styles.traceRow} ${styles.traceRowIngest}`}>
-            <RowConnector active={ingest.status === 'importing'} />
+            <RouteConnector from={[50]} to={50} active={ingest.status === 'importing'} />
             <div className={styles.ingestCard}>
-              <button
-                type="button"
-                className={styles.ingestNode}
-                onClick={openModal}
-                disabled={ingest.status === 'locked' || ingest.status === 'importing'}
-              >
+              <div className={styles.ingestNode} data-status={ingest.status}>
                 <span className={styles.ingestMarker} aria-hidden="true">
                   {ingest.status === 'imported' ? '✓' : ingest.status === 'import-failed' ? '!' : ingest.status === 'importing' ? '•' : '○'}
                 </span>
@@ -538,43 +546,34 @@ export function TraceSurface({
                   <strong>Ingest Sources</strong>
                   <small>{ingestCopy(ingest, sources.length, ingestResult)}</small>
                 </span>
-              </button>
+              </div>
             </div>
+            {ingest.status !== 'locked' && (
+              <section className={styles.sourceRegister} aria-label="Ranked sources register">
+                <div className={styles.sourceRegisterHead}>
+                  <span className={styles.panelKicker}>Final evidence / {selectedCollection || 'chosen collection'}</span>
+                  <h2>Review ranked sources</h2>
+                  <p>Ranked and deduplicated. Import the evidence worth keeping.</p>
+                </div>
+                <div className={styles.sourceRegisterBody}>
+                  <SourceList
+                    sources={sources}
+                    selectedKeys={selectedSourceKeys}
+                    onToggle={onToggleSource}
+                    onToggleAll={onToggleAllSources}
+                    onIngest={onIngest}
+                    ingestDisabled={ingestDisabled}
+                    ingestResult={ingestResult}
+                    errorMessage={''}
+                  />
+                </div>
+              </section>
+            )}
           </li>
         </ol>
       </div>
 
       <p className={styles.traceSummary} aria-live="polite">{summary}</p>
-
-      <dialog
-        ref={dialogRef}
-        className={styles.sourceModal}
-        aria-labelledby="source-modal-title"
-        aria-describedby="source-modal-note"
-      >
-        <div className={styles.sourceModalHead}>
-          <div>
-            <span className={styles.panelKicker}>Final evidence / {selectedCollection || 'chosen collection'}</span>
-            <h2 id="source-modal-title">Review ranked sources</h2>
-            <p id="source-modal-note">Ranked and deduplicated. Import the evidence worth keeping.</p>
-          </div>
-          <button type="button" className={styles.popoverClose} onClick={() => dialogRef.current?.close()} aria-label="Close source checklist">
-            ✕
-          </button>
-        </div>
-        <div className={styles.sourceModalBody}>
-          <SourceList
-            sources={sources}
-            selectedKeys={selectedSourceKeys}
-            onToggle={onToggleSource}
-            onToggleAll={onToggleAllSources}
-            onIngest={onIngest}
-            ingestDisabled={ingestDisabled}
-            ingestResult={ingestResult}
-            errorMessage={''}
-          />
-        </div>
-      </dialog>
     </main>
   );
 }
@@ -588,6 +587,6 @@ function ingestCopy(ingest: IngestNode, sourceCount: number, ingestResult: Inges
       return ingestResult
         ? `Imported ${ingestResult.ingestedUrls.length} source${ingestResult.ingestedUrls.length === 1 ? '' : 's'} · ${ingestResult.totalChunks} chunks.`
         : 'Selected evidence is in the collection.';
-    case 'import-failed': return 'Import failed — open the checklist to retry.';
+    case 'import-failed': return 'Import failed — review the sources below to retry.';
   }
 }
