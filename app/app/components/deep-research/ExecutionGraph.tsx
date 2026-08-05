@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { TraceEvent } from '@/app/lib/research-contracts';
+import { ResearchTraceProjection, TraceFact } from './trace-model';
 import styles from './deep-research.module.css';
 
 type RunState = 'starting' | 'researching' | 'completed' | 'failed' | 'ingesting' | 'ingested';
@@ -9,7 +9,7 @@ type RouteStatus = 'active' | 'completed' | 'failed' | 'upcoming';
 type RouteKind = 'brief' | 'supervisor' | 'tool' | 'checkpoint' | 'scoring' | 'complete' | 'error';
 
 interface ExecutionGraphProps {
-  trace: TraceEvent[];
+  projection: ResearchTraceProjection;
   isResearching: boolean;
   runState?: RunState;
   sourceCount?: number;
@@ -23,8 +23,7 @@ interface RouteNode {
   summary: string;
   status: RouteStatus;
   kind: RouteKind;
-  event: TraceEvent;
-  completion?: TraceEvent;
+  fact: TraceFact;
   loopLabel?: string;
 }
 
@@ -53,7 +52,7 @@ const kindLabels: Record<RouteKind, string> = {
 };
 
 export function ExecutionGraph({
-  trace,
+  projection,
   isResearching,
   runState = isResearching ? 'researching' : 'completed',
   sourceCount = 0,
@@ -61,8 +60,8 @@ export function ExecutionGraph({
   onNodeSelect,
 }: ExecutionGraphProps) {
   const { nodes, stages } = useMemo(
-    () => buildRoute(trace, runState, sourceCount),
-    [trace, runState, sourceCount],
+    () => buildRoute(projection.facts, runState, sourceCount),
+    [projection.facts, runState, sourceCount],
   );
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) || null;
 
@@ -109,9 +108,9 @@ export function ExecutionGraph({
             return (
               <li key={node.id} className={`${styles.routeItem} ${styles[`routeItem-${node.kind}`]}`}>
                 {node.loopLabel && (
-                  <div className={styles.routeLoop} aria-label={`${node.loopLabel}, iteration ${(node.event.iteration ?? 0) + 1}`}>
+                  <div className={styles.routeLoop} aria-label={`${node.loopLabel}, iteration ${(node.fact.iteration ?? 0) + 1}`}>
                     <span aria-hidden="true">↩</span>
-                    <span>{node.loopLabel} · iteration {String((node.event.iteration ?? 0) + 1).padStart(2, '0')}</span>
+                    <span>{node.loopLabel} · iteration {String((node.fact.iteration ?? 0) + 1).padStart(2, '0')}</span>
                   </div>
                 )}
                 <button
@@ -128,7 +127,7 @@ export function ExecutionGraph({
                   <span className={styles.routeNodeCopy}>
                     <span className={styles.routeNodeMeta}>
                       {String(index + 1).padStart(2, '0')} / {kindLabels[node.kind]}
-                      {node.event.iteration !== undefined ? ` · pass ${node.event.iteration + 1}` : ''}
+                      {node.fact.iteration !== undefined ? ` · pass ${node.fact.iteration + 1}` : ''}
                     </span>
                     <strong>{node.label}</strong>
                     <small>{node.summary}</small>
@@ -141,9 +140,7 @@ export function ExecutionGraph({
         </ol>
       )}
 
-      {selectedNode && (
-        <RouteDetail node={selectedNode} />
-      )}
+      {selectedNode && <RouteDetail node={selectedNode} />}
 
       <p className={styles.routeTextSummary} aria-live="polite">
         {nodes.length > 0
@@ -177,179 +174,150 @@ function RouteDetail({ node }: { node: RouteNode }) {
 }
 
 function getNodeDetails(node: RouteNode): Array<{ label: string; value: string }> {
-  const payload = node.event.payload || {};
   const details: Array<{ label: string; value: string }> = [
     { label: 'Status', value: statusLabels[node.status] },
   ];
+  const fact = node.fact;
 
-  if (node.event.iteration !== undefined) {
-    details.push({ label: 'Iteration', value: String(node.event.iteration + 1) });
+  if (fact.iteration !== undefined) {
+    details.push({ label: 'Iteration', value: String(fact.iteration + 1) });
   }
 
-  const tool = asText(payload.tool);
-  if (tool) details.push({ label: 'Tool', value: tool });
-
-  const query = formatQuery(payload.query ?? payload.queries);
-  if (query) details.push({ label: 'Query', value: query });
-
-  const duration = formatDuration(node.completion?.payload.duration ?? payload.duration);
-  if (duration) details.push({ label: 'Duration', value: duration });
-
-  const resultCount = formatCount(
-    node.completion?.payload.result_count
-      ?? payload.result_count
-      ?? payload.source_count
-      ?? payload.total_sources,
-  );
-  if (resultCount) details.push({ label: 'Results', value: resultCount });
+  if (fact.kind === 'tool_invocation') {
+    if (fact.tool) details.push({ label: 'Tool', value: fact.tool });
+    const query = fact.query || fact.queries.join(' · ');
+    if (query) details.push({ label: 'Query', value: query });
+    if (fact.duration !== undefined) details.push({ label: 'Duration', value: formatDuration(fact.duration) });
+    if (fact.resultCount !== undefined) details.push({ label: 'Results', value: formatCount(fact.resultCount) });
+    if (fact.error) details.push({ label: 'Error', value: fact.error });
+  } else if (fact.kind === 'supervisor_iteration') {
+    if (fact.decision) details.push({ label: 'Decision', value: fact.decision });
+    if (fact.confidenceScore !== undefined) details.push({ label: 'Confidence', value: `${fact.confidenceScore}%` });
+    if (fact.reason) details.push({ label: 'Reason', value: fact.reason });
+  } else if (fact.kind === 'iteration') {
+    if (fact.totalSources !== undefined) details.push({ label: 'Sources', value: formatCount(fact.totalSources) });
+    if (fact.newSources !== undefined) details.push({ label: 'New sources', value: formatCount(fact.newSources) });
+  } else if (fact.kind === 'source_discovery') {
+    details.push({ label: 'Sources', value: String(fact.sources.length) });
+    if (fact.tool) details.push({ label: 'Tool', value: fact.tool });
+    if (fact.query) details.push({ label: 'Query', value: fact.query });
+  } else if (fact.kind === 'scoring') {
+    if (fact.sourceCount !== undefined) details.push({ label: 'Sources', value: formatCount(fact.sourceCount) });
+    if (fact.topScore !== undefined) details.push({ label: 'Top score', value: String(fact.topScore) });
+  } else if (fact.kind === 'done') {
+    if (fact.sourceCount !== undefined) details.push({ label: 'Sources', value: formatCount(fact.sourceCount) });
+    if (fact.partial) details.push({ label: 'Result', value: `Partial${fact.timeoutPhase ? ` · ${fact.timeoutPhase}` : ''}` });
+  } else if (fact.kind === 'error') {
+    details.push({ label: 'Message', value: fact.message });
+  }
 
   return details;
 }
 
-function buildRoute(trace: TraceEvent[], runState: RunState, sourceCount: number): { nodes: RouteNode[]; stages: RouteStage[] } {
+function buildRoute(facts: readonly TraceFact[], runState: RunState, sourceCount: number): { nodes: RouteNode[]; stages: RouteStage[] } {
   const nodes: RouteNode[] = [];
-  const completionByParent = new Map<string, TraceEvent>();
-  const toolStartedIds = new Set<string>();
-  const supervisorIterations = new Set<number>();
-  const loopEdge = { label: 'continue' as const };
-
-  for (const event of trace) {
-    if ((event.type === 'tool_completed' || event.type === 'tool_failed') && event.parent_id) {
-      completionByParent.set(event.parent_id, event);
-    }
-    if (event.type === 'tool_started') toolStartedIds.add(event.id);
-    if (event.type === 'supervisor_evaluation' && event.iteration !== undefined) {
-      supervisorIterations.add(event.iteration);
-    }
-  }
 
   const addNode = (node: RouteNode) => {
     const previous = nodes[nodes.length - 1];
     if (
       previous
       && node.kind === 'supervisor'
-      && node.event.iteration !== undefined
-      && previous.event.iteration !== undefined
-      && node.event.iteration > previous.event.iteration
+      && node.fact.iteration !== undefined
+      && previous.fact.iteration !== undefined
+      && node.fact.iteration > previous.fact.iteration
     ) {
-      node.loopLabel = loopEdge.label;
+      node.loopLabel = 'continue';
     }
     nodes.push(node);
   };
 
-  for (const event of trace) {
-    const payload = event.payload || {};
-    const iteration = event.iteration;
-
-    if (event.type === 'brief_generated') {
-      addNode({
-        id: event.id,
-        label: 'Brief generated',
-        summary: asText(payload.brief) || 'Question scoped into a research brief and sketch.',
-        status: 'completed',
-        kind: 'brief',
-        event,
-      });
-    } else if (event.type === 'supervisor_evaluation') {
-      addNode({
-        id: event.id,
-        label: `Supervisor / pass ${(iteration ?? 0) + 1}`,
-        summary: supervisorSummary(payload),
-        status: 'completed',
-        kind: 'supervisor',
-        event,
-      });
-    } else if ((event.type === 'supervisor_started' || event.type === 'supervisor_completed') && !supervisorIterations.has(iteration ?? -1)) {
-      addNode({
-        id: event.id,
-        label: `Supervisor / pass ${(iteration ?? 0) + 1}`,
-        summary: supervisorSummary(payload),
-        status: event.type === 'supervisor_started' ? 'active' : 'completed',
-        kind: 'supervisor',
-        event,
-      });
-    } else if (event.type === 'tool_started') {
-      const completion = completionByParent.get(event.id);
-      const status = completion?.type;
-      const routeStatus: RouteStatus = status === 'tool_failed'
-        ? 'failed'
-        : completion
-          ? 'completed'
-          : 'active';
-      addNode({
-        id: event.id,
-        label: `${asText(payload.tool) || 'Tool'} search`,
-        summary: toolSummary(payload, completion),
-        status: routeStatus,
-        kind: 'tool',
-        event,
-        completion,
-      });
-    } else if ((event.type === 'tool_completed' || event.type === 'tool_failed') && !toolStartedIds.has(event.parent_id || '')) {
-      addNode({
-        id: event.id,
-        label: `${asText(payload.tool) || 'Tool'} ${event.type === 'tool_failed' ? 'failed' : 'completed'}`,
-        summary: event.type === 'tool_failed' ? asText(payload.error) || 'The tool returned an error.' : toolSummary(payload),
-        status: event.type === 'tool_failed' ? 'failed' : 'completed',
-        kind: event.type === 'tool_failed' ? 'error' : 'tool',
-        event,
-      });
-    } else if (event.type === 'iteration_complete') {
-      addNode({
-        id: event.id,
-        label: `Iteration ${(iteration ?? 0) + 1} / gap check`,
-        summary: `${formatCount(payload.total_sources) || 'No'} sources accumulated before the next supervisor pass.`,
-        status: 'completed',
-        kind: 'checkpoint',
-        event,
-      });
-    } else if (event.type === 'scoring_started') {
-      const hasTerminalEvent = trace.some((candidate) => candidate.type === 'sources_ranked' || candidate.type === 'done');
-      addNode({
-        id: event.id,
-        label: 'Score and reconcile',
-        summary: 'Ranking the evidence set and removing duplicate sources.',
-        status: runState === 'researching' && !hasTerminalEvent ? 'active' : 'completed',
-        kind: 'scoring',
-        event,
-      });
-    } else if (event.type === 'sources_ranked') {
-      addNode({
-        id: event.id,
-        label: 'Evidence ranked',
-        summary: `${formatCount(payload.total_sources) || 'No'} sources remain after scoring.`,
-        status: 'completed',
-        kind: 'scoring',
-        event,
-      });
-    } else if (event.type === 'done') {
-      addNode({
-        id: event.id,
-        label: 'Research complete',
-        summary: `${formatCount(payload.source_count) || String(sourceCount)} ranked sources are ready to review.`,
-        status: 'completed',
-        kind: 'complete',
-        event,
-      });
-    } else if (event.type === 'error') {
-      addNode({
-        id: event.id,
-        label: 'Research failed',
-        summary: asText(payload.message) || asText(payload.error) || 'The route ended with an error.',
-        status: 'failed',
-        kind: 'error',
-        event,
-      });
+  for (const fact of facts) {
+    switch (fact.kind) {
+      case 'brief':
+        addNode({
+          id: fact.id,
+          label: 'Brief generated',
+          summary: fact.brief || 'Question scoped into a research brief and sketch.',
+          status: 'completed',
+          kind: 'brief',
+          fact,
+        });
+        break;
+      case 'supervisor_iteration':
+        addNode({
+          id: fact.id,
+          label: `Supervisor / pass ${(fact.iteration ?? 0) + 1}`,
+          summary: supervisorSummary(fact),
+          status: factStatus(fact.status),
+          kind: 'supervisor',
+          fact,
+        });
+        break;
+      case 'tool_invocation':
+        addNode({
+          id: fact.id,
+          label: `${fact.tool || 'Tool'} search`,
+          summary: toolSummary(fact),
+          status: factStatus(fact.status),
+          kind: 'tool',
+          fact,
+        });
+        break;
+      case 'iteration':
+        addNode({
+          id: fact.id,
+          label: `Iteration ${(fact.iteration ?? 0) + 1} / gap check`,
+          summary: `${formatCount(fact.totalSources) || 'No'} sources accumulated before the next supervisor pass.`,
+          status: 'completed',
+          kind: 'checkpoint',
+          fact,
+        });
+        break;
+      case 'scoring':
+        addNode({
+          id: fact.id,
+          label: fact.rankingCompleted ? 'Evidence ranked' : 'Score and reconcile',
+          summary: fact.rankingCompleted
+            ? `${formatCount(fact.sourceCount) || 'No'} sources remain after scoring.`
+            : 'Ranking the evidence set and removing duplicate sources.',
+          status: factStatus(fact.status),
+          kind: 'scoring',
+          fact,
+        });
+        break;
+      case 'done':
+        addNode({
+          id: fact.id,
+          label: 'Research complete',
+          summary: `${formatCount(fact.sourceCount) || String(sourceCount)} ranked sources are ready to review${fact.partial ? ' · partial result' : ''}.`,
+          status: 'completed',
+          kind: 'complete',
+          fact,
+        });
+        break;
+      case 'error':
+        addNode({
+          id: fact.id,
+          label: 'Research failed',
+          summary: fact.message,
+          status: 'failed',
+          kind: 'error',
+          fact,
+        });
+        break;
+      case 'source_discovery':
+      case 'unknown':
+        break;
     }
   }
 
-  return { nodes, stages: buildStages(trace, runState, sourceCount) };
+  return { nodes, stages: buildStages(facts, runState, sourceCount) };
 }
 
-function buildStages(trace: TraceEvent[], runState: RunState, sourceCount: number): RouteStage[] {
-  const hasBrief = trace.some((event) => event.type === 'brief_generated');
-  const hasTrace = trace.some((event) => ['supervisor_evaluation', 'tool_started', 'iteration_complete'].includes(event.type));
-  const hasFailure = runState === 'failed' || trace.some((event) => event.type === 'error');
+function buildStages(facts: readonly TraceFact[], runState: RunState, sourceCount: number): RouteStage[] {
+  const hasBrief = facts.some((fact) => fact.kind === 'brief');
+  const hasTrace = facts.some((fact) => ['supervisor_iteration', 'tool_invocation', 'iteration'].includes(fact.kind));
+  const hasFailure = runState === 'failed' || facts.some((fact) => fact.kind === 'error');
   const researchFinished = runState === 'completed' || runState === 'ingesting' || runState === 'ingested';
 
   return [
@@ -374,44 +342,28 @@ function buildStages(trace: TraceEvent[], runState: RunState, sourceCount: numbe
   ];
 }
 
-function supervisorSummary(payload: Record<string, unknown>): string {
-  const decision = asText(payload.decision);
-  const reason = asText(payload.reason);
-  const confidence = payload.confidence_score;
-  const confidenceText = typeof confidence === 'number' ? `Confidence ${confidence}%` : '';
-  return [decision, reason, confidenceText].filter(Boolean).join(' · ') || 'Evaluating whether the evidence covers the brief.';
+function supervisorSummary(fact: Extract<TraceFact, { kind: 'supervisor_iteration' }>): string {
+  const confidence = fact.confidenceScore !== undefined ? `Confidence ${fact.confidenceScore}%` : '';
+  return [fact.decision, fact.reason, confidence].filter(Boolean).join(' · ') || 'Evaluating whether the evidence covers the brief.';
 }
 
-function toolSummary(payload: Record<string, unknown>, completion?: TraceEvent): string {
-  const query = formatQuery(payload.query ?? payload.queries);
-  const resultCount = formatCount(completion?.payload.result_count ?? payload.result_count);
-  const duration = formatDuration(completion?.payload.duration ?? payload.duration);
-  const outcome = [resultCount && `${resultCount} results`, duration && duration].filter(Boolean).join(' · ');
-  return [query && `Query: ${query}`, outcome || 'Waiting for results.'].filter(Boolean).join(' · ');
+function toolSummary(fact: Extract<TraceFact, { kind: 'tool_invocation' }>): string {
+  const query = fact.query || fact.queries.join(' · ');
+  const resultCount = formatCount(fact.resultCount);
+  const duration = fact.duration === undefined ? '' : formatDuration(fact.duration);
+  const outcome = [resultCount && `${resultCount} results`, duration].filter(Boolean).join(' · ');
+  const error = fact.error ? `Error: ${fact.error}` : '';
+  return [query && `Query: ${query}`, error || outcome || (fact.status === 'running' ? 'Waiting for results.' : 'Tool returned.')].filter(Boolean).join(' · ');
 }
 
-function formatQuery(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string').join(' · ');
-  if (value && typeof value === 'object') {
-    return Object.values(value as Record<string, unknown>)
-      .flatMap((item) => Array.isArray(item) ? item : [item])
-      .filter((item): item is string => typeof item === 'string')
-      .join(' · ');
-  }
-  return '';
+function factStatus(status: 'running' | 'completed' | 'failed'): RouteStatus {
+  return status === 'running' ? 'active' : status;
 }
 
-function formatDuration(value: unknown): string {
-  if (typeof value === 'number') return `${value}s`;
-  if (typeof value === 'string' && value) return value;
-  return '';
+function formatDuration(value: number | string): string {
+  return typeof value === 'number' ? `${value}s` : value;
 }
 
-function formatCount(value: unknown): string {
-  return typeof value === 'number' ? String(value) : typeof value === 'string' ? value : '';
-}
-
-function asText(value: unknown): string {
-  return typeof value === 'string' ? value : '';
+function formatCount(value: number | string | undefined): string {
+  return value === undefined ? '' : String(value);
 }

@@ -5,7 +5,8 @@ import { ExecutionGraph } from './ExecutionGraph';
 import { ResearchSketch } from './ResearchSketch';
 import { ObservabilityTimeline } from './ObservabilityTimeline';
 import { SourceList } from './SourceList';
-import { TraceEvent, ResearchBrief, Sketch, Source } from '@/app/lib/research-contracts';
+import { ResearchBrief, Sketch, Source } from '@/app/lib/research-contracts';
+import { ResearchTraceProjection } from './trace-model';
 import styles from './deep-research.module.css';
 
 type RunState = 'starting' | 'researching' | 'completed' | 'failed' | 'ingesting' | 'ingested';
@@ -25,7 +26,7 @@ interface ResearchWorkspaceProps {
   elapsedMs: number;
   onNewResearch: () => void;
   onCancel: () => void;
-  trace: TraceEvent[];
+  traceProjection: ResearchTraceProjection;
   brief: ResearchBrief | null;
   sketch: Sketch | null;
   sources: Source[];
@@ -63,7 +64,7 @@ export function ResearchWorkspace({
   elapsedMs,
   onNewResearch,
   onCancel,
-  trace,
+  traceProjection,
   brief,
   sketch,
   sources,
@@ -77,7 +78,7 @@ export function ResearchWorkspace({
 }: ResearchWorkspaceProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const isRunning = runState === 'starting' || runState === 'researching';
-  const briefNodeId = trace.find((event) => event.type === 'brief_generated')?.id;
+  const briefNodeId = traceProjection.brief?.id;
   const status = statusCopy(runState);
 
   return (
@@ -132,7 +133,7 @@ export function ResearchWorkspace({
             <span className={styles.panelMeta}>Event-derived · selectable</span>
           </div>
           <ExecutionGraph
-            trace={trace}
+            projection={traceProjection}
             isResearching={isRunning}
             runState={runState}
             sourceCount={sources.length}
@@ -161,8 +162,7 @@ export function ResearchWorkspace({
             <span className={styles.panelMeta}>Chronological · plain language</span>
           </div>
           <ObservabilityTimeline
-            trace={trace}
-            brief={brief}
+            projection={traceProjection}
             isResearching={isRunning}
             focusedNodeId={selectedNodeId}
           />

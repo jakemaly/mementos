@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { ResearchComposer } from './ResearchComposer';
 import { AppShell } from '@/app/components/app-shell/AppShell';
 import { ResearchWorkspace } from './ResearchWorkspace';
@@ -13,6 +13,7 @@ import {
   reconcileFinalSources,
   selectDiscoveredSources,
 } from './research-state';
+import { projectTrace } from './trace-model';
 
 type RunState = 'idle' | 'starting' | 'researching' | 'completed' | 'failed' | 'ingesting' | 'ingested';
 
@@ -55,7 +56,9 @@ export function DeepResearch({
 
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef<string>('');
+  const traceRef = useRef<TraceEvent[]>([]);
   const deselectedUrlsRef = useRef<Set<string>>(new Set());
+  const traceProjection = useMemo(() => projectTrace(trace), [trace]);
 
   const isCurrentRun = useCallback((runId: string) => runIdRef.current === runId, []);
 
@@ -73,12 +76,31 @@ export function DeepResearch({
     return () => window.clearInterval(timer);
   }, [startedAt, runState]);
 
+  const appendTraceEvent = useCallback((event: TraceEvent) => {
+    const nextTrace = [...traceRef.current, event];
+    traceRef.current = nextTrace;
+    setTrace(nextTrace);
+
+    const projection = projectTrace(nextTrace);
+    if (projection.brief) setBrief(projection.brief.briefData);
+    if (projection.sketch) setSketch(projection.sketch);
+
+    const discoveredSources = projection.sourceDiscoveries.flatMap((fact) => fact.sources);
+    if (discoveredSources.length > 0) {
+      setSources((prev) => mergeSources(prev, discoveredSources));
+      setSelectedSourceKeys((prev) =>
+        selectDiscoveredSources(prev, discoveredSources, deselectedUrlsRef.current),
+      );
+    }
+  }, []);
+
   const clearRun = useCallback((clearQuery = true) => {
     if (abortRef.current) {
       abortRef.current.abort();
       abortRef.current = null;
     }
     runIdRef.current = '';
+    traceRef.current = [];
     setTrace([]);
     setBrief(null);
     setSketch(null);
@@ -149,84 +171,51 @@ export function DeepResearch({
 
             const eventType = eventMatch[1].trim();
             try {
-              const data = JSON.parse(dataMatch[1].trim());
+              const data = JSON.parse(dataMatch[1].trim()) as unknown;
+              const record = asRecord(data);
 
-              if (eventType === 'brief_generated') {
-                setTrace((prev) => [...prev, data]);
-                const payload = data.payload || data;
-                setBrief({
-                  reasoning_trace: payload.reasoning || [],
-                  brief: payload.brief || '',
-                  tools: payload.tools || [],
-                  queries: payload.queries || { overview: [], specific: [] },
-                });
-                const sk = payload.sketch;
-                if (sk) {
-                  setSketch({
-                    expected_concepts: sk.expected_concepts || sk.expectedConcepts || [],
-                    discriminative_terms: sk.discriminative_terms || sk.discriminativeTerms || [],
-                    expected_patterns: sk.expected_patterns || sk.expectedPatterns || [],
-                    preferred_domains: sk.preferred_domains || sk.preferredDomains || [],
-                  });
-                }
-              } else if (eventType === 'sources_discovered') {
-                const payload = data.payload || data;
-                const newSources = (payload.sources as Source[]) || [];
-                setSources((prev) => mergeSources(prev, newSources));
-                // Auto-select newly discovered sources unless explicitly deselected
-                setSelectedSourceKeys((prev) =>
-                  selectDiscoveredSources(prev, newSources, deselectedUrlsRef.current),
-                );
-              } else if (eventType === 'done') {
-                setTrace((prev) => [...prev, {
+              if (eventType === 'done') {
+                const finalSourceData = Array.isArray(record.sources) ? record.sources : [];
+                appendTraceEvent({
                   id: `done-${runId}`,
                   type: 'done',
-                  payload: { source_count: Array.isArray(data.sources) ? data.sources.length : 0, partial: Boolean(data.partial) },
+                  payload: {
+                    source_count: finalSourceData.length,
+                    partial: record.partial === true,
+                    timeout_phase: record.timeout_phase,
+                    brief: record.brief,
+                    sketch: record.sketch,
+                  },
                   timestamp: Date.now() / 1000,
-                }]);
-                if (data.sources) {
-                  const finalSources = mergeSources(
-                    [],
-                    data.sources.map((s: { url: string; title?: string; snippet?: string; score?: number }) => ({
-                      url: s.url,
-                      title: s.title || s.url,
-                      snippet: s.snippet || '',
-                      score: s.score || 0,
-                    })),
-                  );
-                  // Reconcile final ranked sources with existing selection
+                });
+                const finalSources = mergeSources([], finalSourceData.flatMap(toTerminalSource));
+                if (Array.isArray(record.sources)) {
+                  // Reconcile final ranked sources with existing selection.
                   setSources(finalSources);
-                  // Preserve deselections
+                  // Preserve deselections.
                   setSelectedSourceKeys(
                     reconcileFinalSources(finalSources, deselectedUrlsRef.current),
                   );
                 }
-                const sk = data.sketch;
-                if (sk) {
-                  setSketch({
-                    expected_concepts: sk.expected_concepts || sk.expectedConcepts || [],
-                    discriminative_terms: sk.discriminative_terms || sk.discriminativeTerms || [],
-                    expected_patterns: sk.expected_patterns || sk.expectedPatterns || [],
-                    preferred_domains: sk.preferred_domains || sk.preferredDomains || [],
-                  });
-                }
-                if (data.partial) {
-                  setErrorMessage(`Research timed out at ${data.timeout_phase || 'unknown phase'}`);
+                if (record.partial === true) {
+                  setErrorMessage(`Research timed out at ${asText(record.timeout_phase) || 'unknown phase'}`);
                   setRunState('failed');
                 } else {
                   setRunState('completed');
                 }
               } else if (eventType === 'error') {
-                setTrace((prev) => [...prev, {
+                const errorPayload = isRecord(record.payload) ? record.payload : record;
+                const message = asText(errorPayload.message) || asText(errorPayload.error) || 'Research error';
+                appendTraceEvent({
                   id: `error-${runId}`,
                   type: 'error',
-                  payload: { message: data.payload?.message || data.message || 'Research error' },
+                  payload: { message, phase: errorPayload.phase },
                   timestamp: Date.now() / 1000,
-                }]);
-                setErrorMessage(data.payload?.message || data.message || 'Research error');
+                });
+                setErrorMessage(message);
                 setRunState('failed');
               } else {
-                setTrace((prev) => [...prev, data]);
+                appendTraceEvent(toIncomingTraceEvent(data, eventType, runId));
               }
             } catch {
               // Skip malformed SSE blocks
@@ -242,7 +231,7 @@ export function DeepResearch({
       .finally(() => {
         if (isCurrentRun(runId)) abortRef.current = null;
       });
-  }, [query, selectedCollection, collectionUnavailable, clearRun, isCurrentRun]);
+  }, [query, selectedCollection, collectionUnavailable, clearRun, isCurrentRun, appendTraceEvent]);
 
   const handleCancel = useCallback(() => {
     clearRun();
@@ -380,7 +369,7 @@ export function DeepResearch({
       elapsedMs={elapsedMs}
       onNewResearch={handleNewResearch}
       onCancel={handleCancel}
-      trace={trace}
+      traceProjection={traceProjection}
       brief={brief}
       sketch={sketch}
       sources={sources}
@@ -399,4 +388,46 @@ export function DeepResearch({
       />
     </AppShell>
   );
+}
+
+function toIncomingTraceEvent(data: unknown, eventType: string, runId: string): TraceEvent {
+  const record = asRecord(data);
+  const timestamp = typeof record.timestamp === 'number' && Number.isFinite(record.timestamp)
+    ? record.timestamp
+    : Date.now() / 1000;
+  const event: TraceEvent = {
+    id: asText(record.id) || `${eventType}-${runId}-${Date.now()}`,
+    type: eventType as TraceEvent['type'],
+    payload: isRecord(record.payload) ? record.payload : record,
+    timestamp,
+  };
+  const parentId = asText(record.parent_id);
+  const iteration = typeof record.iteration === 'number' ? record.iteration : undefined;
+  if (parentId) event.parent_id = parentId;
+  if (iteration !== undefined) event.iteration = iteration;
+  return event;
+}
+
+function toTerminalSource(value: unknown): Source[] {
+  if (!isRecord(value) || !asText(value.url)) return [];
+  return [{
+    url: asText(value.url),
+    title: asText(value.title) || asText(value.url),
+    snippet: asText(value.snippet),
+    score: typeof value.score === 'number' ? value.score : 0,
+  }];
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function asText(value: unknown): string {
+  return typeof value === 'string' ? value : '';
 }

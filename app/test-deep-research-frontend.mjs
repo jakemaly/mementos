@@ -22,6 +22,7 @@ const globals = fs.readFileSync('app/globals.css', 'utf8');
 const state = fs.readFileSync('app/components/deep-research/research-state.ts', 'utf8');
 const graph = fs.readFileSync('app/components/deep-research/ExecutionGraph.tsx', 'utf8');
 const timeline = fs.readFileSync('app/components/deep-research/ObservabilityTimeline.tsx', 'utf8');
+const traceModel = fs.readFileSync('app/components/deep-research/trace-model.ts', 'utf8');
 const sources = fs.readFileSync('app/components/deep-research/SourceList.tsx', 'utf8');
 
 console.log('\n=== Composer ===\n');
@@ -38,7 +39,7 @@ ok('Composer uses one dialogue surface', composer.includes('dialogueStage') && c
 ok('Composer uses the reference frame and Optima font', css.includes('/p5-dialogue/images/db-main-medium.png') && css.includes('OptimaNovaLT-Black.woff2'));
 ok('Composer uses a quiet white page treatment', css.includes('background-color: #fff') && css.includes('background-image: none'));
 ok('Composer includes the Persona knife accent', root.includes('p5-dialogue/images/knife.png') && css.includes('.knifeMark'));
-ok('Composer uses a muted dotted corner accent', css.includes('.composerMain::after') && css.includes('backgroundDot.png') && css.includes('opacity: 0.14'));
+ok('Composer uses a reskinned dotted backdrop', css.includes('.composerMain::before') && css.includes('backgroundDot.png') && css.includes('filter: grayscale(1)') && css.includes('opacity: 0.16'));
 ok('Composer gives the question a substantial writing area', css.includes('min-height: 14rem'));
 ok('Composer has a dedicated narrow layout', css.includes('@media (max-width: 480px)') && css.includes('.dialogueContent'));
 ok('Composer keeps disabled action text readable', css.includes('.dialogueSubmit:disabled') && css.includes('color: #d7c9cb'));
@@ -71,19 +72,24 @@ ok('AbortController is used', root.includes('new AbortController') && root.inclu
 ok('Cancel returns to idle', root.includes('setRunState(\'idle\')') && root.includes('clearRun()'));
 ok('Stale runs are ignored', root.includes('isCurrentRun(runId)'));
 ok('Source selection uses canonical URL keys', state.includes('canonicalSourceKey'));
-ok('Live sources are merged without duplicates', root.includes('mergeSources(prev, newSources)'));
+ok('Live sources are merged without duplicates', root.includes('mergeSources(prev, discoveredSources)'));
 ok('Deselections survive final reconciliation', root.includes('reconcileFinalSources(finalSources'));
-ok('New sources default to selected', root.includes('selectDiscoveredSources(prev, newSources'));
+ok('New sources default to selected', root.includes('selectDiscoveredSources(prev, discoveredSources'));
 ok('Import waits for completed research', root.includes("runState === 'researching'") && root.includes('ingestDisabled'));
 ok('Source selection uses canonical keys for imports', root.includes('selectedSourceKeys.has(canonicalSourceKey(source.url))'));
 
 console.log('\\n=== Event-derived graph ===\\n');
-ok('Graph derives tool nodes from tool_started events', graph.includes("event.type === 'tool_started'"));
-ok('Graph folds completion into invocation status', graph.includes('completionByParent'));
-ok('Graph preserves completed nodes', graph.includes("status = completion?.type"));
-ok('Graph renders explicit loop edges', graph.includes("label: 'continue'"));
+ok('Projection exposes one pure public seam', traceModel.includes('export function projectTrace') && traceModel.includes('ResearchTraceProjection'));
+ok('Run controller invokes the shared projection', root.includes('projectTrace(trace)') && root.includes('appendTraceEvent'));
+ok('Graph consumes normalized projection facts', graph.includes('projection: ResearchTraceProjection') && graph.includes('projection.facts'));
+ok('Timeline consumes normalized projection facts', timeline.includes('projection: ResearchTraceProjection') && timeline.includes('buildTimeline(projection.facts)'));
+ok('Graph does not dispatch raw event types', !graph.includes('event.type') && !graph.includes('TraceEvent'));
+ok('Timeline does not dispatch raw event types', !timeline.includes('event.type') && !timeline.includes('TraceEvent'));
+ok('Parent pairing lives in the projection', traceModel.includes('pairChildren') && traceModel.includes('parentId'));
+ok('Unknown facts are retained', traceModel.includes("kind: 'unknown'") && traceModel.includes('toUnknownFact'));
+ok('Graph renders explicit loop edges', graph.includes("node.loopLabel = 'continue'"));
 ok('Graph exposes keyboard node selection', graph.includes('type="button"') && graph.includes('aria-pressed={selected}'));
-ok('Recoverable tool failures do not fail the route', graph.includes("const hasFailure = runState === 'failed' || trace.some((event) => event.type === 'error');"));
+ok('Recoverable tool failures do not fail the route', graph.includes("runState === 'failed' || facts.some((fact) => fact.kind === 'error')"));
 ok('Import stays outside the route topology', !graph.includes("id: 'import'"));
 ok('Client failures do not create synthetic route nodes', !graph.includes("id: 'route-failure'"));
 ok('Timeline renders terminal completion', timeline.includes('Research complete'));

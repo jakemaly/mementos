@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useRef } from 'react';
-import { TraceEvent, ResearchBrief } from '@/app/lib/research-contracts';
+import { ResearchTraceProjection, TraceFact } from './trace-model';
 import styles from './deep-research.module.css';
 
 interface ObservabilityTimelineProps {
-  trace: TraceEvent[];
-  brief: ResearchBrief | null;
+  projection: ResearchTraceProjection;
   isResearching: boolean;
   focusedNodeId: string | null;
 }
@@ -27,10 +26,13 @@ const statusLabels: Record<TimelineStatus, string> = {
   failed: 'Failed',
 };
 
-export function ObservabilityTimeline({ trace, brief, isResearching, focusedNodeId }: ObservabilityTimelineProps) {
-  const entries = useMemo(() => buildTimeline(trace, brief, isResearching), [trace, brief, isResearching]);
+export function ObservabilityTimeline({ projection, isResearching, focusedNodeId }: ObservabilityTimelineProps) {
+  const entries = useMemo(
+    () => buildTimeline(projection.facts),
+    [projection.facts],
+  );
   const entryRefs = useRef(new Map<string, HTMLLIElement>());
-  const firstTime = trace[0]?.timestamp || 0;
+  const firstTime = projection.facts[0]?.timestamp || 0;
 
   useEffect(() => {
     if (!focusedNodeId) return;
@@ -82,129 +84,109 @@ export function ObservabilityTimeline({ trace, brief, isResearching, focusedNode
   );
 }
 
-function buildTimeline(trace: TraceEvent[], brief: ResearchBrief | null, isResearching: boolean): TimelineEntry[] {
-  const items: TimelineEntry[] = [];
-  const completionByParent = new Map(
-    trace
-      .filter((event) => (event.type === 'tool_completed' || event.type === 'tool_failed') && event.parent_id)
-      .map((event) => [event.parent_id as string, event]),
-  );
-  const toolStarts = new Set(trace.filter((event) => event.type === 'tool_started').map((event) => event.id));
-  const baseTime = trace[0]?.timestamp || 0;
-
-  if (brief) {
-    items.push({
-      id: trace.find((event) => event.type === 'brief_generated')?.id || 'brief',
-      time: baseTime,
-      label: 'Brief generated',
-      detail: brief.brief || 'Research scope defined.',
-      status: 'completed',
-    });
-  }
-
-  for (const event of trace) {
-    const payload = event.payload || {};
-    const iteration = event.iteration !== undefined ? ` · pass ${event.iteration + 1}` : '';
-
-    if (event.type === 'brief_generated') {
-      continue;
+function buildTimeline(facts: readonly TraceFact[]): TimelineEntry[] {
+  return facts.flatMap((fact) => {
+    switch (fact.kind) {
+      case 'brief':
+        return [{
+          id: fact.id,
+          time: fact.timestamp,
+          label: 'Brief generated',
+          detail: fact.brief || 'Research scope defined.',
+          status: 'completed',
+        }];
+      case 'supervisor_iteration':
+        return [{
+          id: fact.id,
+          time: fact.timestamp,
+          label: `Supervisor evaluation${iterationLabel(fact)}`,
+          detail: supervisorDetail(fact),
+          status: fact.status,
+        }];
+      case 'tool_invocation':
+        return [{
+          id: fact.id,
+          time: fact.timestamp,
+          label: `${fact.tool || 'Tool'} search${toolOutcome(fact)}${iterationLabel(fact)}`,
+          detail: toolDetail(fact),
+          status: fact.status,
+        }];
+      case 'source_discovery':
+        return [{
+          id: fact.id,
+          time: fact.timestamp,
+          label: `Evidence arrived${iterationLabel(fact)}`,
+          detail: `${fact.sources.length} source${fact.sources.length === 1 ? '' : 's'} discovered from ${fact.tool || 'search'}${fact.query ? `\nQuery: ${fact.query}` : ''}.`,
+          status: 'completed',
+        }];
+      case 'iteration':
+        return [{
+          id: fact.id,
+          time: fact.timestamp,
+          label: `Iteration ${fact.iteration !== undefined ? fact.iteration + 1 : ''} complete`,
+          detail: `${formatCount(fact.totalSources) || 'No'} sources accumulated before the next decision.`,
+          status: 'completed',
+        }];
+      case 'scoring':
+        return [{
+          id: fact.id,
+          time: fact.timestamp,
+          label: fact.rankingCompleted ? 'Evidence ranked' : 'Scoring started',
+          detail: fact.rankingCompleted
+            ? `${formatCount(fact.sourceCount) || 'No'} sources remain after scoring.`
+            : `${formatCount(fact.sourceCount) || 'The'} sources are being ranked.`,
+          status: fact.status,
+        }];
+      case 'done':
+        return [{
+          id: fact.id,
+          time: fact.timestamp,
+          label: 'Research complete',
+          detail: `${formatCount(fact.sourceCount) || 'No'} ranked sources ready for review${fact.partial ? ' · partial result' : ''}.`,
+          status: 'completed',
+        }];
+      case 'error':
+        return [{
+          id: fact.id,
+          time: fact.timestamp,
+          label: 'Route failed',
+          detail: fact.message,
+          status: 'failed',
+        }];
+      case 'unknown':
+        return [];
     }
+  });
+}
 
-    if (event.type === 'supervisor_started' || event.type === 'supervisor_evaluation') {
-      const confidence = formatConfidence(payload.confidence_score);
-      const reason = asText(payload.reason);
-      const gaps = asText(payload.gap_analysis);
-      const subQuestions = formatSubQuestions(payload.sub_questions);
-      items.push({
-        id: event.id,
-        time: event.timestamp,
-        label: `Supervisor evaluation${iteration}`,
-        detail: [confidence, reason, gaps && `Gap: ${gaps}`, subQuestions].filter(Boolean).join('\n') || 'Evaluating the evidence against the brief.',
-        status: event.type === 'supervisor_started' ? 'running' : 'completed',
-      });
-    } else if (event.type === 'supervisor_completed') {
-      items.push({
-        id: event.id,
-        time: event.timestamp,
-        label: `Supervisor decision${iteration}`,
-        detail: [asText(payload.decision), asText(payload.reason)].filter(Boolean).join(' · ') || 'Supervisor completed this pass.',
-        status: 'completed',
-      });
-    } else if (event.type === 'tool_started') {
-      const completion = completionByParent.get(event.id);
-      const completionPayload = completion?.payload || {};
-      const failed = completion?.type === 'tool_failed';
-      const query = formatQuery(payload.query ?? payload.queries);
-      const resultCount = formatCount(completionPayload.result_count ?? payload.result_count);
-      const duration = formatDuration(completionPayload.duration ?? payload.duration);
-      items.push({
-        id: event.id,
-        time: event.timestamp,
-        label: `${asText(payload.tool) || 'Tool'} search${completion ? failed ? ' failed' : ' completed' : ' started'}${iteration}`,
-        detail: [query && `Query: ${query}`, resultCount && `${resultCount} results`, duration && `${duration} duration`, failed && `Error: ${asText(completionPayload.error) || 'Tool failed'}`].filter(Boolean).join('\n') || (completion ? 'Tool returned.' : 'Waiting for tool results.'),
-        status: failed ? 'failed' : completion ? 'completed' : 'running',
-      });
-    } else if ((event.type === 'tool_completed' || event.type === 'tool_failed') && !toolStarts.has(event.parent_id || '')) {
-      items.push({
-        id: event.id,
-        time: event.timestamp,
-        label: `${asText(payload.tool) || 'Tool'} ${event.type === 'tool_failed' ? 'failed' : 'completed'}${iteration}`,
-        detail: event.type === 'tool_failed' ? asText(payload.error) || 'Tool failed.' : toolDetail(payload),
-        status: event.type === 'tool_failed' ? 'failed' : 'completed',
-      });
-    } else if (event.type === 'sources_discovered') {
-      const sources = Array.isArray(payload.sources) ? payload.sources.length : 0;
-      items.push({
-        id: event.id,
-        time: event.timestamp,
-        label: `Evidence arrived${iteration}`,
-        detail: `${sources} source${sources === 1 ? '' : 's'} discovered from ${asText(payload.tool) || 'search'}${asText(payload.query) ? `\nQuery: ${asText(payload.query)}` : ''}.`,
-        status: 'completed',
-      });
-    } else if (event.type === 'iteration_complete') {
-      items.push({
-        id: event.id,
-        time: event.timestamp,
-        label: `Iteration ${event.iteration !== undefined ? event.iteration + 1 : ''} complete`,
-        detail: `${formatCount(payload.total_sources) || 'No'} sources accumulated before the next decision.`,
-        status: 'completed',
-      });
-    } else if (event.type === 'scoring_started') {
-      items.push({
-        id: event.id,
-        time: event.timestamp,
-        label: 'Scoring started',
-        detail: `${formatCount(payload.source_count) || 'The'} sources are being ranked.`,
-        status: isResearching ? 'running' : 'completed',
-      });
-    } else if (event.type === 'sources_ranked') {
-      items.push({
-        id: event.id,
-        time: event.timestamp,
-        label: 'Evidence ranked',
-        detail: `${formatCount(payload.total_sources) || 'No'} sources remain after scoring.`,
-        status: 'completed',
-      });
-    } else if (event.type === 'done') {
-      items.push({
-        id: event.id,
-        time: event.timestamp,
-        label: 'Research complete',
-        detail: `${formatCount(payload.source_count) || 'No'} ranked sources ready for review${payload.partial ? ' · partial result' : ''}.`,
-        status: 'completed',
-      });
-    } else if (event.type === 'error') {
-      items.push({
-        id: event.id,
-        time: event.timestamp,
-        label: 'Route failed',
-        detail: asText(payload.message) || asText(payload.error) || 'The research stream returned an error.',
-        status: 'failed',
-      });
-    }
-  }
+function iterationLabel(fact: TraceFact): string {
+  return fact.iteration !== undefined ? ` · pass ${fact.iteration + 1}` : '';
+}
 
-  return items;
+function supervisorDetail(fact: Extract<TraceFact, { kind: 'supervisor_iteration' }>): string {
+  const confidence = fact.confidenceScore === undefined ? '' : `Confidence ${fact.confidenceScore}%`;
+  const subQuestions = fact.subQuestions
+    .map((question) => `${question.status}: ${question.question || 'sub-question'}`)
+    .join('\n');
+  return [confidence, fact.decision, fact.reason, fact.gapAnalysis && `Gap: ${fact.gapAnalysis}`, subQuestions]
+    .filter(Boolean)
+    .join('\n') || 'Evaluating the evidence against the brief.';
+}
+
+function toolOutcome(fact: Extract<TraceFact, { kind: 'tool_invocation' }>): string {
+  return fact.status === 'failed' ? ' failed' : fact.status === 'completed' ? ' completed' : ' started';
+}
+
+function toolDetail(fact: Extract<TraceFact, { kind: 'tool_invocation' }>): string {
+  const query = fact.query || fact.queries.join(' · ');
+  const resultCount = formatCount(fact.resultCount);
+  const duration = fact.duration === undefined
+    ? ''
+    : typeof fact.duration === 'number' ? `${fact.duration}s` : fact.duration;
+  const error = fact.error ? `Error: ${fact.error}` : '';
+  return [query && `Query: ${query}`, resultCount && `${resultCount} results`, duration && `${duration} duration`, error]
+    .filter(Boolean)
+    .join('\n') || (fact.status === 'running' ? 'Waiting for tool results.' : 'Tool returned.');
 }
 
 function formatTimelineTime(time: number, firstTime: number): string {
@@ -215,49 +197,6 @@ function formatTimelineTime(time: number, firstTime: number): string {
   return `+${Math.round(offset)}s`;
 }
 
-function formatConfidence(value: unknown): string {
-  return typeof value === 'number' ? `Confidence ${value}%` : '';
-}
-
-function formatSubQuestions(value: unknown): string {
-  if (!Array.isArray(value)) return '';
-  return value
-    .map((question) => {
-      if (!question || typeof question !== 'object') return '';
-      const item = question as { question?: unknown; status?: unknown };
-      return `${asText(item.status) || 'unresolved'}: ${asText(item.question) || 'sub-question'}`;
-    })
-    .filter(Boolean)
-    .join('\n');
-}
-
-function toolDetail(payload: Record<string, unknown>): string {
-  const query = formatQuery(payload.query ?? payload.queries);
-  const resultCount = formatCount(payload.result_count);
-  return [query && `Query: ${query}`, resultCount && `${resultCount} results`].filter(Boolean).join('\n') || 'Tool completed.';
-}
-
-function formatQuery(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string').join(' · ');
-  if (value && typeof value === 'object') {
-    return Object.values(value as Record<string, unknown>)
-      .flatMap((item) => Array.isArray(item) ? item : [item])
-      .filter((item): item is string => typeof item === 'string')
-      .join(' · ');
-  }
-  return '';
-}
-
-function formatDuration(value: unknown): string {
-  if (typeof value === 'number') return `${value}s`;
-  return typeof value === 'string' ? value : '';
-}
-
-function formatCount(value: unknown): string {
-  return typeof value === 'number' ? String(value) : typeof value === 'string' ? value : '';
-}
-
-function asText(value: unknown): string {
-  return typeof value === 'string' ? value : '';
+function formatCount(value: number | string | undefined): string {
+  return value === undefined ? '' : String(value);
 }
