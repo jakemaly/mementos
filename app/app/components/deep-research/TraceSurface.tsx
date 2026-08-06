@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties, ReactNode, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, ReactNode, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ResearchBrief, Sketch, Source } from '@/app/lib/research-contracts';
 import { ResearchTraceProjection } from './trace-model';
 import { buildTraceRoute, CheckpointNode, IngestNode } from './trace-route';
@@ -145,28 +145,43 @@ function CallingCardArt({ text }: { text: string }) {
  * (0–100 in the viewBox). Every node exposes an anchor set: milestone,
  * ranked and ingest sit centered (50); checkpoint cards sit at 25/75 on
  * wide screens and 50 on narrow; batch cards sit at (i + 0.5)/N across a
- * horizontal fan-out and 50 when stacked. A connector is one wire per
- * bottom anchor (`from`) routed to the single top anchor (`to`) with one
- * elbow; coincident anchors render a straight line. Coincident wires
- * dedupe so stacked batches draw a single line.
+ * horizontal fan-out and 50 when stacked.
+ *
+ * A single connection is a deterministic, slightly irregular polyline.
+ * Parallel connections share a short trunk before splitting into branch
+ * ribbons, so they read as one continuous route rather than floating wires.
  */
 function RouteConnector({ from, to, active, fan }: { from: readonly number[]; to: number; active?: boolean; fan?: boolean }) {
   const anchors = [...new Set(from)];
+  const branching = anchors.length > 1;
+  const seed = Math.abs(Math.round(to * 10) + anchors.reduce((sum, anchor) => sum + Math.round(anchor * 10), 0));
+  const trunkX = to + ((seed % 3) - 1) * 1.5;
   const className = [
     styles.traceConnector,
     fan ? styles.traceConnectorFan : '',
+    branching ? styles.traceConnectorBranching : '',
     active ? styles.traceConnectorActive : '',
   ].join(' ');
+
+  const paths = branching
+    ? [
+        `M ${to} 0 L ${trunkX} 18`,
+        ...anchors.map((anchor, index) => {
+          const branchX = anchor + ((index % 3) - 1) * 1.8;
+          const branchY = 26 + (index % 2) * 2;
+          return `M ${trunkX} 18 L ${branchX} ${branchY} L ${anchor} 40`;
+        }),
+      ]
+    : anchors.map((anchor) => {
+        if (anchor === to) return `M ${to} 0 L ${to} 40`;
+        const firstX = to + ((seed % 3) - 1) * 2;
+        const secondX = anchor - (((seed + 1) % 3) - 1) * 1.5;
+        return `M ${to} 0 L ${firstX} 11 L ${secondX} 29 L ${anchor} 40`;
+      });
+
   return (
     <svg className={className} viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
-      {anchors.map((anchor) => (
-        <path
-          key={anchor}
-          d={anchor === to
-            ? `M ${to} 0 L ${to} 40`
-            : `M ${to} 0 L ${to} 14 L ${anchor} 26 L ${anchor} 40`}
-        />
-      ))}
+      {paths.map((path, index) => <path key={`${path}-${index}`} d={path} />)}
     </svg>
   );
 }

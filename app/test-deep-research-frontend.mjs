@@ -124,10 +124,12 @@ ok('Partial and total import outcomes stay visible', sources.includes('Partially
 
 console.log('\n=== Design constraints ===\n');
 ok('Connectors are deterministic SVG wires between anchors', surface.includes('RouteConnector') && surface.includes('viewBox') && surface.includes('preserveAspectRatio') && surface.includes('M ${to} 0'));
+ok('Parallel connectors share a trunk before branching', surface.includes('traceConnectorBranching') && surface.includes('trunkX') && surface.includes('branchX'));
 ok('Connectors sit behind semantic content', css.includes('.traceConnector') && css.includes('z-index: 0') && css.includes('pointer-events: none'));
-ok('Active connectors use a restrained red accent', css.includes('.traceConnectorActive path') && css.includes('stroke: var(--red-bright)'));
-ok('Connector strokes are uniform, rounded and thicker', css.includes('vector-effect: non-scaling-stroke') && css.includes('stroke-width: 4') && css.includes('stroke-linejoin: round'));
-ok('Route uses angular black cards with red offsets', css.includes('box-shadow: 4px 4px 0 var(--red)') && css.includes('background: var(--black)'));
+ok('Active connectors stay high-contrast on the red field', css.includes('.traceConnectorActive path') && css.includes('stroke: var(--trace-white)'));
+ok('Connector ribbons are uniform, thick and angular', css.includes('vector-effect: non-scaling-stroke') && css.includes('stroke-width: 14') && css.includes('stroke-linejoin: miter'));
+ok('Route uses the crimson / black / white treatment', css.includes('--trace-red: #c90000') && css.includes('background: var(--trace-red)') && css.includes('background: var(--trace-black)'));
+ok('Nodes use skewed, offset geometry and pointed tails', css.includes('skewX(-8deg)') && css.includes('border-top: 15px solid var(--node-fill)'));
 ok('Desktop zig-zag rows alternate sides', css.includes('.traceRow-left') && css.includes('.traceRow-right'));
 ok('Parallel batches fan out in one horizontal row', surface.includes('--fan-count') && css.includes('repeat(var(--fan-count, 1), minmax(0, 1fr))'));
 ok('Fan-out collapses to a vertical stack on narrow screens', css.includes('grid-template-columns: 1fr'));

@@ -600,10 +600,23 @@
 /* ── Research trace surface (View B) ─────────────────────────────── */
 
 .traceMain {
+  --trace-red: #c90000;
+  --trace-black: #000;
+  --trace-white: #fff;
   flex: 1;
   min-width: 0;
+  min-height: 100%;
+  overflow-x: clip;
   padding: clamp(1.2rem, 3vw, 2.6rem) clamp(1rem, 4vw, 4rem) 6rem;
-  background: var(--paper);
+  background: var(--trace-red);
+  color: var(--trace-white);
+}
+
+.traceMain .workspaceKicker,
+.traceMain .traceQueryText,
+.traceMain .traceSummary,
+.traceMain .elapsed {
+  color: var(--trace-white);
 }
 
 .traceUtility {
@@ -641,10 +654,10 @@
   align-items: start;
   min-width: 14rem;
   padding: 0.9rem 1rem;
-  border-left: 7px solid var(--red);
-  background: var(--black);
-  color: var(--paper-light);
-  box-shadow: 5px 5px 0 var(--red);
+  border-left: 7px solid var(--trace-white);
+  background: var(--trace-black);
+  color: var(--trace-white);
+  box-shadow: 5px 5px 0 var(--trace-black);
 }
 
 .statusStamp.status-completed,
@@ -721,8 +734,17 @@
 
 .cancelButton:hover,
 .newButton:hover {
-  border-color: var(--red);
-  color: var(--red);
+  border-color: var(--trace-black);
+  background: var(--trace-black);
+  color: var(--trace-white);
+}
+
+.traceMain .cancelButton,
+.traceMain .newButton {
+  border: 2px solid var(--trace-black);
+  background: var(--trace-white);
+  color: var(--trace-black);
+  box-shadow: 4px 4px 0 var(--trace-black);
 }
 
 .cancelButton:focus-visible,
@@ -737,7 +759,9 @@
 .workspaceError {
   width: min(1080px, 100%);
   margin: 1rem auto 0;
-  color: var(--error);
+  padding: 0.7rem 0.9rem;
+  background: var(--trace-black);
+  color: var(--trace-white);
   font-size: 0.82rem;
 }
 
@@ -831,16 +855,23 @@
 
 .traceConnector path {
   fill: none;
-  stroke: var(--black);
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke: var(--trace-black);
+  stroke-width: 14;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
   vector-effect: non-scaling-stroke;
   animation: traceDrawOn 0.5s ease-out both;
 }
 
+/* Running paths invert against the red field without changing the route shape. */
 .traceConnectorActive path {
-  stroke: var(--red-bright);
+  stroke: var(--trace-white);
+}
+
+.traceConnectorBranching path {
+  /* Shared trunks and branches meet as one angular ribbon. */
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
 }
 
 @keyframes traceDrawOn {
@@ -872,6 +903,7 @@
 }
 
 .milestoneCard {
+  --node-fill: var(--trace-white);
   position: relative;
   /* Above every route card (z-index 1) and connector (z-index 0) so the
      artifact popover paints over the rows below it. */
@@ -879,9 +911,15 @@
   width: min(620px, 100%);
   margin: 0 auto;
   padding: 1.05rem 1.15rem 1.15rem;
-  border: 1px solid var(--line-dark);
-  background: var(--paper-light);
-  box-shadow: 5px 5px 0 var(--black);
+  border: 3px solid var(--trace-black);
+  background: var(--node-fill);
+  color: var(--trace-black);
+  box-shadow: 8px 8px 0 var(--trace-black);
+  transform: skewX(-7deg) rotate(-0.5deg);
+}
+
+.milestoneCard > * {
+  transform: skewX(7deg);
 }
 
 .milestoneKicker {
@@ -959,9 +997,9 @@
 }
 
 .artifactRowPending {
-  border: 1px dashed var(--line-dark);
-  background: transparent;
-  color: var(--muted);
+  border: 2px dashed var(--trace-black);
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--trace-black);
 }
 
 .artifactRowPending strong,
@@ -1073,6 +1111,7 @@
 
 .checkpointCard,
 .rankedCard {
+  --node-fill: var(--trace-black);
   position: relative;
   z-index: 1;
   display: flex;
@@ -1080,14 +1119,28 @@
   align-items: center;
   width: 100%;
   padding: 0.75rem 1rem;
-  background: var(--black);
-  box-shadow: 4px 4px 0 var(--red);
-  color: var(--paper-light);
+  border: 3px solid var(--trace-white);
+  background: var(--node-fill);
+  box-shadow: 7px 7px 0 var(--trace-black);
+  color: var(--trace-white);
+  transform: skewX(-8deg) rotate(-0.7deg);
+}
+
+.checkpointCard > *,
+.rankedCard > * {
+  transform: skewX(8deg);
 }
 
 .rankedCard {
+  --node-fill: var(--trace-white);
   width: min(560px, 100%);
   margin: 0 auto;
+  border-color: var(--trace-black);
+  color: var(--trace-black);
+}
+
+.rankedCard .checkpointCopy small {
+  color: var(--trace-black);
 }
 
 .checkpointCopy {
@@ -1139,6 +1192,7 @@
 }
 
 .batchCard {
+  --node-fill: var(--trace-black);
   position: relative;
   z-index: 1;
   display: flex;
@@ -1146,16 +1200,26 @@
   align-items: center;
   min-width: 0;
   padding: 0.8rem 0.95rem;
-  background: var(--black);
-  box-shadow: 3px 3px 0 var(--red);
-  color: var(--paper-light);
+  border: 2px solid var(--trace-white);
+  background: var(--node-fill);
+  box-shadow: 5px 5px 0 var(--trace-black);
+  color: var(--trace-white);
+  transform: skewX(-8deg) rotate(-0.6deg);
+}
+
+.batchRow:nth-child(even) .batchCard {
+  transform: skewX(-8deg) rotate(0.8deg);
+}
+
+.batchCard > * {
+  transform: skewX(8deg);
 }
 
 .batchCard[data-status='pending'] {
-  background: transparent;
-  border: 1px dashed var(--line-dark);
-  box-shadow: none;
-  color: var(--muted);
+  background: rgba(0, 0, 0, 0.16);
+  border: 2px dashed var(--trace-white);
+  box-shadow: 5px 5px 0 var(--trace-black);
+  color: var(--trace-white);
 }
 
 .batchCard[data-status='failed'] {
@@ -1202,7 +1266,7 @@
 }
 
 .batchCard[data-status='pending'] .batchQuery {
-  color: var(--muted);
+  color: var(--trace-white);
 }
 
 .batchCopy small {
@@ -1226,27 +1290,33 @@
 }
 
 .ingestNode {
+  --node-fill: var(--trace-white);
   display: flex;
   gap: 0.8rem;
   align-items: center;
   width: 100%;
   padding: 0.9rem 1rem;
-  border: 1px solid var(--line-dark);
+  border: 3px solid var(--trace-black);
   border-radius: 0;
-  background: var(--black);
-  box-shadow: 5px 5px 0 var(--red-bright);
-  color: var(--paper-light);
+  background: var(--node-fill);
+  box-shadow: 8px 8px 0 var(--trace-black);
+  color: var(--trace-black);
   text-align: left;
   font: inherit;
+  transform: skewX(-7deg) rotate(0.6deg);
+}
+
+.ingestNode > * {
+  transform: skewX(7deg);
 }
 
 .ingestNode[data-status='locked'] {
-  box-shadow: 5px 5px 0 var(--line-dark);
-  opacity: 0.85;
+  box-shadow: 8px 8px 0 var(--trace-black);
+  opacity: 0.78;
 }
 
 .ingestNode[data-status='locked'] .checkpointCopy small {
-  color: #a29a90;
+  color: #4a0000;
 }
 
 .ingestMarker {
@@ -1264,7 +1334,7 @@
 .traceSummary {
   width: min(1080px, 100%);
   margin: 1.6rem auto 0;
-  color: var(--muted);
+  color: var(--trace-white);
   font-family: var(--font-mono);
   font-size: 0.68rem;
   text-align: center;
@@ -1274,9 +1344,10 @@
 
 .sourceRegister {
   margin-top: 1.4rem;
-  border: 1px solid var(--line-dark);
-  background: var(--paper-light);
-  box-shadow: 6px 6px 0 var(--black);
+  border: 3px solid var(--trace-black);
+  background: var(--trace-white);
+  box-shadow: 8px 8px 0 var(--trace-black);
+  color: var(--ink);
 }
 
 .sourceRegisterHead {
@@ -1286,7 +1357,7 @@
 }
 
 .sourceRegisterHead .panelKicker {
-  color: var(--red-bright);
+  color: var(--trace-white);
 }
 
 .sourceRegisterHead h2 {
@@ -1310,6 +1381,45 @@
 
 .sourceRegisterBody .sourceListContainer {
   padding-top: 1.2rem;
+}
+
+/* Small pointed tails make each box feel pinned to the ribbon. */
+.milestoneCard::after,
+.checkpointCard::after,
+.batchCard::after,
+.rankedCard::after,
+.ingestNode::after,
+.checkpointCard::before,
+.batchCard::before,
+.rankedCard::before,
+.ingestNode::before {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-right: 10px solid transparent;
+  border-left: 10px solid transparent;
+  pointer-events: none;
+  content: '';
+  transform: translateX(-50%);
+}
+
+.milestoneCard::after,
+.checkpointCard::after,
+.batchCard::after,
+.rankedCard::after,
+.ingestNode::after {
+  bottom: -15px;
+  border-top: 15px solid var(--node-fill);
+}
+
+.checkpointCard::before,
+.batchCard::before,
+.rankedCard::before,
+.ingestNode::before {
+  top: -15px;
+  border-bottom: 15px solid var(--node-fill);
 }
 
 /* ── Narrow surface ──────────────────────────────────────────────── */
