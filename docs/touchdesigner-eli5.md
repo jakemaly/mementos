@@ -4,56 +4,62 @@ This is a **first-ever TouchDesigner** guide. You will make a live-webcam pictur
 
 > **What this first version is (and is not).** This is *screen AR*: the graph is a 3D object rendered over the webcam image, in front of TouchDesigner's virtual camera. A normal RGB webcam plus hand landmarks cannot know where the real desk is, so the graph will **not** remain bolted to a physical desk when the camera moves. Persistent physical anchoring needs a separate pose source (printed fiducial marker, AR camera, or depth camera) and is deliberately last.
 
+
+
 ## 0. Tiny vocabulary first
 
 TouchDesigner is a visual-programming application. You create little boxes and wire their outputs into other boxes. A box is an **operator** (often shortened to **OP**). An OP recomputes—**cooks**—when it needs to produce its output.
 
-| Word | Think of it as | Use here |
-|---|---|---|
-| **Network** | A folder containing wired boxes | Each named section below is a network. |
-| **COMP** | A folder/thing in the scene | `graph_source`, `graph_scene`, `interaction`, `output`, `debug`, camera, light, geometry. |
-| **DAT** | A spreadsheet or text note | JSON, tables, Python scripts, HTTP and WebSocket messages. |
-| **CHOP** | A spreadsheet of changing numbers over time | Hand positions; node positions for instancing. |
-| **TOP** | An image or video stream | Webcam, 3D render, final composite. |
-| **SOP** | A 3D shape made of points/lines/faces | Sphere shape and graph-edge lines. |
-| **MAT** | Paint/material for a 3D object | Node and edge appearance. |
-| **Parameter** | A setting on a box | A camera position, URL, scale, or pulse button. |
-| **Pulse** | A momentary button press | Manual HTTP refresh and “Set origin.” |
-| **Null** | A named, tidy endpoint | Use after important data chains; it changes nothing. |
-| **Export/reference** | Let a changing value drive a parameter | Hand data drives `graph_root` transforms. |
-| **Instance** | Draw one cheap copy of one shape many times | One sphere shape becomes all graph nodes. |
-| **Render TOP** | A virtual camera taking a picture of 3D objects | Produces the graph image. |
-| **Composite TOP** | Photoshop-like image layering | Places the rendered graph over the webcam. |
-| **External `.tox`** | A separately saved reusable TouchDesigner component | Keeps the large MediaPipe component out of the `.toe`. |
-| **`.toe`** | The main TouchDesigner project file | `touchdesigner/mementos-graph.toe`. |
-| **`.tox`** | A reusable component file | `touchdesigner/toxes/MediaPipe.tox`. |
-| **Normalized coordinate** | A position expressed as a fraction, not pixels | `0..1` hand positions survive resolution changes. |
-| **Aspect ratio** | Width divided by height | Webcam, MediaPipe, render, and composite must agree. |
-| **Dead zone** | Ignore tiny movement near zero | Stops hand jitter moving the graph. |
-| **Dwell / hysteresis** | Require stability; use different on/off thresholds | Stops accidental and flickering gestures. |
-| **Snapshot ID** | A version label for one complete graph | Never combine graph data and retrieval results from different labels. |
-| **Entity / node** | A named thing and its dot | Has an immutable `id`, `name`, `description`, and `xyz` position. |
-| **Relationship / edge** | A connection and its line | Uses `source`, `target`, and `relation_id`; source/target are node IDs. |
-| **Lookup table** | A phone book | Resolves an edge ID to exactly one node position. |
-| **JSON** | Structured text with named fields | The sidecar's graph response format. |
-| **HTTP GET / POST** | “Please show me” / “please do this” web requests | GET `/td/graph`; POST `/td/refresh` rebuilds/retries a dump. |
-| **HTTP 200 / 503** | “Here is a good answer” / “service cannot give a complete answer now” | Render a 200 snapshot only; retain old data on 503. |
-| **WebSocket** | A web connection that stays open for messages both ways | Sends one retrieval query and receives one complete reply. |
-| **API / sidecar / FastAPI** | The local helper web service and its doorbell | `localhost:8000` is TD's data source. |
-| **Qdrant / LightRAG** | The vector database / graph-aware retrieval system | They live behind the sidecar; TD never recalculates them. |
-| **RAG** | Search over the knowledge graph | The sidecar returns IDs to highlight; TD does not calculate RAG. |
-| **Naive / local / global / hybrid** | Four retrieval views | The reply contains ID lists for all four; each still needs a snapshot match. |
-| **Ray pick** | Shoot an invisible line through a screen point into 3D | Lets a pinch select the nearest visible node. |
-| **Camera-relative** | Positioned relative to the virtual camera | Correct scope for this first build. |
-| **Camera pose / anchor** | Camera location/orientation / known real-world reference | Needed for a graph that stays on a physical desk. |
-| **Fiducial marker** | A printed high-contrast tracking target | One later option for getting stable camera pose. |
-| **AR/depth camera** | A camera that also estimates space/depth | Another later option; ordinary RGB hand tracking is not one. |
+
+| Word                                | Think of it as                                                        | Use here                                                                                  |
+| ----------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Network**                         | A folder containing wired boxes                                       | Each named section below is a network.                                                    |
+| **COMP**                            | A folder/thing in the scene                                           | `graph_source`, `graph_scene`, `interaction`, `output`, `debug`, camera, light, geometry. |
+| **DAT**                             | A spreadsheet or text note                                            | JSON, tables, Python scripts, HTTP and WebSocket messages.                                |
+| **CHOP**                            | A spreadsheet of changing numbers over time                           | Hand positions; node positions for instancing.                                            |
+| **TOP**                             | An image or video stream                                              | Webcam, 3D render, final composite.                                                       |
+| **SOP**                             | A 3D shape made of points/lines/faces                                 | Sphere shape and graph-edge lines.                                                        |
+| **MAT**                             | Paint/material for a 3D object                                        | Node and edge appearance.                                                                 |
+| **Parameter**                       | A setting on a box                                                    | A camera position, URL, scale, or pulse button.                                           |
+| **Pulse**                           | A momentary button press                                              | Manual HTTP refresh and “Set origin.”                                                     |
+| **Null**                            | A named, tidy endpoint                                                | Use after important data chains; it changes nothing.                                      |
+| **Export/reference**                | Let a changing value drive a parameter                                | Hand data drives `graph_root` transforms.                                                 |
+| **Instance**                        | Draw one cheap copy of one shape many times                           | One sphere shape becomes all graph nodes.                                                 |
+| **Render TOP**                      | A virtual camera taking a picture of 3D objects                       | Produces the graph image.                                                                 |
+| **Composite TOP**                   | Photoshop-like image layering                                         | Places the rendered graph over the webcam.                                                |
+| **External** `.tox`                 | A separately saved reusable TouchDesigner component                   | Keeps the large MediaPipe component out of the `.toe`.                                    |
+| `.toe`                              | The main TouchDesigner project file                                   | `touchdesigner/mementos-graph.toe`.                                                       |
+| `.tox`                              | A reusable component file                                             | `touchdesigner/toxes/MediaPipe.tox`.                                                      |
+| **Normalized coordinate**           | A position expressed as a fraction, not pixels                        | `0..1` hand positions survive resolution changes.                                         |
+| **Aspect ratio**                    | Width divided by height                                               | Webcam, MediaPipe, render, and composite must agree.                                      |
+| **Dead zone**                       | Ignore tiny movement near zero                                        | Stops hand jitter moving the graph.                                                       |
+| **Dwell / hysteresis**              | Require stability; use different on/off thresholds                    | Stops accidental and flickering gestures.                                                 |
+| **Snapshot ID**                     | A version label for one complete graph                                | Never combine graph data and retrieval results from different labels.                     |
+| **Entity / node**                   | A named thing and its dot                                             | Has an immutable `id`, `name`, `description`, and `xyz` position.                         |
+| **Relationship / edge**             | A connection and its line                                             | Uses `source`, `target`, and `relation_id`; source/target are node IDs.                   |
+| **Lookup table**                    | A phone book                                                          | Resolves an edge ID to exactly one node position.                                         |
+| **JSON**                            | Structured text with named fields                                     | The sidecar's graph response format.                                                      |
+| **HTTP GET / POST**                 | “Please show me” / “please do this” web requests                      | GET `/td/graph`; POST `/td/refresh` rebuilds/retries a dump.                              |
+| **HTTP 200 / 503**                  | “Here is a good answer” / “service cannot give a complete answer now” | Render a 200 snapshot only; retain old data on 503.                                       |
+| **WebSocket**                       | A web connection that stays open for messages both ways               | Sends one retrieval query and receives one complete reply.                                |
+| **API / sidecar / FastAPI**         | The local helper web service and its doorbell                         | `localhost:8000` is TD's data source.                                                     |
+| **Qdrant / LightRAG**               | The vector database / graph-aware retrieval system                    | They live behind the sidecar; TD never recalculates them.                                 |
+| **RAG**                             | Search over the knowledge graph                                       | The sidecar returns IDs to highlight; TD does not calculate RAG.                          |
+| **Naive / local / global / hybrid** | Four retrieval views                                                  | The reply contains ID lists for all four; each still needs a snapshot match.              |
+| **Ray pick**                        | Shoot an invisible line through a screen point into 3D                | Lets a pinch select the nearest visible node.                                             |
+| **Camera-relative**                 | Positioned relative to the virtual camera                             | Correct scope for this first build.                                                       |
+| **Camera pose / anchor**            | Camera location/orientation / known real-world reference              | Needed for a graph that stays on a physical desk.                                         |
+| **Fiducial marker**                 | A printed high-contrast tracking target                               | One later option for getting stable camera pose.                                          |
+| **AR/depth camera**                 | A camera that also estimates space/depth                              | Another later option; ordinary RGB hand tracking is not one.                              |
+
+
+
 
 ## 1. What you need
 
 - TouchDesigner (use the same version as the MediaPipe release/example when possible), an RGB webcam, and enough GPU performance for a 720p webcam stream.
 - This repository, Python 3.10+, Docker, Node 20+, and its Qdrant/sidecar dependencies.
-- The **current `release.zip`** of [MediaPipe TouchDesigner][mediapipe-release], not its source archive. It includes `MediaPipe.tox` and example projects.
+- The **current** `release.zip` of [MediaPipe TouchDesigner](https://github.com/torinmb/mediapipe-touchdesigner/releases/latest), not its source archive. It includes `MediaPipe.tox` and example projects.
 
 The workplan originally uses 720p because it is a sensible beginner performance target. Recent MediaPipe TouchDesigner releases say their input-resolution parameter can exceed 720p; do not raise it until this guide works reliably at 720p.[^mp-release]
 
@@ -80,11 +86,11 @@ If `sidecar/graph_dump.json` is absent, use the repository's existing graph-dump
 1. Open TouchDesigner and choose **File → New**.
 2. Create `touchdesigner/` and `touchdesigner/toxes/` in the repository if absent. Save now as `touchdesigner/mementos-graph.toe`.
 3. In the root network, press **Tab**, type `base`, and place five **Base COMPs**. Rename them exactly:
-   - `graph_source`
-   - `graph_scene`
-   - `interaction`
-   - `output`
-   - `debug`
+  - `graph_source`
+  - `graph_scene`
+  - `interaction`
+  - `output`
+  - `debug`
 4. Add a **Null COMP** (the 3D object type, not a Base COMP) named `graph_root` *inside* `graph_scene`. It is the single 3D transform parent that will move and scale every graph object.
 5. Save (`Ctrl/Cmd+S`). Reopen the `.toe` once. This proves paths are relative to the project, before the project matters.
 
@@ -112,26 +118,25 @@ Inside `graph_source`:
 
 1. Add a **Web Client DAT** called `get_graph`.
 2. Set **Request Method** to `GET`, **URL** to `http://localhost:8000/td/graph`, and set a sensible timeout (for example 5000 ms). The Web Client DAT's `Request` parameter is a pulse: it sends one request; it is not a per-frame poll.[^web-client]
-3. Add a **Button COMP** named `refresh_graph`. Set its **Button Type** to **Momentary** and its label to `Refresh graph`. Add a **Parameter Execute DAT** named `refresh_on_click`: on its Parameter Execute page, set **OP** to `refresh_graph`; in the `pars`/Parameters field, the value must be the parameter's internal name **`value0`** (not its visible label `Value`); then enable **Value Change**. In the DAT, replace the template with:
-
-   ```python
+3. Add a **Button COMP** named `refresh_graph`. Set its **Button Type** to **Momentary** and its label to `Refresh graph`. Add a **Parameter Execute DAT** named `refresh_on_click`: on its Parameter Execute page, set **OP** to `refresh_graph`, add the button's **Value** parameter (`value0`) to **Parameters**, and enable **Value Change**. In the DAT, replace the template with:
+  ```python
    def onValueChange(par, prev):
        if par.eval():
            parent().op('get_graph').par.request.pulse()
        return
-   ```
-
+  ```
    Clicking the button now sends one explicit request—never a per-frame poll.
 4. Add two **Table DATs** named `nodes_table` and `edges_table`. For each one, turn on its **Viewer Active** flag (the small `A` at the lower-right of the node), then click a cell in the small spreadsheet inside the node to type. Fill only row 0:
 
-   | Table DAT | Type into row 0, one cell at a time (use **Tab** to move right) |
-   |---|---|
-   | `nodes_table` | `id`, `x`, `y`, `z`, `name`, `description` |
-   | `edges_table` | `source`, `target`, `relation_id` |
+  | Table DAT     | Type into row 0, one cell at a time (use **Tab** to move right) |
+  | ------------- | --------------------------------------------------------------- |
+  | `nodes_table` | `id`, `x`, `y`, `z`, `name`, `description`                      |
+  | `edges_table` | `source`, `target`, `relation_id`                               |
 
    Do not type the table names or `#` symbols into a cell. Leave all remaining cells blank: the refresh script fills them.
-
 5. Add a **Text DAT** called `status_text`. It is your plain-English status note, not a data source.
+
+
 
 ### 3.2 Validate first, then replace both tables together
 
@@ -209,19 +214,21 @@ Do nodes first, then edges. Do not add hands until you can inspect every edge wi
 
 ### 4.1 Nodes: one sphere, many instances
 
-1. Inside `graph_scene`, add a low-poly **Sphere SOP** named `node_shape`.
-2. Add a **Geometry COMP** called `nodes_geo`; put or reference `node_shape` inside it and assign a simple **Phong MAT** (or Constant MAT for an unlit first test).
+1. Inside `graph_scene`, add a **Geometry COMP** called `nodes_geo`; then dive into it. Delete its default Torus SOP and add a low-poly **Sphere SOP** named `node_shape` in its place. Turn the Sphere SOP's display and render flags on. Do **not** drag a SOP from outside onto `nodes_geo`: the offered “Parm: …” choices are parameter references, not how a Geometry COMP receives its shape.
+2. Go back up to `graph_scene` and assign `nodes_geo` a simple **Phong MAT** (or Constant MAT for an unlit first test).
 3. Convert `graph_source/nodes_table` to usable numeric data with a **DAT to CHOP** named `node_positions`. Configure it to use headers and select `x y z` (and later `r g b size` if you add them).
 4. On `nodes_geo` → **Instance** page:
-   - turn **Instancing** on;
-   - set **Default Instance OP** to `node_positions`;
-   - select the x, y, z channels for **Translate X/Y/Z**;
-   - choose **Instance OP(s) Length** so the table/CHOP length controls node count.
+  - turn **Instancing** on;
+  - set **Default Instance OP** to `node_positions`;
+  - select the x, y, z channels for **Translate X/Y/Z**;
+  - choose **Instance OP(s) Length** so the table/CHOP length controls node count.
 
 A Geometry COMP can use DAT rows or CHOP channels to drive instance attributes. It makes GPU copies of the one sphere instead of creating one Geometry COMP per entity.[^geometry]
 
-5. On `nodes_geo` → **Xform**, set **Parent Transform Source** to **Specify Parent Object** and **Parent Object** to `../graph_root`.
-6. For deterministic node colour, derive RGB from a stable hash of the entity **ID** during the parse step, add `r/g/b` columns, and map them to the Geometry COMP's instance colour attributes. Do **not** add clustering/Louvain in TD: the current bridge does not return clusters.
+1. On `nodes_geo` → **Xform**, set **Parent Transform Source** to **Specify Parent Object** and **Parent Object** to `../graph_root`.
+2. For deterministic node colour, derive RGB from a stable hash of the entity **ID** during the parse step, add `r/g/b` columns, and map them to the Geometry COMP's instance colour attributes. Do **not** add clustering/Louvain in TD: the current bridge does not return clusters.
+
+
 
 ### 4.2 Edges: join each validated source/target pair
 
@@ -250,6 +257,8 @@ For a pinch hit-test, use TouchDesigner's **Render Pick DAT** or **Render Pick C
 **Checkpoint:** Select one known test node. It grows/brightens and its label is correct.
 
 ## 5. Add webcam and MediaPipe only after the graph renders
+
+
 
 ### 5.1 Install and prove the plugin separately
 
@@ -336,7 +345,7 @@ newScale = clamp(startGraphScale * currentDistance / startPinchDistance,
                  minimumScale, maximumScale)
 ```
 
-4. If either hand disappears or releases, freeze current scale and require a fresh two-hand start. Do not recalculate a starting distance mid-gesture.
+1. If either hand disappears or releases, freeze current scale and require a fresh two-hand start. Do not recalculate a starting distance mid-gesture.
 
 **Pass test:** scale ten times; add/remove a hand without a jump.
 
@@ -353,8 +362,8 @@ Do this last. It is a separate visual layer from manual selection.
 reply['snapshot_id'] == parent().fetch('renderedSnapshotId', None)
 ```
 
-5. If unequal, refresh `/td/graph`; only apply a retrieval reply that matches the newly rendered snapshot. Clear the *previous retrieval highlight* before applying the new matching one. Keep `selectedEntityId` separate so a manual selection survives.
-6. Highlight by returned `entity_ids` and `relation_ids`, never by visible entity name.
+1. If unequal, refresh `/td/graph`; only apply a retrieval reply that matches the newly rendered snapshot. Clear the *previous retrieval highlight* before applying the new matching one. Keep `selectedEntityId` separate so a manual selection survives.
+2. Highlight by returned `entity_ids` and `relation_ids`, never by visible entity name.
 
 The sidecar guarantees a query response is resolved against one whole snapshot; TD must make the same snapshot check before display.[^bridge]
 
@@ -373,6 +382,8 @@ Run in this order, in one session:
 7. Send a retrieval query; only matching snapshot IDs highlight.
 8. Save/close/reopen; repeat 1, 5, and 7 without rewiring.
 
+
+
 ## 10. Later only: attach the graph to a real desk/wall
 
 Do not claim this is included above. If the first-product checklist passes and physical anchoring is truly needed:
@@ -383,36 +394,27 @@ Do not claim this is included above. If the first-product checklist passes and p
 4. On lost anchor, freeze its last good transform, show **“anchor lost”**, and require reacquisition. Never snap to a new guessed position.
 5. Measure alignment by moving the camera around the actual anchor; agree a tolerance before calling it done.
 
+
+
 ## Sources and why they matter
 
-- [TouchDesigner: Web Client DAT][web-client] — request methods, explicit request pulse, response/status information.
-- [TouchDesigner: WebSocket DAT][websocket] — received-message table and callback behavior.
-- [TouchDesigner: Geometry COMP][geometry] — rendering, transforms, instancing, instance count, and external `.tox` parameters.
-- [TouchDesigner: Line SOP][line-sop] — a line is defined by point A and point B.
-- [TouchDesigner: CHOP Execute DAT][chop-execute] — reliable off-to-on gesture edge.
-- [TouchDesigner: Render Pick DAT][render-pick] — screen-to-rendered-geometry selection.
-- [MediaPipe TouchDesigner README][mp-readme] and [release notes][mp-release] — official plugin setup, external tox rationale, and hand-output changes/features.
-- [MediaPipe Hand Landmarker][mp-hands] — landmark and normalized-coordinate model facts.
-- [`sidecar/TD_BRIDGE.md`](../sidecar/TD_BRIDGE.md) — this repository's authoritative graph snapshot and retrieval contract.
+- [TouchDesigner: Web Client DAT](https://docs.derivative.ca/Web_Client_DAT) — request methods, explicit request pulse, response/status information.
+- [TouchDesigner: WebSocket DAT](https://docs.derivative.ca/WebSocket_DAT) — received-message table and callback behavior.
+- [TouchDesigner: Geometry COMP](https://docs.derivative.ca/Geometry_COMP) — rendering, transforms, instancing, instance count, and external `.tox` parameters.
+- [TouchDesigner: Line SOP](https://docs.derivative.ca/Line_SOP) — a line is defined by point A and point B.
+- [TouchDesigner: CHOP Execute DAT](https://docs.derivative.ca/CHOP_Execute_DAT) — reliable off-to-on gesture edge.
+- [TouchDesigner: Render Pick DAT](https://docs.derivative.ca/Render_Pick_DAT) — screen-to-rendered-geometry selection.
+- [MediaPipe TouchDesigner README](https://github.com/torinmb/mediapipe-touchdesigner) and [release notes](https://github.com/torinmb/mediapipe-touchdesigner/releases) — official plugin setup, external tox rationale, and hand-output changes/features.
+- [MediaPipe Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) — landmark and normalized-coordinate model facts.
+- `[sidecar/TD_BRIDGE.md](../sidecar/TD_BRIDGE.md)` — this repository's authoritative graph snapshot and retrieval contract.
 
-[web-client]: https://docs.derivative.ca/Web_Client_DAT
-[websocket]: https://docs.derivative.ca/WebSocket_DAT
-[geometry]: https://docs.derivative.ca/Geometry_COMP
-[line-sop]: https://docs.derivative.ca/Line_SOP
-[chop-execute]: https://docs.derivative.ca/CHOP_Execute_DAT
-[render-pick]: https://docs.derivative.ca/Render_Pick_DAT
-[mediapipe-release]: https://github.com/torinmb/mediapipe-touchdesigner/releases/latest
-[mp-readme]: https://github.com/torinmb/mediapipe-touchdesigner
-[mp-release]: https://github.com/torinmb/mediapipe-touchdesigner/releases
-[mp-hands]: https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker
-
-[^bridge]: Repository-local contract: [`sidecar/TD_BRIDGE.md`](../sidecar/TD_BRIDGE.md).
-[^web-client]: [Web Client DAT documentation][web-client].
-[^websocket]: [WebSocket DAT documentation][websocket].
-[^geometry]: [Geometry COMP documentation][geometry].
-[^line-sop]: [Line SOP documentation][line-sop].
-[^chop-execute]: [CHOP Execute DAT documentation][chop-execute].
-[^render-pick]: [Render Pick DAT documentation][render-pick].
-[^mp-readme]: [MediaPipe TouchDesigner README][mp-readme].
-[^mp-release]: [MediaPipe TouchDesigner releases][mp-release].
-[^mp-hands]: [MediaPipe Hand Landmarker][mp-hands].
+[^bridge]: Repository-local contract: `[sidecar/TD_BRIDGE.md](../sidecar/TD_BRIDGE.md)`.
+[^web-client]: [Web Client DAT documentation](https://docs.derivative.ca/Web_Client_DAT).
+[^websocket]: [WebSocket DAT documentation](https://docs.derivative.ca/WebSocket_DAT).
+[^geometry]: [Geometry COMP documentation](https://docs.derivative.ca/Geometry_COMP).
+[^line-sop]: [Line SOP documentation](https://docs.derivative.ca/Line_SOP).
+[^chop-execute]: [CHOP Execute DAT documentation](https://docs.derivative.ca/CHOP_Execute_DAT).
+[^render-pick]: [Render Pick DAT documentation](https://docs.derivative.ca/Render_Pick_DAT).
+[^mp-readme]: [MediaPipe TouchDesigner README](https://github.com/torinmb/mediapipe-touchdesigner).
+[^mp-release]: [MediaPipe TouchDesigner releases](https://github.com/torinmb/mediapipe-touchdesigner/releases).
+[^mp-hands]: [MediaPipe Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker).
