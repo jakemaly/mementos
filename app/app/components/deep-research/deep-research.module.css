@@ -801,8 +801,16 @@
   margin: clamp(1.6rem, 4vw, 3rem) auto 0;
 }
 
+.traceRouteCanvas {
+  position: relative;
+  isolation: isolate;
+  z-index: 0;
+  overflow: visible;
+}
+
 .traceRoute {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -813,7 +821,7 @@
 .traceRow {
   position: relative;
   min-width: 0;
-  padding-top: 2.7rem;
+  padding-top: 5rem;
 }
 
 .traceRowMilestone {
@@ -839,39 +847,20 @@
   width: 100%;
 }
 
-.traceConnector {
+.traceWires {
   position: absolute;
-  z-index: 0;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 2.7rem;
+  z-index: -1;
   pointer-events: none;
+  overflow: visible;
+  filter: drop-shadow(10px 12px 0 #000);
 }
 
-.traceConnectorFan {
-  height: 2.4rem;
-}
-
-.traceConnector path {
-  fill: none;
-  stroke: var(--trace-black);
-  stroke-width: 14;
-  stroke-linecap: butt;
-  stroke-linejoin: miter;
-  vector-effect: non-scaling-stroke;
+.traceWires path {
+  fill: var(--trace-black);
+  stroke: none;
   animation: traceDrawOn 0.5s ease-out both;
-}
-
-/* Running paths invert against the red field without changing the route shape. */
-.traceConnectorActive path {
-  stroke: var(--trace-white);
-}
-
-.traceConnectorBranching path {
-  /* Shared trunks and branches meet as one angular ribbon. */
-  stroke-linecap: butt;
-  stroke-linejoin: miter;
 }
 
 @keyframes traceDrawOn {
@@ -1119,7 +1108,7 @@
   align-items: center;
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 3px solid var(--trace-white);
+  border: 4px solid var(--trace-white);
   background: var(--node-fill);
   box-shadow: 7px 7px 0 var(--trace-black);
   color: var(--trace-white);
@@ -1170,25 +1159,41 @@
   color: #c7c0b8;
 }
 
-/* Parallel batches fan out in one horizontal row; narrow screens
-   collapse to a vertical stack (see media query below). */
+/* Batches stack on the SNS track the way chat bubbles sit on the spine. */
 .fanOutArea {
   position: relative;
-  margin-top: 2.4rem;
+  margin-top: 5rem;
 }
 
 .fanOut {
-  display: grid;
-  grid-template-columns: repeat(var(--fan-count, 1), minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
+  gap: 4.5rem;
+  width: min(520px, 100%);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.traceRow-left .fanOut {
+  margin-right: auto;
+}
+
+.traceRow-right .fanOut {
+  margin-left: auto;
+}
+
 .batchRow {
   position: relative;
   min-width: 0;
-  padding: 0 0.45rem;
+}
+
+.batchRow:nth-child(even) {
+  margin-left: 2.25rem;
+}
+
+.batchRow:nth-child(odd) {
+  margin-right: 2.25rem;
 }
 
 .batchCard {
@@ -1200,7 +1205,7 @@
   align-items: center;
   min-width: 0;
   padding: 0.8rem 0.95rem;
-  border: 2px solid var(--trace-white);
+  border: 3px solid var(--trace-white);
   background: var(--node-fill);
   box-shadow: 5px 5px 0 var(--trace-black);
   color: var(--trace-white);
@@ -1291,6 +1296,7 @@
 
 .ingestNode {
   --node-fill: var(--trace-white);
+  position: relative;
   display: flex;
   gap: 0.8rem;
   align-items: center;
@@ -1383,41 +1389,36 @@
   padding-top: 1.2rem;
 }
 
-/* Small pointed tails make each box feel pinned to the ribbon. */
-.milestoneCard::after,
-.checkpointCard::after,
-.batchCard::after,
-.rankedCard::after,
-.ingestNode::after,
-.checkpointCard::before,
-.batchCard::before,
-.rankedCard::before,
-.ingestNode::before {
+/* Pointed tails pin each box to a measured wire tip. */
+.routeTailTop,
+.routeTailBottom {
   position: absolute;
   z-index: 2;
-  left: 50%;
+  left: 2.6rem;
   width: 0;
   height: 0;
   border-right: 10px solid transparent;
   border-left: 10px solid transparent;
   pointer-events: none;
-  content: '';
-  transform: translateX(-50%);
 }
 
-.milestoneCard::after,
-.checkpointCard::after,
-.batchCard::after,
-.rankedCard::after,
-.ingestNode::after {
+.milestoneCard > .routeTailBottom,
+.checkpointCard > .routeTailTop,
+.checkpointCard > .routeTailBottom,
+.batchCard > .routeTailTop,
+.batchCard > .routeTailBottom,
+.rankedCard > .routeTailTop,
+.rankedCard > .routeTailBottom,
+.ingestNode > .routeTailTop {
+  transform: none;
+}
+
+.routeTailBottom {
   bottom: -15px;
   border-top: 15px solid var(--node-fill);
 }
 
-.checkpointCard::before,
-.batchCard::before,
-.rankedCard::before,
-.ingestNode::before {
+.routeTailTop {
   top: -15px;
   border-bottom: 15px solid var(--node-fill);
 }
@@ -1446,16 +1447,21 @@
 
   .milestoneCard,
   .rankedCard,
-  .ingestCard {
+  .ingestCard,
+  .fanOut {
     width: 100%;
   }
 
-  .fanOut {
-    grid-template-columns: 1fr;
+  .traceRow-left .fanOut,
+  .traceRow-right .fanOut {
+    margin-left: 0;
+    margin-right: 0;
   }
 
-  .batchRow {
-    padding: 0;
+  .batchRow:nth-child(even),
+  .batchRow:nth-child(odd) {
+    margin-left: 0.6rem;
+    margin-right: 0.6rem;
   }
 
   .artifactPopover {
@@ -1470,12 +1476,12 @@
   }
 
   .traceRowCheckpoint {
-    padding-top: 2.2rem;
+    padding-top: 5.5rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .traceConnector path,
+  .traceWires path,
   .traceMarkerRunning {
     animation: none;
   }

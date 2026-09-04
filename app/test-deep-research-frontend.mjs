@@ -123,16 +123,16 @@ ok('Register preserves selection announcements', sources.includes('aria-live="po
 ok('Partial and total import outcomes stay visible', sources.includes('Partially imported') && sources.includes('failed'));
 
 console.log('\n=== Design constraints ===\n');
-ok('Connectors are deterministic SVG wires between anchors', surface.includes('RouteConnector') && surface.includes('viewBox') && surface.includes('preserveAspectRatio') && surface.includes('M ${to} 0'));
-ok('Parallel connectors share a trunk before branching', surface.includes('traceConnectorBranching') && surface.includes('trunkX') && surface.includes('branchX'));
-ok('Connectors sit behind semantic content', css.includes('.traceConnector') && css.includes('z-index: 0') && css.includes('pointer-events: none'));
-ok('Active connectors stay high-contrast on the red field', css.includes('.traceConnectorActive path') && css.includes('stroke: var(--trace-white)'));
-ok('Connector ribbons are uniform, thick and angular', css.includes('vector-effect: non-scaling-stroke') && css.includes('stroke-width: 14') && css.includes('stroke-linejoin: miter'));
+ok('Connectors are one measured spine behind the route', surface.includes('RouteWires') && surface.includes('spinePath') && surface.includes('data-route-anchor'));
+ok('Spine visits each checkpoint and its batches', surface.includes('spineIds') && surface.includes('batch.id') && !surface.includes('trunkX'));
+ok('Connectors sit behind semantic content', css.includes('.traceWires') && css.includes('z-index: -1') && css.includes('pointer-events: none'));
+ok('Connectors stay black on the red field', css.includes('.traceWires path') && css.includes('fill: var(--trace-black)'));
+ok('Connectors are a filled SNS track', surface.includes('P5 SNS track') && css.includes('fill: var(--trace-black)') && css.includes('stroke: none') && css.includes('drop-shadow'));
 ok('Route uses the crimson / black / white treatment', css.includes('--trace-red: #c90000') && css.includes('background: var(--trace-red)') && css.includes('background: var(--trace-black)'));
 ok('Nodes use skewed, offset geometry and pointed tails', css.includes('skewX(-8deg)') && css.includes('border-top: 15px solid var(--node-fill)'));
 ok('Desktop zig-zag rows alternate sides', css.includes('.traceRow-left') && css.includes('.traceRow-right'));
-ok('Parallel batches fan out in one horizontal row', surface.includes('--fan-count') && css.includes('repeat(var(--fan-count, 1), minmax(0, 1fr))'));
-ok('Fan-out collapses to a vertical stack on narrow screens', css.includes('grid-template-columns: 1fr'));
+ok('Batches stack along the SNS track', css.includes('flex-direction: column') && css.includes('.batchRow:nth-child(even)'));
+ok('Narrow screens keep the stacked track', css.includes('margin-left: 0.6rem') && css.includes('margin-right: 0.6rem'));
 ok('Popover paints above later route rows', css.includes('z-index: 30') && css.includes('.artifactPopover'));
 ok('No horizontal trace canvas or pan controls', !css.includes('overflow-x: scroll') && !css.includes('overflow-x: auto') && !surface.includes('minimap') && !surface.includes('Pan ') && !surface.includes('Zoom '));
 ok('Page scrolls vertically', css.includes('.traceMain') && css.includes('padding: clamp(1.2rem'));

@@ -1,6 +1,6 @@
 'use client';
 
-import { type CSSProperties, ReactNode, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ResearchBrief, Sketch, Source } from '@/app/lib/research-contracts';
 import { ResearchTraceProjection } from './trace-model';
 import { buildTraceRoute, CheckpointNode, IngestNode } from './trace-route';
@@ -138,70 +138,133 @@ function CallingCardArt({ text }: { text: string }) {
   );
 }
 
-// ── Connector geometry (deterministic wires between node anchors) ──────
+// ── Connector geometry (one P5 SNS track) ─────────────────────────
 
-/**
- * Anchors are horizontal positions as fractions of the route width
- * (0–100 in the viewBox). Every node exposes an anchor set: milestone,
- * ranked and ingest sit centered (50); checkpoint cards sit at 25/75 on
- * wide screens and 50 on narrow; batch cards sit at (i + 0.5)/N across a
- * horizontal fan-out and 50 when stacked.
- *
- * A single connection is a deterministic, slightly irregular polyline.
- * Parallel connections share a short trunk before splitting into branch
- * ribbons, so they read as one continuous route rather than floating wires.
- */
-function RouteConnector({ from, to, active, fan }: { from: readonly number[]; to: number; active?: boolean; fan?: boolean }) {
-  const anchors = [...new Set(from)];
-  const branching = anchors.length > 1;
-  const seed = Math.abs(Math.round(to * 10) + anchors.reduce((sum, anchor) => sum + Math.round(anchor * 10), 0));
-  const trunkX = to + ((seed % 3) - 1) * 1.5;
-  const className = [
-    styles.traceConnector,
-    fan ? styles.traceConnectorFan : '',
-    branching ? styles.traceConnectorBranching : '',
-    active ? styles.traceConnectorActive : '',
-  ].join(' ');
+type Pt = { x: number; y: number };
 
-  const paths = branching
-    ? [
-        `M ${to} 0 L ${trunkX} 18`,
-        ...anchors.map((anchor, index) => {
-          const branchX = anchor + ((index % 3) - 1) * 1.8;
-          const branchY = 26 + (index % 2) * 2;
-          return `M ${trunkX} 18 L ${branchX} ${branchY} L ${anchor} 40`;
-        }),
-      ]
-    : anchors.map((anchor) => {
-        if (anchor === to) return `M ${to} 0 L ${to} 40`;
-        const firstX = to + ((seed % 3) - 1) * 2;
-        const secondX = anchor - (((seed + 1) % 3) - 1) * 1.5;
-        return `M ${to} 0 L ${firstX} 11 L ${secondX} 29 L ${anchor} 40`;
-      });
-
+/** Pointed tails pin each card onto the track. */
+function RouteTails({ top, bottom }: { top?: boolean; bottom?: boolean }) {
   return (
-    <svg className={className} viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
-      {paths.map((path, index) => <path key={`${path}-${index}`} d={path} />)}
-    </svg>
+    <>
+      {top && <span className={styles.routeTailTop} data-route-anchor="top" aria-hidden="true" />}
+      {bottom && <span className={styles.routeTailBottom} data-route-anchor="bottom" aria-hidden="true" />}
+    </>
   );
 }
 
-/** Batch centers: (i + 0.5)/N across a horizontal fan-out, 50 when stacked. */
-function batchAnchors(count: number, narrow: boolean): number[] {
-  return Array.from({ length: count }, (_, i) => (narrow ? 50 : ((i + 0.5) / count) * 100));
+function pt(x: number, y: number): Pt {
+  return { x, y };
 }
 
-/** Mirrors the 720px CSS breakpoint so connector geometry matches the layout. */
-function useNarrowSurface(): boolean {
-  const [narrow, setNarrow] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia('(max-width: 720px)');
-    const update = () => setNarrow(media.matches);
-    update();
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
-  return narrow;
+function sub(a: Pt, b: Pt): Pt {
+  return pt(a.x - b.x, a.y - b.y);
+}
+
+function add(a: Pt, b: Pt): Pt {
+  return pt(a.x + b.x, a.y + b.y);
+}
+
+function scale(a: Pt, s: number): Pt {
+  return pt(a.x * s, a.y * s);
+}
+
+function mag(a: Pt): number {
+  return Math.hypot(a.x, a.y);
+}
+
+function dir(a: Pt): Pt {
+  const length = mag(a) || 1;
+  return pt(a.x / length, a.y / length);
+}
+
+function perp(a: Pt): Pt {
+  return pt(-a.y, a.x);
+}
+
+function poly(points: Pt[]): string {
+  return `M ${points.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L ')} Z`;
+}
+
+function miter(prev: Pt | undefined, curr: Pt, next: Pt | undefined, half: number, sign: 1 | -1): Pt {
+  const incoming = prev ? dir(sub(curr, prev)) : next ? dir(sub(next, curr)) : pt(0, 1);
+  const outgoing = next ? dir(sub(next, curr)) : incoming;
+  const n1 = scale(perp(incoming), sign);
+  const n2 = scale(perp(outgoing), sign);
+  const t = half / Math.max(0.42, 1 + n1.x * n2.x + n1.y * n2.y);
+  return add(curr, scale(add(n1, n2), t));
+}
+
+function extendLine(points: Pt[]): Pt[] {
+  if (points.length < 2) return points;
+  const first = points[0];
+  const second = points[1];
+  const last = points[points.length - 1];
+  const prev = points[points.length - 2];
+  return [sub(first, scale(dir(sub(second, first)), 28)), ...points, add(last, scale(dir(sub(last, prev)), 28))];
+}
+
+/** One closed ribbon — the P5 SNS track is a single strip, not per-link shards. */
+function spinePath(points: Pt[], halves: number[]): string {
+  if (points.length < 2) return '';
+  const line = extendLine(points);
+  const widths = [halves[0], ...halves, halves[halves.length - 1]];
+  const left: Pt[] = [];
+  const right: Pt[] = [];
+  for (let i = 0; i < line.length; i += 1) {
+    const half = widths[i] ?? 36;
+    left.push(miter(line[i - 1], line[i], line[i + 1], half, 1));
+    right.push(miter(line[i - 1], line[i], line[i + 1], half, -1));
+  }
+  return poly([...left, ...right.reverse()]);
+}
+
+function RouteWires({ canvasRef, ids }: { canvasRef: RefObject<HTMLDivElement | null>; ids: readonly string[] }) {
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const [d, setD] = useState('');
+
+  const redraw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const origin = canvas.getBoundingClientRect();
+    const stations = ids.flatMap((id, index) => {
+      const node = canvas.querySelector(`[data-route-id="${CSS.escape(id)}"]`);
+      if (!node) return [];
+      const rect = node.getBoundingClientRect();
+      const half = 42 + (index % 3) * 3;
+      const pin = Math.min(52, Math.max(36, rect.width * 0.16));
+      const stagger = (index % 2 === 0 ? -1 : 1) * 18;
+      const raw = rect.left + pin - origin.left + stagger;
+      const x = Math.min(origin.width - half - 18, Math.max(half + 18, raw));
+      return [{
+        x,
+        y: rect.top + rect.height / 2 - origin.top,
+        half,
+      }];
+    });
+    const nextD = stations.length >= 2 ? spinePath(stations.map((s) => pt(s.x, s.y)), stations.map((s) => s.half)) : '';
+    setBox((prev) => (prev.w === origin.width && prev.h === origin.height ? prev : { w: origin.width, h: origin.height }));
+    setD((prev) => (prev === nextD ? prev : nextD));
+  }, [canvasRef, ids]);
+
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    redraw();
+    const observer = new ResizeObserver(redraw);
+    observer.observe(canvas);
+    window.addEventListener('resize', redraw);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', redraw);
+    };
+  }, [canvasRef, redraw]);
+
+  if (box.w === 0 || box.h === 0 || !d) return null;
+  return (
+    <svg className={styles.traceWires} width={box.w} height={box.h} viewBox={`0 0 ${box.w} ${box.h}`} aria-hidden="true">
+      <path d={d} />
+    </svg>
+  );
 }
 
 // ── Artifact popover ───────────────────────────────────────────────────
@@ -309,7 +372,7 @@ export function TraceSurface({
   const [openArtifact, setOpenArtifact] = useState<'brief' | 'sketch' | null>(null);
   const briefTriggerRef = useRef<HTMLButtonElement | null>(null);
   const sketchTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const narrow = useNarrowSurface();
+  const canvasRef = useRef<HTMLDivElement | null>(null);
 
   const isRunning = runState === 'starting' || runState === 'researching';
   const status = statusCopy(runState);
@@ -327,13 +390,6 @@ export function TraceSurface({
     () => route.nodes.filter((node): node is CheckpointNode => node.kind === 'checkpoint'),
     [route],
   );
-
-  const activeCheckpointId = useMemo(() => {
-    const active = [...checkpoints]
-      .reverse()
-      .find((cp) => cp.status === 'running' || cp.batches.some((batch) => batch.status === 'running'));
-    return active?.id;
-  }, [checkpoints]);
 
   const closeArtifact = useCallback(() => {
     setOpenArtifact((current) => {
@@ -355,21 +411,34 @@ export function TraceSurface({
     return parts.join(' · ');
   }, [checkpoints, sources.length]);
 
-  // Anchor threading: every row's connector wires the previous row's
-  // anchors to this row's card center, so lines visibly connect nodes.
-  const checkpointEntries = checkpoints.map((cp, index) => {
-    const side = index % 2 === 0 ? 'left' : 'right';
-    const center = narrow ? 50 : side === 'left' ? 25 : 75;
-    const anchors = cp.batches.length > 0 ? batchAnchors(cp.batches.length, narrow) : [center];
-    return { cp, isActive: cp.id === activeCheckpointId, side, center, anchors };
-  });
-  const checkpointRows = checkpointEntries.map((entry, index) => {
-    const { cp, isActive, side, center, anchors } = entry;
-    const prevAnchors = index === 0 ? [50] : checkpointEntries[index - 1].anchors;
+  const milestone = route.milestone;
+  const ranked = route.ranked;
+  const ingest = route.ingest;
+
+  const checkpointEntries = useMemo(
+    () => checkpoints.map((cp, index) => ({
+      cp,
+      side: index % 2 === 0 ? 'left' : 'right',
+    })),
+    [checkpoints],
+  );
+
+  const spineIds = useMemo(() => {
+    const ids = ['milestone'];
+    for (const entry of checkpointEntries) {
+      ids.push(entry.cp.id);
+      for (const batch of entry.cp.batches) ids.push(batch.id);
+    }
+    ids.push('ranked', 'ingest');
+    return ids;
+  }, [checkpointEntries]);
+
+  const checkpointRows = checkpointEntries.map((entry) => {
+    const { cp, side } = entry;
     return (
       <li key={cp.id} className={`${styles.traceRow} ${styles.traceRowCheckpoint} ${styles[`traceRow-${side}`]}`}>
-        <RouteConnector from={prevAnchors} to={center} active={isActive} />
-        <div className={styles.checkpointCard}>
+        <div className={styles.checkpointCard} data-route-id={cp.id}>
+          <RouteTails top bottom />
           <span className={`${styles.traceMarker} ${cp.status === 'running' ? styles.traceMarkerRunning : ''}`} aria-hidden="true">
             {cp.status === 'completed' ? '✓' : '•'}
           </span>
@@ -380,14 +449,11 @@ export function TraceSurface({
         </div>
         {cp.batches.length > 0 && (
           <div className={styles.fanOutArea}>
-            <RouteConnector from={anchors} to={center} active={isActive} fan />
-            <ul
-              className={styles.fanOut}
-              style={{ ['--fan-count' as string]: String(cp.batches.length) } as CSSProperties}
-            >
+            <ul className={styles.fanOut}>
               {cp.batches.map((batch) => (
                 <li key={batch.id} className={styles.batchRow}>
-                  <div className={styles.batchCard} data-status={batch.status}>
+                  <div className={styles.batchCard} data-route-id={batch.id} data-status={batch.status}>
+                    <RouteTails top bottom />
                     <span className={styles.batchMarker} aria-hidden="true">
                       {batch.status === 'completed' ? '✓' : batch.status === 'failed' ? '!' : batch.status === 'running' ? '•' : '○'}
                     </span>
@@ -409,10 +475,6 @@ export function TraceSurface({
       </li>
     );
   });
-
-  const milestone = route.milestone;
-  const ranked = route.ranked;
-  const ingest = route.ingest;
   const briefCreated = milestone.brief === 'created';
   const sketchCreated = milestone.sketch === 'created';
 
@@ -453,9 +515,12 @@ export function TraceSurface({
       )}
 
       <div className={styles.traceRouteWrap}>
-        <ol className={styles.traceRoute}>
+        <div ref={canvasRef} className={styles.traceRouteCanvas}>
+          <RouteWires canvasRef={canvasRef} ids={spineIds} />
+          <ol className={styles.traceRoute}>
           <li className={`${styles.traceRow} ${styles.traceRowMilestone}`}>
-            <div className={styles.milestoneCard}>
+            <div className={styles.milestoneCard} data-route-id="milestone">
+              <RouteTails bottom />
               <span className={styles.milestoneKicker}>Brief + Sketch</span>
               <div className={styles.artifactRows}>
                 <div className={styles.artifactRowWrap}>
@@ -534,8 +599,8 @@ export function TraceSurface({
           {checkpointRows}
 
           <li className={`${styles.traceRow} ${styles.traceRowRanked}`}>
-            <RouteConnector from={checkpointEntries.length > 0 ? checkpointEntries[checkpointEntries.length - 1].anchors : [50]} to={50} active={ranked.status === 'running'} />
-            <div className={styles.rankedCard} data-status={ranked.status}>
+            <div className={styles.rankedCard} data-route-id="ranked" data-status={ranked.status}>
+              <RouteTails top bottom />
               <span className={`${styles.traceMarker} ${ranked.status === 'running' ? styles.traceMarkerRunning : ''}`} aria-hidden="true">
                 {ranked.status === 'completed' ? '✓' : ranked.status === 'running' ? '•' : '○'}
               </span>
@@ -551,9 +616,9 @@ export function TraceSurface({
           </li>
 
           <li className={`${styles.traceRow} ${styles.traceRowIngest}`}>
-            <RouteConnector from={[50]} to={50} active={ingest.status === 'importing'} />
             <div className={styles.ingestCard}>
-              <div className={styles.ingestNode} data-status={ingest.status}>
+              <div className={styles.ingestNode} data-route-id="ingest" data-status={ingest.status}>
+                <RouteTails top />
                 <span className={styles.ingestMarker} aria-hidden="true">
                   {ingest.status === 'imported' ? '✓' : ingest.status === 'import-failed' ? '!' : ingest.status === 'importing' ? '•' : '○'}
                 </span>
@@ -586,6 +651,7 @@ export function TraceSurface({
             )}
           </li>
         </ol>
+        </div>
       </div>
 
       <p className={styles.traceSummary} aria-live="polite">{summary}</p>
