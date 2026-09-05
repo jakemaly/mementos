@@ -297,7 +297,7 @@ Inside `output`:
 1. Bring in the camera TOP from MediaPipe using a **Select TOP** (or the plugin's video output).
 2. Bring in `graph_scene/render_graph` with another Select TOP.
 3. Make their resolutions/aspect ratio equal. A Resolution TOP can make the render match the camera if required.
-4. Add a **Composite TOP**. Put the camera on input 0 and the graph render (with transparent background) on input 1; use an over-style operation. Add the selection Text TOP afterward in a second Composite TOP.
+4. Add a **Composite TOP** using the `Over` operation. Put the transparent graph render on input 0 (foreground) and the camera on input 1 (background). Add the selection Text TOP afterward in a second Composite TOP.
 5. Add a Null TOP named `final_output` and view it.
 
 Position `graph_root` at a fixed virtual depth in front of `camera1`. It is an ordinary 3D object in the render camera's space; that is why it stays visually coherent in the camera image. It still is not physically anchored in the room.
