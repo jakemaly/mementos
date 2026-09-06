@@ -16,7 +16,7 @@ interface CitationListProps {
   anchorPrefix?: string;
 }
 
-function citationKey(source: CitationSource): string {
+export function citationKey(source: CitationSource): string {
   try {
     const url = new URL(source.path);
     url.hash = '';

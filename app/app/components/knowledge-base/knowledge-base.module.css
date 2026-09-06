@@ -114,6 +114,11 @@
   color: var(--kb-white);
 }
 
+.tabs button > span {
+  display: block;
+  transform: skewX(8deg);
+}
+
 .tabs button:focus-visible,
 .stopButton:focus-visible,
 .newChatButton:focus-visible,
@@ -608,8 +613,6 @@
   font-size: 1rem;
   line-height: 1.35;
   resize: vertical;
-  transform: skewX(-6deg);
-}
 
 .composerField input {
   min-height: 3.1rem;
@@ -716,6 +719,10 @@
     grid-column: auto;
   }
 
+  .tabs button > span {
+    transform: none;
+  }
+
   .sendButton {
     width: 100%;
     justify-content: space-between;
@@ -734,7 +741,8 @@
   }
 
   .bubble > *,
-  .userMessage .bubble > * {
+  .userMessage .bubble > *,
+  .tabs button > span {
     transform: none;
   }
 }

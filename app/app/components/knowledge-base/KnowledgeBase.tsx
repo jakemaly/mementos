@@ -70,7 +70,7 @@ export function KnowledgeBase(props: KnowledgeBaseProps) {
             tabIndex={view === 'chat' ? 0 : -1}
             onClick={() => selectView('chat')}
             onKeyDown={onTabKeyDown}
-          >Chat</button>
+          ><span>Chat</span></button>
           <button
             ref={(element) => { tabRefs.current.vector = element; }}
             id="knowledge-base-vector-tab"
@@ -81,7 +81,7 @@ export function KnowledgeBase(props: KnowledgeBaseProps) {
             tabIndex={view === 'vector' ? 0 : -1}
             onClick={() => selectView('vector')}
             onKeyDown={onTabKeyDown}
-          >Vector Search</button>
+          ><span>Vector Search</span></button>
         </div>
         <aside className={styles.archiveStamp} aria-label="Current collection context">
           <span>Collection / active</span>

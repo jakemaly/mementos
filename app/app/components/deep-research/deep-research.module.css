@@ -1484,6 +1484,11 @@
   .traceRowCheckpoint {
     padding-top: 5.5rem;
   }
+
+  .milestoneCard,
+  .milestoneCard > * {
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

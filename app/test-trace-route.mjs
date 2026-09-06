@@ -180,9 +180,9 @@ assert.equal(r.ranked.status, 'completed');
 assert.equal(r.ingest.status, 'locked');
 assert.equal(r.milestone.brief, 'created');
 
-// Partial timeout: ranking completed (done arrived) but ingest stays locked.
+// Partial timeout does not claim ranking completed; ingestion stays locked.
 r = route([brief, event('done', { source_count: 2, partial: true, timeout_phase: 'iteration_1' }, { id: 'done-p' })], 'failed');
-assert.equal(r.ranked.status, 'completed');
+assert.equal(r.ranked.status, 'pending');
 assert.equal(r.ingest.status, 'locked');
 
 // No scoring yet.

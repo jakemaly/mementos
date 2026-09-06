@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ChatComposer } from './ChatComposer';
-import { CitationList, CitationSource } from './CitationList';
+import { citationKey, CitationList, CitationSource } from './CitationList';
 import styles from './knowledge-base.module.css';
 
 type MessageStatus = 'retrieving' | 'streaming' | 'stopped' | 'failed' | 'complete' | 'insufficient';
@@ -109,7 +109,7 @@ export function RagChat({ collection, collections, unavailable, onCollectionChan
           if (event === 'delta') setMessages((current) => current.map((message) => message.id === assistantId ? { ...message, content: message.content + (data.text || ''), status: 'streaming' } : message));
           if (event === 'sources') setMessages((current) => current.map((message) => {
             if (message.id !== assistantId) return message;
-            const sources = Array.from(new Map((data.sources || []).map((source) => [source.id, source])).values());
+            const sources = Array.from(new Map((data.sources || []).map((source) => [citationKey(source), source])).values());
             return { ...message, sources };
           }));
           if (event === 'done') setMessages((current) => current.map((message) => message.id === assistantId ? { ...message, status: message.status === 'insufficient' ? 'insufficient' : 'complete' } : message));

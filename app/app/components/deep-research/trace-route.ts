@@ -214,7 +214,9 @@ function buildCheckpoints(
       added += 1;
     }
     if (added === 0) continue;
-    const target = owner.find((batch) => batch.query === fact.query) ?? owner[0];
+    const target = owner.find((batch) => batch.sourceId === fact.parentId && batch.query === fact.query)
+      ?? owner.find((batch) => batch.query === fact.query)
+      ?? owner[0];
     if (target) target.newCount += added;
   }
 
@@ -247,7 +249,7 @@ function createVirtual(byIteration: Map<number, CheckpointNode>, iteration: numb
 
 function buildRanked(facts: readonly TraceFact[]): RankedNode {
   const scoring = [...facts].reverse().find((fact) => fact.kind === 'scoring');
-  const done = facts.some((fact) => fact.kind === 'done');
+  const done = facts.some((fact) => fact.kind === 'done' && !fact.partial);
   if (scoring?.rankingCompleted || done) return { kind: 'ranked', id: 'ranked', status: 'completed' };
   if (scoring) return { kind: 'ranked', id: 'ranked', status: 'running' };
   return { kind: 'ranked', id: 'ranked', status: 'pending' };
@@ -256,10 +258,10 @@ function buildRanked(facts: readonly TraceFact[]): RankedNode {
 function buildIngestStatus(runState: RunState, ingestState: IngestRunState): IngestStatus {
   if (runState === 'starting' || runState === 'researching' || runState === 'failed') return 'locked';
   if (runState === 'ingesting') return 'importing';
+  if (ingestState === 'partial') return 'import-partial';
   if (runState === 'ingested') return 'imported';
   // completed: ranking produced the final deduplicated list
   if (ingestState === 'importing') return 'importing';
-  if (ingestState === 'partial') return 'import-partial';
   if (ingestState === 'imported') return 'imported';
   if (ingestState === 'failed') return 'import-failed';
   return 'ready';

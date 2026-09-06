@@ -24,7 +24,7 @@ ok('page composes Deep Research and Knowledge Base views', page.includes('<DeepR
 ok('legacy dashboard state is removed', !page.includes('ragMode') && !page.includes('ragIngestText') && !page.includes('sessionCounts'));
 ok('Chat is the default local view', knowledgeBase.includes("useState<LocalView>('chat')"));
 ok('Collection changes reset chat without a confirmation popup', knowledgeBase.includes('setChatKey((key) => key + 1)') && !knowledgeBase.includes('window.confirm'));
-ok('text-labelled local view switch exists', knowledgeBase.includes('>Chat</button>') && knowledgeBase.includes('>Vector Search</button>'));
+ok('text-labelled local view switch exists', knowledgeBase.includes('>Chat</span>') && knowledgeBase.includes('>Vector Search</span>'));
 ok('archive dossier names the active collection context', knowledgeBase.includes('Archive dossier') && knowledgeBase.includes('selectedCollection'));
 ok('tabs expose keyboard and tab-panel semantics', knowledgeBase.includes('aria-controls') && knowledgeBase.includes('ArrowRight') && knowledgeBase.includes('role="tabpanel"'));
 ok('Chat and Vector Search retain in-session state while switching', knowledgeBase.includes("hidden={view !== 'chat'}") && knowledgeBase.includes("hidden={view !== 'vector'}"));
