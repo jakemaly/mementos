@@ -39,6 +39,7 @@ export function AppShell({
               type="button"
               className={styles.destination}
               aria-current={activeDestination === 'research' ? 'page' : undefined}
+              disabled={activeDestination !== 'research' && !onOpenResearch}
               onClick={onOpenResearch}
             >
               <span className={styles.navNumber} aria-hidden="true">01</span>
@@ -51,6 +52,7 @@ export function AppShell({
               type="button"
               className={styles.destination}
               aria-current={activeDestination === 'knowledge-base' ? 'page' : undefined}
+              disabled={activeDestination !== 'knowledge-base' && !onOpenKnowledgeBase}
               onClick={onOpenKnowledgeBase}
             >
               <span className={styles.navNumber} aria-hidden="true">02</span>
@@ -63,6 +65,7 @@ export function AppShell({
               id="collection-settings-trigger"
               type="button"
               className={styles.destination}
+              disabled={!onOpenCollectionSettings}
               onClick={onOpenCollectionSettings}
             >
               <span className={styles.navNumber} aria-hidden="true">03</span>

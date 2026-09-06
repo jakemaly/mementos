@@ -47,9 +47,11 @@ ok('Chat renders deduplicated sources and inline markers', ragChat.includes("eve
 ok('external citations are safe and local sources stay text', citations.includes('rel="noreferrer"') && citations.includes('source.path'));
 ok('citations are grouped as a source index', citations.includes('Source index') && citations.includes('aria-labelledby'));
 ok('vector search reports explicit result state', vectorSearch.includes("status === 'results'") && vectorSearch.includes('matches'));
-ok('dossier styling provides an asymmetric spine and soft paper boundary', knowledgeBaseCss.includes('.spine') && knowledgeBaseCss.includes('.paper') && knowledgeBaseCss.includes('clip-path'));
+ok('archive uses the SNS track and chat bubbles', knowledgeBaseCss.includes('.spine') && knowledgeBaseCss.includes('.threadActive') && knowledgeBaseCss.includes('repeat-y') && knowledgeBaseCss.includes('--kb-red'));
+ok('chat track appears only after a message', ragChat.includes('messages.length > 0 &&') && ragChat.includes('threadActive'));
+ok('vector track appears only after a search', vectorSearch.includes('submitted ?') && vectorSearch.includes('threadActive'));
 ok('drawer is hidden by default and uses dialog semantics', drawer.includes('if (!open) return null') && drawer.includes('role="dialog"'));
-ok('drawer retains a partial-failure file and restores focus', drawer.includes("if (data.status === 'complete') setFile(null)") && drawer.includes("getElementById('collections-trigger')?.focus()"));
+ok('drawer retains a partial-failure file and restores focus', drawer.includes("if (data.status === 'complete') setFile(null)") && drawer.includes("getElementById('collection-settings-trigger')?.focus()"));
 ok('drawer traps Tab focus while open', drawer.includes("event.key === 'Tab'") && drawer.includes('drawerRef.current.querySelectorAll'));
 ok('drawer closes when its backdrop is clicked', drawer.includes('event.target === event.currentTarget') && drawer.includes('requestClose()'));
 ok('drawer is full-width on narrow screens', drawerCss.includes('@media (max-width: 768px)') && drawerCss.includes('width: 100%'));
