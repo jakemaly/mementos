@@ -73,6 +73,10 @@ def _create_llm_func():
     ) -> str:
         if history_messages is None:
             history_messages = []
+        extra_body = dict(kwargs.pop("extra_body", {}) or {})
+        chat_kwargs = dict(extra_body.get("chat_template_kwargs") or {})
+        chat_kwargs["enable_thinking"] = False
+        extra_body["chat_template_kwargs"] = chat_kwargs
         return await openai_complete_if_cache(
             model=os.getenv("OPENAI_MODEL_NAME", "gpt-4o-mini"),
             prompt=prompt,
@@ -80,6 +84,7 @@ def _create_llm_func():
             history_messages=history_messages,
             base_url=os.getenv("OPENAI_API_BASE"),
             api_key=os.getenv("OPENAI_API_KEY"),
+            extra_body=extra_body,
             **kwargs,
         )
 

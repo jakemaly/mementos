@@ -79,6 +79,12 @@ ok('Source discovery counts canonical URLs once', traceRoute.includes('canonical
 ok('Parent pairing lives in the projection', traceModel.includes('pairChildren') && traceModel.includes('parentId'));
 ok('Unknown facts are retained', traceModel.includes("kind: 'unknown'") && traceModel.includes('toUnknownFact'));
 ok('Calling-card renderer is the existing asset', callingCard.includes('export function drawCallingCardText') && callingCard.includes('export function createCallingCardText'));
+ok('Calling card redraws when its container resizes', surface.includes('ResizeObserver') && surface.includes('const draw = useCallback'));
+ok('Research stream detects missing terminal events', root.includes('terminalEvent') && root.includes('Research ended before a final result arrived'));
+ok('Partial imports remain explicit in the route', surface.includes('Partially imported') && traceRoute.includes("import-partial"));
+ok('Ingestion errors remain visible in source review', surface.includes('errorMessage={errorMessage}'));
+ok('Repeated query batches retain distinct identities', traceRoute.includes('sourceId: fact.id') && traceRoute.includes('batch-${iteration}:${fact.id}:${query}'));
+ok('Trace canvas declares shared art tokens', css.includes('--field: #c90000') && css.includes('--label: #ffb3b8'));
 
 console.log('\n=== Trace surface ===\n');
 ok('Surface renders the query calling-card artwork', surface.includes('CallingCardArt') && surface.includes('createCallingCardText'));
@@ -128,7 +134,7 @@ ok('Spine visits each checkpoint and its batches', surface.includes('spineIds') 
 ok('Connectors sit behind semantic content', css.includes('.traceWires') && css.includes('z-index: -1') && css.includes('pointer-events: none'));
 ok('Connectors stay black on the red field', css.includes('.traceWires path') && css.includes('fill: var(--trace-black)'));
 ok('Connectors are a filled SNS track', surface.includes('P5 SNS track') && css.includes('fill: var(--trace-black)') && css.includes('stroke: none') && css.includes('drop-shadow'));
-ok('Route uses the crimson / black / white treatment', css.includes('--trace-red: #c90000') && css.includes('background: var(--trace-red)') && css.includes('background: var(--trace-black)'));
+ok('Route uses the crimson / black / white treatment', css.includes('--field: #c90000') && css.includes('background: var(--trace-red)') && css.includes('background: var(--trace-black)'));
 ok('Nodes use skewed, offset geometry and pointed tails', css.includes('skewX(-8deg)') && css.includes('border-top: 15px solid var(--node-fill)'));
 ok('Desktop zig-zag rows alternate sides', css.includes('.traceRow-left') && css.includes('.traceRow-right'));
 ok('Batches stack along the SNS track', css.includes('flex-direction: column') && css.includes('.batchRow:nth-child(even)'));

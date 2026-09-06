@@ -11,7 +11,7 @@ import { canonicalSourceKey } from './research-state';
  */
 
 export type RunState = 'starting' | 'researching' | 'completed' | 'failed' | 'ingesting' | 'ingested';
-export type IngestRunState = 'idle' | 'importing' | 'imported' | 'failed';
+export type IngestRunState = 'idle' | 'importing' | 'partial' | 'imported' | 'failed';
 
 export type MilestoneStatus = 'pending' | 'created';
 export type BatchStatus = 'pending' | 'running' | 'completed' | 'failed';
@@ -36,6 +36,8 @@ export interface BatchNode {
   error?: string;
   /** Seeded from the brief plan rather than a live tool event. */
   planned: boolean;
+  /** Stable owner for repeated executions of the same query. */
+  sourceId?: string;
 }
 
 export interface CheckpointNode {
@@ -56,7 +58,7 @@ export interface RankedNode {
   status: 'pending' | 'running' | 'completed';
 }
 
-export type IngestStatus = 'locked' | 'ready' | 'importing' | 'imported' | 'import-failed';
+export type IngestStatus = 'locked' | 'ready' | 'importing' | 'import-partial' | 'imported' | 'import-failed';
 
 export interface IngestNode {
   kind: 'ingest';
@@ -166,21 +168,23 @@ function buildCheckpoints(
     const iteration = fact.iteration ?? 0;
     const checkpoint = byIteration.get(iteration) ?? createVirtual(byIteration, iteration);
     for (const query of fact.queries.length > 0 ? fact.queries : [fact.query ?? '']) {
-      const id = `batch-${iteration}:${query}`;
-      let batch = checkpoint.batches.find((item) => item.id === id);
+      const plannedBatch = checkpoint.batches.find((item) => item.planned && item.query === query && item.status === 'pending');
+      let batch = plannedBatch ?? checkpoint.batches.find((item) => item.sourceId === fact.id && item.query === query);
       if (!batch) {
         batch = {
           kind: 'batch',
-          id,
+          id: `batch-${iteration}:${fact.id}:${query}`,
           query,
           tool: fact.tool,
           status: 'pending',
           newCount: 0,
           zero: false,
           planned: false,
+          sourceId: fact.id,
         };
         (checkpoint.batches as BatchNode[]).push(batch);
       }
+      batch.sourceId = fact.id;
       batch.tool = batch.tool ?? fact.tool;
       batch.status = fact.status;
       batch.error = fact.status === 'failed' ? fact.error : undefined;
@@ -255,6 +259,7 @@ function buildIngestStatus(runState: RunState, ingestState: IngestRunState): Ing
   if (runState === 'ingested') return 'imported';
   // completed: ranking produced the final deduplicated list
   if (ingestState === 'importing') return 'importing';
+  if (ingestState === 'partial') return 'import-partial';
   if (ingestState === 'imported') return 'imported';
   if (ingestState === 'failed') return 'import-failed';
   return 'ready';

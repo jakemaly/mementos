@@ -248,10 +248,6 @@
     transform: none;
   }
 
-  .navNumber {
-    display: none;
-  }
-
   .navCopy {
     display: block;
     font-size: 0.75rem;

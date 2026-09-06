@@ -600,9 +600,14 @@
 /* ── Research trace surface (View B) ─────────────────────────────── */
 
 .traceMain {
-  --trace-red: #c90000;
-  --trace-black: #000;
-  --trace-white: #fff;
+  --field: #c90000;
+  --ink: #000;
+  --paper: #fff;
+  --label: #ffb3b8;
+  --quiet: #c7c0b8;
+  --trace-red: var(--field);
+  --trace-black: var(--ink);
+  --trace-white: var(--paper);
   flex: 1;
   min-width: 0;
   min-height: 100%;
@@ -665,7 +670,8 @@
   border-left-color: var(--success);
 }
 
-.statusStamp.status-failed {
+.statusStamp.status-failed,
+.statusStamp.statusPartial {
   border-left-color: var(--error);
 }
 
@@ -675,7 +681,6 @@
   width: 1.2rem;
   height: 1.2rem;
   border: 2px solid currentColor;
-  border-radius: 50%;
   color: var(--red-bright);
   font-size: 0.72rem;
   font-weight: 900;
@@ -686,7 +691,8 @@
   color: #9bc6a6;
 }
 
-.status-failed .statusMark {
+.status-failed .statusMark,
+.statusPartial .statusMark {
   color: #f3a29f;
 }
 
@@ -1482,8 +1488,20 @@
 
 @media (prefers-reduced-motion: reduce) {
   .traceWires path,
-  .traceMarkerRunning {
+  .traceMarkerRunning,
+  .milestoneCard,
+  .checkpointCard,
+  .rankedCard,
+  .batchCard,
+  .batchRow:nth-child(even) .batchCard,
+  .ingestNode,
+  .milestoneCard > *,
+  .checkpointCard > *,
+  .rankedCard > *,
+  .batchCard > *,
+  .ingestNode > * {
     animation: none;
+    transform: none;
   }
 }
 

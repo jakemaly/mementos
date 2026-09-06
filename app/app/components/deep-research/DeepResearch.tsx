@@ -154,6 +154,7 @@ export function DeepResearch({
 
         const decoder = new TextDecoder();
         let buffer = '';
+        let terminalEvent = false;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -175,6 +176,7 @@ export function DeepResearch({
               const record = asRecord(data);
 
               if (eventType === 'done') {
+                terminalEvent = true;
                 const finalSourceData = Array.isArray(record.sources) ? record.sources : [];
                 appendTraceEvent({
                   id: `done-${runId}`,
@@ -204,6 +206,7 @@ export function DeepResearch({
                   setRunState('completed');
                 }
               } else if (eventType === 'error') {
+                terminalEvent = true;
                 const errorPayload = isRecord(record.payload) ? record.payload : record;
                 const message = asText(errorPayload.message) || asText(errorPayload.error) || 'Research error';
                 appendTraceEvent({
@@ -221,6 +224,11 @@ export function DeepResearch({
               // Skip malformed SSE blocks
             }
           }
+        }
+
+        if (isCurrentRun(runId) && !terminalEvent) {
+          setErrorMessage('Research ended before a final result arrived');
+          setRunState('failed');
         }
       })
       .catch((err) => {

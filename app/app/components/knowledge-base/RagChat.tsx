@@ -123,10 +123,17 @@ export function RagChat({ collection, collections, unavailable, onCollectionChan
     } finally { if (turnRef.current === turnId) { setRunning(false); controllerRef.current = null; } }
   };
 
-  const stop = () => controllerRef.current?.abort();
-  const reset = () => { controllerRef.current?.abort(); turnRef.current = ''; setMessages([]); onNewChat(); };
+  const stop = () => {
+    turnRef.current = '';
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setRunning(false);
+  };
+  const reset = () => { controllerRef.current?.abort(); turnRef.current = ''; setRunning(false); setMessages([]); onNewChat(); };
   const latestMessage = messages[messages.length - 1];
-  const liveMessage = running ? 'Retrieving evidence…' : latestMessage?.status ? statusLabel(latestMessage.status) : '';
+  const liveMessage = running
+    ? statusLabel(latestMessage?.status === 'streaming' ? 'streaming' : 'retrieving')
+    : latestMessage?.status ? statusLabel(latestMessage.status) : '';
 
   return <section className={styles.chat} aria-label="RAG Chat">
     <p className={styles.liveStatus} role="status" aria-live="polite">{liveMessage}</p>
@@ -158,22 +165,26 @@ export function RagChat({ collection, collections, unavailable, onCollectionChan
       </div>
     </header>
 
-    <div className={styles.transcript} aria-live="off">
+    <div className={`${styles.thread} ${messages.length ? styles.threadActive : ''}`} aria-live="off">
+      {messages.length > 0 && <div className={styles.spine} aria-hidden="true" />}
       {messages.length === 0 && <p className={styles.emptyNotice}>No questions in this session. Ask the archive below.</p>}
       {messages.map((message) => {
         const assistant = message.role === 'assistant';
         return <article key={message.id} className={assistant ? styles.assistantMessage : styles.userMessage} aria-label={assistant ? 'Archive answer' : 'Your question'}>
-          <div className={styles.messageMeta}>
-            <span className={styles.messageLabel}>{assistant ? 'Archive' : 'You'}</span>
-            {message.status && <span className={styles.messageState}>{assistant ? statusLabel(message.status) : 'Question sent'}</span>}
+          <span className={styles.portrait} aria-hidden="true">{assistant ? 'KB' : 'YOU'}</span>
+          <div className={styles.bubble}>
+            <div className={styles.messageMeta}>
+              <span className={styles.messageLabel}>{assistant ? 'Archive' : 'You'}</span>
+              {message.status && <span className={styles.messageState}>{assistant ? statusLabel(message.status) : 'Question sent'}</span>}
+            </div>
+            <p className={styles.messageCopy}>{message.content || (message.status === 'retrieving' ? 'Retrieving evidence…' : '')}</p>
+            {assistant && message.sources?.length ? <div className={styles.inlineCitations} aria-label="Inline citations">
+              <span>Evidence</span>
+              {message.sources.map((source, index) => <a href={`#source-${message.id}-${source.id}`} key={source.id}>[{index + 1}]</a>)}
+            </div> : null}
+            {assistant && <CitationList sources={message.sources || []} anchorPrefix={message.id} />}
+            {assistant && message.status === 'complete' && message.content && <button type="button" className={styles.copyButton} onClick={() => void navigator.clipboard.writeText(message.content)}>Copy</button>}
           </div>
-          <p className={styles.messageCopy}>{message.content || (message.status === 'retrieving' ? 'Retrieving evidence…' : '')}</p>
-          {assistant && message.sources?.length ? <div className={styles.inlineCitations} aria-label="Inline citations">
-            <span>Evidence</span>
-            {message.sources.map((source, index) => <a href={`#source-${message.id}-${source.id}`} key={source.id}>[{index + 1}]</a>)}
-          </div> : null}
-          {assistant && <CitationList sources={message.sources || []} anchorPrefix={message.id} />}
-          {assistant && message.status === 'complete' && message.content && <button type="button" className={styles.copyButton} onClick={() => void navigator.clipboard.writeText(message.content)}>Copy</button>}
         </article>;
       })}
     </div>

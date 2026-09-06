@@ -32,6 +32,15 @@ _TURN_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}\Z")
 _MAX_QUERY_CHARS = 4_000
 _MAX_HISTORY_MESSAGES = 20
 _MAX_HISTORY_MESSAGE_CHARS = 4_000
+_THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+_THINK_OPEN = re.compile(r"<think>.*\Z", re.DOTALL | re.IGNORECASE)
+_REFERENCES = re.compile(r"(?:\n|^)[ \t]*#{1,6}[ \t]*References\b.*\Z", re.DOTALL | re.IGNORECASE)
+_SPECIAL_PREFIXES = ("<think>", "</think>", "### references")
+_CHAT_INSTRUCTIONS = (
+    "Do not output <think> tags or chain-of-thought. "
+    "Do not generate a References section or a ### References heading; "
+    "the product already lists sources. Keep inline [n] citation markers in the answer."
+)
 
 
 def collection_workspace(name: str) -> str:
@@ -103,9 +112,61 @@ def parse_chat_request(data: Any) -> ChatRequest:
     return ChatRequest(query, collection, turn_id, validated_history)
 
 
+def visible_answer(text: str) -> str:
+    """Drop model reasoning and the duplicate References appendix LightRAG prompts for."""
+    text = _THINK_BLOCK.sub("", text)
+    text = _THINK_OPEN.sub("", text)
+    return _REFERENCES.sub("", text)
+
+
+def _hold_special_suffix(buf: str) -> int:
+    """Keep a trailing prefix of <think> / ### References until the token is complete."""
+    if not buf:
+        return 0
+    window = buf[-20:]
+    lower = window.lower()
+    for index, _ in enumerate(lower):
+        piece = lower[index:]
+        core = piece.lstrip(" \n")
+        if any(special.startswith(piece) or (core and special.startswith(core)) for special in _SPECIAL_PREFIXES):
+            return len(window) - index
+    return 0
+
+
+class _VisibleAnswerStream:
+    def __init__(self) -> None:
+        self._raw = ""
+        self._sent = ""
+
+    def feed(self, chunk: str) -> str:
+        self._raw += chunk
+        hold = _hold_special_suffix(self._raw)
+        stable = self._raw[:-hold] if hold else self._raw
+        return self._emit(visible_answer(stable))
+
+    def flush(self) -> str:
+        return self._emit(visible_answer(self._raw))
+
+    def _emit(self, cleaned: str) -> str:
+        if not cleaned.startswith(self._sent):
+            return ""
+        extra = cleaned[len(self._sent):]
+        self._sent = cleaned
+        return extra
+
+
 async def query_with_sources(rag: LightRAG, query: str, conversation_history: Sequence[dict[str, str]] = ()) -> dict[str, Any]:
     """Run one retrieval/generation call that returns both stream and sources."""
-    return await rag.aquery_llm(query, QueryParam(mode="hybrid", stream=True, include_references=True, conversation_history=list(conversation_history)))
+    return await rag.aquery_llm(
+        query,
+        QueryParam(
+            mode="hybrid",
+            stream=True,
+            include_references=True,
+            conversation_history=list(conversation_history),
+            user_prompt=_CHAT_INSTRUCTIONS,
+        ),
+    )
 
 
 async def insert_with_provenance(rag: LightRAG, text: str, file_path: str) -> str:
@@ -163,10 +224,12 @@ async def stream_chat_events(
     response = result.get("llm_response", {})
     is_streaming = isinstance(response, dict) and response.get("is_streaming")
     iterator = response.get("response_iterator") if isinstance(response, dict) else None
+    visible = _VisibleAnswerStream()
     if not is_streaming or iterator is None:
         content = response.get("content", "") if isinstance(response, dict) else ""
-        if content:
-            yield {"event": "delta", "data": {"turn_id": request.turn_id, "text": str(content)}}
+        text = visible.feed(str(content)) + visible.flush()
+        if text:
+            yield {"event": "delta", "data": {"turn_id": request.turn_id, "text": text}}
     else:
         while True:
             next_task = asyncio.create_task(anext(iterator))
@@ -179,10 +242,15 @@ async def stream_chat_events(
                     return
                 await asyncio.sleep(0.01)
             try:
-                text = await next_task
+                chunk = await next_task
             except StopAsyncIteration:
                 break
-            yield {"event": "delta", "data": {"turn_id": request.turn_id, "text": str(text)}}
+            text = visible.feed(str(chunk))
+            if text:
+                yield {"event": "delta", "data": {"turn_id": request.turn_id, "text": text}}
+        text = visible.flush()
+        if text:
+            yield {"event": "delta", "data": {"turn_id": request.turn_id, "text": text}}
 
     yield {"event": "sources", "data": {"turn_id": request.turn_id, "sources": sources}}
     yield {"event": "done", "data": {"turn_id": request.turn_id}}

@@ -110,10 +110,10 @@ export function SourceList({
       {ingestResult && (
         <div className={styles.ingestResult} role="status" aria-live="polite">
           <strong className={ingestResult.success ? styles.ingestSuccess : ingestResult.partial ? styles.ingestWarning : styles.ingestFailed}>
-            {ingestResult.success
-              ? `Imported ${ingestResult.ingestedUrls.length} source${ingestResult.ingestedUrls.length === 1 ? '' : 's'} · ${ingestResult.totalChunks} chunks`
-              : ingestResult.partial
-                ? `Partially imported ${ingestResult.ingestedUrls.length} source${ingestResult.ingestedUrls.length === 1 ? '' : 's'} · ${ingestResult.totalChunks} chunks`
+            {ingestResult.partial
+              ? `Partially imported ${ingestResult.ingestedUrls.length} source${ingestResult.ingestedUrls.length === 1 ? '' : 's'} · ${ingestResult.totalChunks} chunks`
+              : ingestResult.success
+                ? `Imported ${ingestResult.ingestedUrls.length} source${ingestResult.ingestedUrls.length === 1 ? '' : 's'} · ${ingestResult.totalChunks} chunks`
                 : 'Import failed for all selected sources'}
           </strong>
           {ingestResult.failedUrls.length > 0 && (

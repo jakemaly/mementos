@@ -36,6 +36,7 @@ ok('Vector results show source, snippet, and score', vectorSearch.includes('resu
 ok('snippet disclosure is keyboard-accessible', vectorSearch.includes('aria-expanded={expanded.has(result.id)}'));
 ok('Chat sends collection-bound SSE requests', ragChat.includes("fetch('/api/rag/query'") && ragChat.includes('collection, turn_id: turnId, history'));
 ok('Chat supports Stop, New chat, and Copy', ragChat.includes('controllerRef.current?.abort()') && ragChat.includes('>New chat</button>') && ragChat.includes('navigator.clipboard.writeText(message.content)'));
+ok('Stopping a chat invalidates late stream events', ragChat.includes("turnRef.current = '';" ) && ragChat.includes('setRunning(false)'));
 ok('Chat rejects late events and bounds history', ragChat.includes('turnRef.current !== turnId') && ragChat.includes('.slice(-20)'));
 ok('Composer supports Enter send and Shift+Enter newline', chatComposer.includes("event.key === 'Enter' && !event.shiftKey"));
 ok('Chat composer includes collection selection', ragChat.includes('onCollectionChange(event.target.value)'));
@@ -46,10 +47,13 @@ ok('Chat can explicitly backfill LightRAG from Qdrant', ragChat.includes('Index 
 ok('Chat renders deduplicated sources and inline markers', ragChat.includes("event === 'sources'") && ragChat.includes('href={`#source-${message.id}-${source.id}`}'));
 ok('external citations are safe and local sources stay text', citations.includes('rel="noreferrer"') && citations.includes('source.path'));
 ok('citations are grouped as a source index', citations.includes('Source index') && citations.includes('aria-labelledby'));
+ok('citations deduplicate canonical source URLs', citations.includes('citationKey') && citations.includes('url.hash ='));
 ok('vector search reports explicit result state', vectorSearch.includes("status === 'results'") && vectorSearch.includes('matches'));
 ok('archive uses the SNS track and chat bubbles', knowledgeBaseCss.includes('.spine') && knowledgeBaseCss.includes('.threadActive') && knowledgeBaseCss.includes('repeat-y') && knowledgeBaseCss.includes('--kb-red'));
 ok('chat track appears only after a message', ragChat.includes('messages.length > 0 &&') && ragChat.includes('threadActive'));
 ok('vector track appears only after a search', vectorSearch.includes('submitted ?') && vectorSearch.includes('threadActive'));
+ok('Vector search clears stale results before replacement', vectorSearch.includes('setResults([]);') && vectorSearch.includes("setStatus('loading')"));
+ok('Vector controls share one composer area', vectorSearch.includes('vectorComposer') && vectorSearch.includes('vectorFields'));
 ok('drawer is hidden by default and uses dialog semantics', drawer.includes('if (!open) return null') && drawer.includes('role="dialog"'));
 ok('drawer retains a partial-failure file and restores focus', drawer.includes("if (data.status === 'complete') setFile(null)") && drawer.includes("getElementById('collection-settings-trigger')?.focus()"));
 ok('drawer traps Tab focus while open', drawer.includes("event.key === 'Tab'") && drawer.includes('drawerRef.current.querySelectorAll'));

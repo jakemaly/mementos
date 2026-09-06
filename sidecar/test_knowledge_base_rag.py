@@ -19,6 +19,7 @@ from knowledge_base import (
     query_with_sources,
     read_collection_stats,
     stream_chat_events,
+    visible_answer,
 )
 
 
@@ -96,6 +97,9 @@ async def test_capabilities_adapter_passes_history_to_the_single_public_query_ca
     assert param.stream is True
     assert param.include_references is True
     assert param.conversation_history == history
+    assert param.user_prompt
+    assert "<think>" in param.user_prompt
+    assert "### References" in param.user_prompt
 
 
 @pytest.mark.asyncio
@@ -313,6 +317,41 @@ async def test_stream_emits_ordered_deltas_deduplicated_sources_and_one_terminal
         {"id": "2", "path": "notes.md", "snippet": "second"},
     ]
     assert events[-1]["data"] == {"turn_id": "turn-1"}
+
+
+def test_visible_answer_strips_think_tags_and_references_section():
+    assert visible_answer("Hello <think>secret</think> world\n### References\n- [1] Doc") == "Hello  world"
+    assert visible_answer("<think>still open") == ""
+    assert visible_answer("Body\n### References - [1] xyz") == "Body"
+
+
+@pytest.mark.asyncio
+async def test_stream_strips_think_tags_and_references_across_chunks():
+    async def chunks():
+        yield "Hello <th"
+        yield "ink>hidden</th"
+        yield "ink> world"
+        yield "\n### Refer"
+        yield "ences\n- [1] Doc"
+
+    class FakeRAG:
+        async def aquery_llm(self, query, param):
+            return {"data": {"chunks": [{"reference_id": "1", "file_path": "notes.md", "content": "proof"}]}, "llm_response": {"is_streaming": True, "response_iterator": chunks()}}
+
+    events = [event async for event in stream_chat_events(FakeRAG(), parse_chat_request({"query": "question", "collection": "default", "turn_id": "turn-1", "history": []}), lambda: False)]
+    answer = "".join(event["data"]["text"] for event in events if event["event"] == "delta")
+    assert answer == "Hello  world"
+    assert "<think>" not in answer
+    assert "References" not in answer
+    assert "hidden" not in answer
+
+
+def test_llm_chat_template_disables_thinking():
+    import sys
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent))
+    import main as main_module
+    source = inspect.getsource(main_module._create_llm_func)
+    assert 'chat_kwargs["enable_thinking"] = False' in source
 
 
 @pytest.mark.asyncio

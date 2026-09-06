@@ -107,7 +107,7 @@ function CallingCardArt({ text }: { text: string }) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  useEffect(() => {
+  const draw = useCallback(() => {
     const frame = frameRef.current;
     const canvas = canvasRef.current;
     if (!frame || !canvas) return;
@@ -115,6 +115,7 @@ function CallingCardArt({ text }: { text: string }) {
     const width = Math.max(320, frame.clientWidth || 640);
     const lines = wrapQueryLines(text, width);
     const lineCanvases = lines.map((line) => createCallingCardText(line, { fontSize: CALLING_CARD_FONT_SIZE }));
+    if (lineCanvases.length === 0) return;
     const gap = 12;
     const totalWidth = Math.max(...lineCanvases.map((item) => item.width));
     const totalHeight = lineCanvases.reduce((sum, item) => sum + item.height, 0) + gap * Math.max(0, lineCanvases.length - 1);
@@ -130,6 +131,15 @@ function CallingCardArt({ text }: { text: string }) {
       y += line.height + gap;
     }
   }, [text]);
+
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    draw();
+    const observer = new ResizeObserver(draw);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [draw]);
 
   return (
     <div ref={frameRef} className={styles.callingCardFrame}>
@@ -375,11 +385,13 @@ export function TraceSurface({
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
   const isRunning = runState === 'starting' || runState === 'researching';
-  const status = statusCopy(runState);
+  const status = ingestResult?.partial && runState === 'ingested'
+    ? { label: 'Partially imported', detail: 'Some selected evidence needs review.' }
+    : statusCopy(runState);
 
   const ingestState = !ingestResult
     ? runState === 'ingesting' ? 'importing' : 'idle'
-    : ingestResult.success ? 'imported' : 'failed';
+    : ingestResult.partial ? 'partial' : ingestResult.success ? 'imported' : 'failed';
 
   const route = useMemo(
     () => buildTraceRoute({ projection: traceProjection, runState, ingestState }),
@@ -483,8 +495,8 @@ export function TraceSurface({
       <header className={styles.traceUtility}>
         <span id="trace-surface-title" className={styles.workspaceKicker}>02 / Deep Research · research trace</span>
         <div className={styles.statusContext}>
-          <div className={`${styles.statusStamp} ${styles[`status-${runState}`]}`} role="status" aria-live="polite">
-            <span className={styles.statusMark} aria-hidden="true">{runState === 'failed' ? '!' : runState === 'ingested' ? '✓' : '•'}</span>
+          <div className={`${styles.statusStamp} ${styles[`status-${runState}`]} ${ingestResult?.partial ? styles.statusPartial : ''}`} role="status" aria-live="polite">
+            <span className={styles.statusMark} aria-hidden="true">{runState === 'failed' || ingestResult?.partial ? '!' : runState === 'ingested' ? '✓' : '•'}</span>
             <span>
               <strong>{status.label}</strong>
               <small>{status.detail}</small>
@@ -510,7 +522,7 @@ export function TraceSurface({
         <p className={styles.traceQueryText}>{query}</p>
       </section>
 
-      {runState === 'failed' && errorMessage && (
+      {errorMessage && (
         <p className={styles.workspaceError} role="alert">{errorMessage}</p>
       )}
 
@@ -644,7 +656,7 @@ export function TraceSurface({
                     onIngest={onIngest}
                     ingestDisabled={ingestDisabled}
                     ingestResult={ingestResult}
-                    errorMessage={''}
+                    errorMessage={errorMessage}
                   />
                 </div>
               </section>
@@ -668,6 +680,10 @@ function ingestCopy(ingest: IngestNode, sourceCount: number, ingestResult: Inges
       return ingestResult
         ? `Imported ${ingestResult.ingestedUrls.length} source${ingestResult.ingestedUrls.length === 1 ? '' : 's'} · ${ingestResult.totalChunks} chunks.`
         : 'Selected evidence is in the collection.';
+    case 'import-partial':
+      return ingestResult
+        ? `Partially imported ${ingestResult.ingestedUrls.length} source${ingestResult.ingestedUrls.length === 1 ? '' : 's'} · review failed sources.`
+        : 'Some selected evidence needs review.';
     case 'import-failed': return 'Import failed — review the sources below to retry.';
   }
 }

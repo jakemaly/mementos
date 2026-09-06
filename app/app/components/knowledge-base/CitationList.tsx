@@ -16,8 +16,18 @@ interface CitationListProps {
   anchorPrefix?: string;
 }
 
+function citationKey(source: CitationSource): string {
+  try {
+    const url = new URL(source.path);
+    url.hash = '';
+    return url.href.replace(/\/$/, '');
+  } catch {
+    return source.path.trim().toLowerCase() || source.id;
+  }
+}
+
 export function CitationList({ sources, anchorPrefix = '' }: CitationListProps) {
-  const uniqueSources = Array.from(new Map(sources.map((source) => [source.id, source])).values());
+  const uniqueSources = Array.from(new Map(sources.map((source) => [citationKey(source), source])).values());
   if (!uniqueSources.length) return null;
 
   return <section className={styles.sourceIndex} aria-labelledby={`${anchorPrefix}-source-index`}>

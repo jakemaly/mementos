@@ -104,7 +104,7 @@ a {
 ::-webkit-scrollbar-thumb {
   background: var(--quiet);
   border: 2px solid var(--paper-deep);
-  border-radius: 999px;
+  border-radius: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
