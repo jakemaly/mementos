@@ -184,7 +184,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .header h2,
-  .drawer button {
+  .drawer button,
+  .drawer button:hover:not(:disabled) {
     transform: none;
   }
 }

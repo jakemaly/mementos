@@ -284,7 +284,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .destination,
-  .contextAction {
+  .destination:hover:not(:disabled),
+  .destination[aria-current='page'],
+  .destination > *,
+  .contextAction,
+  .contextAction:hover {
     transform: none;
   }
 }
