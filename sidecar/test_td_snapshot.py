@@ -81,11 +81,13 @@ def test_retrieval_response_uses_the_same_snapshot_as_its_entity_ids(tmp_path, m
 
 def test_insert_refreshes_the_graph_before_returning_success(monkeypatch):
     class FakeRag:
-        async def ainsert(self, text):
+        async def ainsert(self, text, *, file_paths):
             assert text == "New knowledge"
+            assert file_paths == "notes.md"
             return "track-1"
 
-    async def fake_get_rag():
+    async def fake_get_rag(collection):
+        assert collection == "default"
         return FakeRag()
 
     async def fake_refresh():
@@ -95,7 +97,7 @@ def test_insert_refreshes_the_graph_before_returning_success(monkeypatch):
     monkeypatch.setattr(main, "refresh_graph_dump", fake_refresh)
 
     with TestClient(main.app) as client:
-        response = client.post("/insert", json={"text": "New knowledge"})
+        response = client.post("/insert", json={"text": "New knowledge", "collection": "default", "filename": "notes.md"})
 
     assert response.status_code == 200
     assert response.json()["graph_snapshot_id"] == "fresh-snapshot"

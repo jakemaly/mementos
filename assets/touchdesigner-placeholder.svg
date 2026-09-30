@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" role="img" aria-labelledby="title description">
+  <title id="title">TouchDesigner visual placeholder</title>
+  <desc id="description">Add your graph render or animation here. This is a placeholder, not a project capture.</desc>
+  <rect width="1200" height="600" rx="16" fill="#f6f5f2"/>
+  <rect x="24" y="24" width="1152" height="552" rx="8" fill="none" stroke="#d4d1ca" stroke-width="2" stroke-dasharray="8 8"/>
+  <g fill="#383832" text-anchor="middle" font-family="Arial, Helvetica, sans-serif">
+    <text x="600" y="280" font-size="36">TouchDesigner visual</text>
+    <text x="600" y="330" font-size="22" fill="#66665e">Add your graph render or animation here</text>
+    <text x="600" y="520" font-size="16" fill="#66665e">PLACEHOLDER</text>
+  </g>
+</svg>

@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Mementos - Dashboard",
-  description: "Minimalist glassmorphic vector ingestion and retrieval dashboard.",
+  title: "Mementos",
+  description: "AI research, personal knowledge, and graph retrieval.",
 };
 
 export default function RootLayout({
