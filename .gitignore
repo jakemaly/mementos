@@ -28,3 +28,13 @@ venv/
 .loop/
 sidecar/data/
 sidecar/graph_dump.json
+
+# Local agent/editor state and generated caches
+/.cursor/
+/.claude/
+/.codex/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.log

@@ -45,6 +45,7 @@ async def test_tavily_search_success():
         observed: list[tuple[str, list[dict]]] = []
         sources = await tavily_search(
             ["example query"],
+            _api_key="test-key",
             on_query_results=lambda query, result: observed.append((query, result)),
         )
         assert len(sources) == 1
@@ -68,6 +69,7 @@ async def test_tavily_deduplicates_same_url_across_queries():
         observed: list[tuple[str, list[dict]]] = []
         sources = await tavily_search(
             ["first", "second"],
+            _api_key="test-key",
             on_query_results=lambda query, result: observed.append((query, result)),
         )
 

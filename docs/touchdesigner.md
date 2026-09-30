@@ -7,7 +7,7 @@ one `graph_dump.json` version with retrieval results from another.
 
 - `GET /td/graph` returns the complete `graph_dump.json` payload plus a
   content-addressed `snapshot_id`.
-- `POST /insert` rebuilds and atomically publishes the dump after LightRAG
+- `POST /insert` with `collection: "default"` rebuilds and atomically publishes the dump after LightRAG
   finishes indexing. Its success response includes `graph_snapshot_id`.
 - `POST /td/refresh` retries the dump rebuild without indexing another document.
 - A missing or unbuildable snapshot returns HTTP 503. TD should retain its last

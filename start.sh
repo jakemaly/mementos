@@ -25,7 +25,7 @@ docker compose -f "$ROOT/app/docker-compose.yml" up -d
 # 3. Start sidecar
 echo "Starting sidecar..."
 cd "$ROOT/sidecar"
-python -m venv venv 2>/dev/null || true
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt -q
 uvicorn main:app --host 0.0.0.0 --port 8000 &
@@ -34,7 +34,7 @@ SIDECAR_PID=$!
 # 4. Start frontend
 echo "Starting frontend..."
 cd "$ROOT/app"
-npm install --silent
+npm ci --silent
 npm run dev &
 FRONTEND_PID=$!
 
