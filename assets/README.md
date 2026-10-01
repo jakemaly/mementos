@@ -1,11 +1,13 @@
 # Portfolio media
 
-The root README has three labeled placeholders. Replace them with your own captures, then update the three image paths in `README.md`:
+The root README uses these captures:
 
-| Slot | Suggested file | Capture |
-| --- | --- | --- |
-| TouchDesigner visual | `touchdesigner.png` | The rendered knowledge graph; a short GIF also works. |
-| Deep Research | `research.png` | A completed run showing its route and sources. |
-| Knowledge Base | `knowledge-base.png` | A document query with its answer and citations. |
+| File | Capture |
+| --- | --- |
+| `touchdesigner-demo.gif` | Animated preview of the TouchDesigner recording. |
+| `touchdesigner-demo.mp4` | Full 13-second recording, encoded as an MP4 for playback. |
+| `research-entry.png` | Deep Research question entry. |
+| `research-trace.png` | Research route and expected-result sketch. |
+| `research-sources.png` | Ranked evidence ready to import. |
 
-Keep media in this folder. Use a small demo corpus and crop out API keys, private notes, and personal source content. For a longer video, link to a hosted clip below the TouchDesigner image.
+The screenshots are unmodified originals. The recording is available as a 1920-pixel-wide MP4 with a smaller animated GIF preview. Click the preview or video link in the README to watch it.
